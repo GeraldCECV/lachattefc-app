@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, setDoc, getDoc, query, orderBy, limit, serverTimestamp, addDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc, getDoc, updateDoc, query, orderBy, limit, serverTimestamp, addDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 
@@ -167,6 +167,10 @@ export default function Pronos() {
         journeeId: journee.id,
         applique: false,
       })
+      // Débiter le missile dans le profil joueur
+      const newStock = bonusStock.missile - 1
+      await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': newStock })
+      setBonusStock(prev => ({ ...prev, missile: newStock }))
       setMissileMsg('✅ Missile lancé !')
       setTimeout(() => { setShowMissileModal(false); setMissileMsg(''); setMissileData({cible:null,matchKey:null,prono:null}); setMissileStep(1) }, 1500)
     } catch(e) { setMissileMsg('Erreur : '+e.message) }
@@ -423,8 +427,22 @@ export default function Pronos() {
                 {isDC && <span className="pill pill-p">2️⃣ DC</span>}
                 {isSelectingBonus && !isJP && !isDC && (
                   <button onClick={()=>{
-                    if (activeBonus.type==='jackpot') { setJackpotMatch(key); setActiveBonus(null) }
-                    if (activeBonus.type==='dc') { setDcMatch(key); setActiveBonus(null) }
+                    if (activeBonus.type==='jackpot') {
+                      setJackpotMatch(key)
+                      setActiveBonus(null)
+                      // Débiter jackpot
+                      const nj = bonusStock.jackpot - 1
+                      updateDoc(doc(db,'joueurs',user.uid), { 'bonus.jackpot': nj })
+                      setBonusStock(prev => ({ ...prev, jackpot: nj }))
+                    }
+                    if (activeBonus.type==='dc') {
+                      setDcMatch(key)
+                      setActiveBonus(null)
+                      // Débiter DC
+                      const nd = bonusStock.doubleChance - 1
+                      updateDoc(doc(db,'joueurs',user.uid), { 'bonus.doubleChance': nd })
+                      setBonusStock(prev => ({ ...prev, doubleChance: nd }))
+                    }
                   }} style={{
                     padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
                     borderColor:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
@@ -473,8 +491,20 @@ export default function Pronos() {
             </div>
             {(activeBonus?.type==='jackpot'||activeBonus?.type==='dc') && jackpotMatch!=='euro' && dcMatch!=='euro' && (
               <button onClick={()=>{
-                if (activeBonus.type==='jackpot') { setJackpotMatch('euro'); setActiveBonus(null) }
-                if (activeBonus.type==='dc') { setDcMatch('euro'); setActiveBonus(null) }
+                if (activeBonus.type==='jackpot') {
+                  setJackpotMatch('euro')
+                  setActiveBonus(null)
+                  const nj = bonusStock.jackpot - 1
+                  updateDoc(doc(db,'joueurs',user.uid), { 'bonus.jackpot': nj })
+                  setBonusStock(prev => ({ ...prev, jackpot: nj }))
+                }
+                if (activeBonus.type==='dc') {
+                  setDcMatch('euro')
+                  setActiveBonus(null)
+                  const nd = bonusStock.doubleChance - 1
+                  updateDoc(doc(db,'joueurs',user.uid), { 'bonus.doubleChance': nd })
+                  setBonusStock(prev => ({ ...prev, doubleChance: nd }))
+                }
               }} style={{
                 padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
                 borderColor:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
