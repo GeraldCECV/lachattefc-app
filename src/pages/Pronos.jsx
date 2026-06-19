@@ -144,6 +144,21 @@ export default function Pronos() {
         dcChoices: dcChoices.length > 0 ? dcChoices : null,
       }
       await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
+
+      // Débiter les bonus utilisés au moment de l'envoi
+      const bonusUpdate = {}
+      if (jackpotMatch && !existingProno?.jackpotMatch) {
+        bonusUpdate['bonus.jackpot'] = Math.max(0, bonusStock.jackpot - 1)
+        setBonusStock(prev => ({ ...prev, jackpot: Math.max(0, prev.jackpot - 1) }))
+      }
+      if (dcMatch && dcChoices.length === 2 && !existingProno?.dcMatch) {
+        bonusUpdate['bonus.doubleChance'] = Math.max(0, bonusStock.doubleChance - 1)
+        setBonusStock(prev => ({ ...prev, doubleChance: Math.max(0, prev.doubleChance - 1) }))
+      }
+      if (Object.keys(bonusUpdate).length > 0) {
+        await updateDoc(doc(db,'joueurs',user.uid), bonusUpdate)
+      }
+
       setExistingProno(data)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
@@ -430,18 +445,10 @@ export default function Pronos() {
                     if (activeBonus.type==='jackpot') {
                       setJackpotMatch(key)
                       setActiveBonus(null)
-                      // Débiter jackpot
-                      const nj = bonusStock.jackpot - 1
-                      updateDoc(doc(db,'joueurs',user.uid), { 'bonus.jackpot': nj })
-                      setBonusStock(prev => ({ ...prev, jackpot: nj }))
                     }
                     if (activeBonus.type==='dc') {
                       setDcMatch(key)
                       setActiveBonus(null)
-                      // Débiter DC
-                      const nd = bonusStock.doubleChance - 1
-                      updateDoc(doc(db,'joueurs',user.uid), { 'bonus.doubleChance': nd })
-                      setBonusStock(prev => ({ ...prev, doubleChance: nd }))
                     }
                   }} style={{
                     padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
@@ -494,16 +501,10 @@ export default function Pronos() {
                 if (activeBonus.type==='jackpot') {
                   setJackpotMatch('euro')
                   setActiveBonus(null)
-                  const nj = bonusStock.jackpot - 1
-                  updateDoc(doc(db,'joueurs',user.uid), { 'bonus.jackpot': nj })
-                  setBonusStock(prev => ({ ...prev, jackpot: nj }))
                 }
                 if (activeBonus.type==='dc') {
                   setDcMatch('euro')
                   setActiveBonus(null)
-                  const nd = bonusStock.doubleChance - 1
-                  updateDoc(doc(db,'joueurs',user.uid), { 'bonus.doubleChance': nd })
-                  setBonusStock(prev => ({ ...prev, doubleChance: nd }))
                 }
               }} style={{
                 padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
