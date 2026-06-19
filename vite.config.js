@@ -7,18 +7,34 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      includeAssets: ['apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'La Chatte FC',
         short_name: 'La Chatte',
-        description: 'Concours de pronos La Chatte FC',
-        theme_color: '#0A0A0C',
-        background_color: '#0A0A0C',
+        description: 'Concours de pronos La Chatte FC — Saison 25/26',
+        theme_color: '#07100C',
+        background_color: '#07100C',
         display: 'standalone',
         orientation: 'portrait',
+        start_url: '/',
+        scope: '/',
         icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+          {
+            src: '/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable'
+          },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
         ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}']
       }
     })
   ],
