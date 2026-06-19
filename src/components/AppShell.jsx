@@ -29,8 +29,7 @@ export default function AppShell() {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
-      {/* Status bar spacer */}
-      <div style={{ height: 'calc(44px + env(safe-area-inset-top, 0px))', flexShrink: 0, background: 'var(--bg)' }} />
+
 
       {/* Page content */}
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>

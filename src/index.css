@@ -19,12 +19,16 @@
   --safe-bot: env(safe-area-inset-bottom, 0px);
 }
 
-html, body, #root {
+html {
   height: 100%;
-  overflow: hidden;
+  height: -webkit-fill-available;
 }
 
 body {
+  min-height: 100%;
+  min-height: -webkit-fill-available;
+  height: 100%;
+  overflow: hidden;
   background: var(--bg);
   color: var(--tx);
   font-family: var(--F);
@@ -32,6 +36,14 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
+  /* Couvre toute la zone y compris encoche/Dynamic Island */
+  padding-top: env(safe-area-inset-top);
+  padding-top: constant(safe-area-inset-top);
+}
+
+#root {
+  height: 100%;
+  min-height: -webkit-fill-available;
 }
 
 /* Scrollable content area */
@@ -45,8 +57,8 @@ body {
 }
 .scroll-area::-webkit-scrollbar { display: none; }
 
-/* Status bar spacer */
-.safe-top { height: calc(48px + var(--safe-top)); }
+/* Status bar spacer — env() handled by body padding-top */
+.safe-top { height: 0; }
 
 /* Tab bar */
 .tab-bar {
