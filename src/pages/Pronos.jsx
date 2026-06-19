@@ -1,12 +1,52 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, setDoc, getDoc, query, orderBy, limit, serverTimestamp } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc, getDoc, query, orderBy, limit, serverTimestamp, addDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
+
+// ── Helpers ──
+const RESULT_COLORS = {
+  '1': { sel:'var(--b)', dim:'var(--b-dim)', label:'🏠 1' },
+  'N': { sel:'var(--a)', dim:'var(--a-dim)', label:'= N' },
+  '2': { sel:'var(--p)', dim:'var(--p-dim)', label:'✈ 2' },
+}
+
+function PronoBtn({ val, selected, onClick, disabled }) {
+  const c = RESULT_COLORS[val]
+  const isSel = selected === val
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      flex:1, height:42, borderRadius:10,
+      border:`1.5px solid ${isSel ? c.sel : 'rgba(255,255,255,.13)'}`,
+      background: isSel ? c.dim : 'rgba(255,255,255,.04)',
+      color: isSel ? c.sel : 'rgba(255,255,255,.4)',
+      fontSize:14, fontWeight:700, cursor: disabled ? 'not-allowed' : 'pointer',
+      transition:'all .15s', opacity: disabled ? .5 : 1,
+    }}>
+      {c.label}
+    </button>
+  )
+}
+
+function DcBtn({ val, selected, onClick }) {
+  const c = RESULT_COLORS[val]
+  const isSel = selected?.includes(val)
+  return (
+    <button onClick={onClick} style={{
+      flex:1, height:42, borderRadius:10,
+      border:`1.5px solid ${isSel ? c.sel : 'rgba(255,255,255,.13)'}`,
+      background: isSel ? c.dim : 'rgba(255,255,255,.04)',
+      color: isSel ? c.sel : 'rgba(255,255,255,.4)',
+      fontSize:14, fontWeight:700, cursor:'pointer', transition:'all .15s',
+    }}>
+      {c.label} {isSel ? '✓' : ''}
+    </button>
+  )
+}
 
 export default function Pronos() {
   const { profil, user } = useUser()
   const [journee, setJournee] = useState(null)
-  const [pronos, setPronos] = useState({}) // { matchScorer: '2-1', matchesL1: ['1','N',...], matchEuro: '2' }
+  const [pronos, setPronos] = useState({ matchesL1: Array(8).fill(null), matchEuro: null, matchScorer: null })
   const [existingProno, setExistingProno] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -15,35 +55,49 @@ export default function Pronos() {
   const [scorerA, setScorerA] = useState(0)
   const [deadlinePassed, setDeadlinePassed] = useState(false)
 
+  // Bonus state
+  const [bonusStock, setBonusStock] = useState({ missile:5, jackpot:3, doubleChance:4 })
+  const [activeBonus, setActiveBonus] = useState(null) // { type:'jackpot'|'dc'|'missile', matchKey: null }
+  const [jackpotMatch, setJackpotMatch] = useState(null) // 'scorer'|'l1_0'|...|'euro'
+  const [dcMatch, setDcMatch] = useState(null) // 'l1_0' etc
+  const [dcChoices, setDcChoices] = useState([]) // ['1','N'] max 2
+  const [missileData, setMissileData] = useState({ cible:null, matchKey:null, prono:null })
+  const [joueurs, setJoueurs] = useState([])
+  const [showBonusPanel, setShowBonusPanel] = useState(null) // matchKey
+  const [showMissileModal, setShowMissileModal] = useState(false)
+  const [missileStep, setMissileStep] = useState(1) // 1=cible 2=match 3=prono
+  const [missileMsg, setMissileMsg] = useState('')
+
   useEffect(() => {
     const load = async () => {
-      const snap = await getDocs(query(collection(db, 'journees'), orderBy('numero', 'desc'), limit(1)))
+      const snap = await getDocs(query(collection(db,'journees'), orderBy('numero','desc'), limit(1)))
       if (snap.empty) { setLoading(false); return }
       const jDoc = snap.docs[0]
-      const j = { id: jDoc.id, ...jDoc.data() }
+      const j = { id:jDoc.id, ...jDoc.data() }
       setJournee(j)
+      if (j.deadline) setDeadlinePassed(new Date() > new Date(j.deadline.seconds*1000))
 
-      // Vérifier deadline
-      if (j.deadline) {
-        const dl = new Date(j.deadline.seconds * 1000)
-        setDeadlinePassed(new Date() > dl)
-      }
-
-      // Charger prono existant
       if (user) {
-        const pronoDoc = await getDoc(doc(db, 'journees', jDoc.id, 'pronos', user.uid))
+        // Charger prono existant
+        const pronoDoc = await getDoc(doc(db,'journees',jDoc.id,'pronos',user.uid))
         if (pronoDoc.exists()) {
           const data = pronoDoc.data()
           setExistingProno(data)
           setPronos(data)
           if (data.matchScorer) {
             const parts = data.matchScorer.split('-')
-            setScorerH(parseInt(parts[0]) || 0)
-            setScorerA(parseInt(parts[1]) || 0)
+            setScorerH(parseInt(parts[0])||0)
+            setScorerA(parseInt(parts[1])||0)
           }
-        } else {
-          setPronos({ matchesL1: Array(8).fill(null), matchEuro: null, matchScorer: null })
+          if (data.jackpotMatch) setJackpotMatch(data.jackpotMatch)
+          if (data.dcMatch) { setDcMatch(data.dcMatch); setDcChoices(data.dcChoices||[]) }
         }
+        // Charger bonus
+        const joueurDoc = await getDoc(doc(db,'joueurs',user.uid))
+        if (joueurDoc.exists()) setBonusStock(joueurDoc.data().bonus || { missile:5, jackpot:3, doubleChance:4 })
+        // Charger joueurs pour missile
+        const jSnap = await getDocs(collection(db,'joueurs'))
+        setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user.uid))
       }
       setLoading(false)
     }
@@ -52,17 +106,25 @@ export default function Pronos() {
 
   const setL1 = (idx, val) => {
     setPronos(prev => {
-      const arr = [...(prev.matchesL1 || Array(8).fill(null))]
+      const arr = [...(prev.matchesL1||Array(8).fill(null))]
       arr[idx] = val
-      return { ...prev, matchesL1: arr }
+      return {...prev, matchesL1:arr}
+    })
+  }
+
+  const toggleDc = (val) => {
+    setDcChoices(prev => {
+      if (prev.includes(val)) return prev.filter(v=>v!==val)
+      if (prev.length >= 2) return [prev[1], val]
+      return [...prev, val]
     })
   }
 
   const countFilled = () => {
     let n = 0
-    if (pronos.matchScorer) n++
+    if (pronos.matchScorer || (scorerH !== null)) n++
     if (pronos.matchEuro) n++
-    ;(pronos.matchesL1 || []).forEach(p => { if (p) n++ })
+    ;(pronos.matchesL1||[]).forEach(p => { if (p) n++ })
     return n
   }
 
@@ -76,247 +138,393 @@ export default function Pronos() {
         joueurId: user.uid,
         joueurNom: profil?.nom,
         soumisLe: serverTimestamp(),
+        // Bonus joués
+        jackpotMatch: jackpotMatch || null,
+        dcMatch: dcMatch || null,
+        dcChoices: dcChoices.length > 0 ? dcChoices : null,
       }
-      await setDoc(doc(db, 'journees', journee.id, 'pronos', user.uid), data)
+      await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
       setExistingProno(data)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
-    } catch(e) {
-      alert('Erreur : ' + e.message)
-    }
+    } catch(e) { alert('Erreur : '+e.message) }
     setSaving(false)
+  }
+
+  const submitMissile = async () => {
+    if (!missileData.cible || !missileData.matchKey || !missileData.prono) {
+      setMissileMsg('Complète toutes les étapes')
+      return
+    }
+    try {
+      await addDoc(collection(db,'journees',journee.id,'missiles'), {
+        lanceur: user.uid,
+        lanceurNom: profil?.nom,
+        cible: missileData.cible,
+        matchKey: missileData.matchKey,
+        pronoImpose: missileData.prono,
+        poseLe: serverTimestamp(),
+        journeeId: journee.id,
+        applique: false,
+      })
+      setMissileMsg('✅ Missile lancé !')
+      setTimeout(() => { setShowMissileModal(false); setMissileMsg(''); setMissileData({cible:null,matchKey:null,prono:null}); setMissileStep(1) }, 1500)
+    } catch(e) { setMissileMsg('Erreur : '+e.message) }
   }
 
   const total = 10
   const filled = countFilled()
-  const pct = Math.round(filled / total * 100)
+  const pct = Math.round(filled/total*100)
 
-  if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
-      <div className="spinner" style={{ width: 24, height: 24 }}></div>
-    </div>
-  )
+  const matchLabel = (key) => {
+    if (!journee) return key
+    if (key === 'scorer') return `🎯 ${journee.matchScorer?.dom||'?'} — ${journee.matchScorer?.ext||'?'}`
+    if (key === 'euro') return `🌍 ${journee.matchEuro?.dom||'?'} — ${journee.matchEuro?.ext||'?'}`
+    const i = parseInt(key.replace('l1_',''))
+    const m = journee.matchesL1?.[i]
+    return m ? `${m.dom} — ${m.ext}` : key
+  }
+
+  if (loading) return <div style={{display:'flex',justifyContent:'center',padding:60}}><div className="spinner" style={{width:24,height:24}}></div></div>
 
   if (!journee) return (
-    <div style={{ padding: 40, textAlign: 'center' }}>
-      <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
-      <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--tx)' }}>Aucune journée en cours</div>
-      <div style={{ fontSize: 13, color: 'var(--tx3)', marginTop: 6 }}>Le bureau n'a pas encore ouvert la prochaine journée</div>
+    <div style={{padding:40,textAlign:'center'}}>
+      <div style={{fontSize:48,marginBottom:12}}>📋</div>
+      <div style={{fontSize:16,fontWeight:600,color:'var(--tx)'}}>Aucune journée en cours</div>
+      <div style={{fontSize:13,color:'var(--tx3)',marginTop:6}}>Le bureau n'a pas encore ouvert la prochaine journée</div>
     </div>
   )
 
   if (deadlinePassed && !existingProno) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px 32px', textAlign: 'center' }}>
-      <div style={{ width: 80, height: 80, background: 'var(--r-dim)', border: '1px solid var(--r-b)', borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, marginBottom: 20 }}>🔒</div>
-      <div style={{ fontFamily: 'var(--D)', fontSize: 32, letterSpacing: '.04em', color: 'var(--tx)', marginBottom: 8 }}>Trop tard !</div>
-      <div style={{ fontSize: 14, color: 'var(--tx2)', lineHeight: 1.6, marginBottom: 20 }}>
-        La deadline de la journée {journee.numero} est passée.<br />
-        Tu es marqué <strong style={{ color: 'var(--r)' }}>ABS</strong> — pénalité −1pt.
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',padding:'24px 32px',textAlign:'center'}}>
+      <div style={{width:80,height:80,background:'var(--r-dim)',border:'1px solid var(--r-b)',borderRadius:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:36,marginBottom:20}}>🔒</div>
+      <div style={{fontFamily:'var(--D)',fontSize:32,letterSpacing:'.04em',color:'var(--tx)',marginBottom:8}}>Trop tard !</div>
+      <div style={{fontSize:14,color:'var(--tx2)',lineHeight:1.6,marginBottom:20}}>
+        La deadline de J{journee.numero} est passée.<br/>Tu es marqué <strong style={{color:'var(--r)'}}>ABS</strong> — pénalité −1pt.
       </div>
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 'var(--R)', padding: '14px 20px', width: '100%', textAlign: 'left' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>Prochaine journée</div>
-        <div style={{ fontSize: 14, fontWeight: 600 }}>J{journee.numero + 1} — ouverture lundi</div>
-        <div style={{ fontSize: 12, color: 'var(--tx3)', marginTop: 2 }}>Tu recevras une notification dès l'ouverture</div>
+      <div style={{background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:'var(--R)',padding:'14px 20px',width:'100%',textAlign:'left'}}>
+        <div style={{fontSize:10,fontWeight:700,color:'var(--tx3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:5}}>Prochaine journée</div>
+        <div style={{fontSize:14,fontWeight:600}}>J{journee.numero+1} — ouverture lundi</div>
       </div>
-    </div>
-  )
-
-  if (deadlinePassed && existingProno) return (
-    <div className="scroll-area">
-      <div style={{ padding: '16px 20px 0' }}>
-        <div style={{ fontFamily: 'var(--D)', fontSize: 28, letterSpacing: '.04em' }}>📜 Tes Pronos</div>
-        <div style={{ fontSize: 13, color: 'var(--tx2)', marginTop: 2 }}>J{journee.numero} · Fermée — en attente des résultats</div>
-      </div>
-      <div style={{ margin: '14px 16px', background: 'var(--g-dim)', border: '1px solid var(--g-b)', borderRadius: 'var(--Rs)', padding: '12px 16px', fontSize: 13, color: 'var(--g)', fontWeight: 600 }}>
-        ✅ Pronos bien enregistrés — résultats disponibles après le week-end
-      </div>
-      {renderResultView(journee, existingProno)}
     </div>
   )
 
   return (
     <div className="scroll-area">
-      {/* Header */}
-      <div style={{ padding: '16px 20px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontFamily: 'var(--D)', fontSize: 28, letterSpacing: '.04em' }}>📜 Pronos</div>
-            <div style={{ fontSize: 13, color: 'var(--tx2)', marginTop: 2 }}>
-              Journée {journee.numero} · {deadline(journee)}
+
+      {/* ── MISSILE MODAL ── */}
+      {showMissileModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:500,padding:'0 0 var(--tab-h) 0'}}>
+          <div style={{width:'100%',maxWidth:420,background:'var(--bg2)',border:'1px solid var(--r-b)',borderRadius:'20px 20px 0 0',padding:24}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+              <div>
+                <div style={{fontFamily:'var(--D)',fontSize:26,letterSpacing:'.04em',color:'var(--r)'}}>🎯 Missile</div>
+                <div style={{fontSize:12,color:'var(--tx3)',marginTop:2}}>
+                  {missileStep===1?'1/3 · Choisir la cible':missileStep===2?'2/3 · Choisir le match':'3/3 · Choisir le prono à imposer'}
+                </div>
+              </div>
+              <button onClick={()=>{setShowMissileModal(false);setMissileStep(1);setMissileData({cible:null,matchKey:null,prono:null})}} style={{background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:8,padding:'6px 10px',color:'var(--tx2)',cursor:'pointer',fontSize:13}}>✕</button>
             </div>
+
+            {missileMsg && <div className={`alert ${missileMsg.startsWith('✅')?'alert-g':'alert-r'}`} style={{marginBottom:12}}>{missileMsg}</div>}
+
+            {/* Step 1 — Cible */}
+            {missileStep===1 && (
+              <>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
+                  {joueurs.map(j => (
+                    <button key={j.id} onClick={()=>setMissileData(p=>({...p,cible:j.id}))} style={{
+                      display:'flex',alignItems:'center',gap:8,padding:'10px 12px',
+                      background:missileData.cible===j.id?'var(--r-dim)':'var(--bg3)',
+                      border:`1.5px solid ${missileData.cible===j.id?'var(--r)':'transparent'}`,
+                      borderRadius:'var(--Rs)',cursor:'pointer',transition:'all .15s',
+                    }}>
+                      <div style={{width:28,height:28,borderRadius:'50%',background:'var(--bg4)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'var(--tx2)',flexShrink:0}}>{j.initiales}</div>
+                      <div style={{fontSize:12,fontWeight:600,color:missileData.cible===j.id?'var(--r)':'var(--tx)'}}>{j.nom?.split(' ')[0]}</div>
+                    </button>
+                  ))}
+                </div>
+                <button className="btn btn-primary" style={{width:'100%',height:48}} onClick={()=>missileData.cible&&setMissileStep(2)} disabled={!missileData.cible}>
+                  Continuer →
+                </button>
+              </>
+            )}
+
+            {/* Step 2 — Match */}
+            {missileStep===2 && (
+              <>
+                <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
+                  {[
+                    ...(journee.matchesL1||[]).map((m,i)=>m?.dom?{key:`l1_${i}`,label:`${m.dom} — ${m.ext}`}:null).filter(Boolean),
+                    journee.matchEuro?.dom ? {key:'euro',label:`🌍 ${journee.matchEuro.dom} — ${journee.matchEuro.ext}`} : null,
+                  ].filter(Boolean).map(m => (
+                    <button key={m.key} onClick={()=>setMissileData(p=>({...p,matchKey:m.key}))} style={{
+                      padding:'11px 14px',textAlign:'left',
+                      background:missileData.matchKey===m.key?'var(--r-dim)':'var(--bg3)',
+                      border:`1.5px solid ${missileData.matchKey===m.key?'var(--r)':'transparent'}`,
+                      borderRadius:'var(--Rs)',cursor:'pointer',transition:'all .15s',
+                      fontSize:13,fontWeight:500,color:missileData.matchKey===m.key?'var(--r)':'var(--tx)',
+                    }}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button className="btn btn-secondary" onClick={()=>setMissileStep(1)}>← Retour</button>
+                  <button className="btn btn-primary" style={{flex:1}} onClick={()=>missileData.matchKey&&setMissileStep(3)} disabled={!missileData.matchKey}>
+                    Continuer →
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Step 3 — Prono à imposer */}
+            {missileStep===3 && (
+              <>
+                <div style={{fontSize:13,color:'var(--tx2)',marginBottom:12}}>{matchLabel(missileData.matchKey)}</div>
+                <div style={{display:'flex',gap:8,marginBottom:16}}>
+                  {['1','N','2'].map(v => (
+                    <button key={v} onClick={()=>setMissileData(p=>({...p,prono:v}))} style={{
+                      flex:1,height:48,borderRadius:10,
+                      border:`1.5px solid ${missileData.prono===v?RESULT_COLORS[v].sel:'rgba(255,255,255,.13)'}`,
+                      background:missileData.prono===v?RESULT_COLORS[v].dim:'rgba(255,255,255,.04)',
+                      color:missileData.prono===v?RESULT_COLORS[v].sel:'rgba(255,255,255,.4)',
+                      fontSize:15,fontWeight:700,cursor:'pointer',transition:'all .15s',
+                    }}>
+                      {RESULT_COLORS[v].label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{background:'var(--r-dim)',border:'1px solid var(--r-b)',borderRadius:'var(--Rs)',padding:'10px 14px',fontSize:12,color:'var(--r)',marginBottom:16,lineHeight:1.5}}>
+                  ⚠️ Ce prono remplacera celui de <strong>{joueurs.find(j=>j.id===missileData.cible)?.nom?.split(' ')[0]}</strong> sur ce match. Irréversible.
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button className="btn btn-secondary" onClick={()=>setMissileStep(2)}>← Retour</button>
+                  <button className="btn btn-danger" style={{flex:1,height:44}} onClick={submitMissile} disabled={!missileData.prono}>
+                    🎯 Lancer le missile
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── HEADER ── */}
+      <div style={{padding:'16px 20px 0'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+          <div>
+            <div style={{fontFamily:'var(--D)',fontSize:28,letterSpacing:'.04em'}}>📜 Pronos</div>
+            <div style={{fontSize:13,color:'var(--tx2)',marginTop:2}}>J{journee.numero} · {deadlineFmt(journee)}</div>
           </div>
           {existingProno && <span className="pill pill-g">✅ Envoyés</span>}
         </div>
       </div>
 
-      {saved && <div className="alert alert-g" style={{ margin: '12px 16px 0' }}>✅ Pronos enregistrés !</div>}
+      {saved && <div className="alert alert-g" style={{margin:'12px 16px 0'}}>✅ Pronos enregistrés !</div>}
 
       {/* Progress */}
-      <div style={{ margin: '14px 16px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 500 }}>{filled} / {total} matchs renseignés</span>
-          <span style={{ fontSize: 12, color: 'var(--tx3)' }}>{total - filled} restants</span>
+      <div style={{margin:'14px 16px 0'}}>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+          <span style={{fontSize:13,fontWeight:500}}>{filled} / {total} matchs renseignés</span>
+          <span style={{fontSize:12,color:'var(--tx3)'}}>{total-filled} restants</span>
         </div>
-        <div style={{ height: 4, background: 'var(--bg4)', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--g)', borderRadius: 2, transition: 'width .4s' }}></div>
-        </div>
-      </div>
-
-      {/* SCORER */}
-      <div className="section-lbl">🎯 Match à scorer — Ligue 1</div>
-      <div style={{ margin: '0 16px 10px', background: 'linear-gradient(135deg, var(--bg2), #0d1620)', border: '1px solid var(--b-b)', borderRadius: 'var(--R)', padding: '16px' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--b)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 8 }}>
-          Choisi par le bureau
-        </div>
-        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>
-          {journee.matchScorer?.dom || '?'} — {journee.matchScorer?.ext || '?'}
-          <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--tx3)' }}>
-            {journee.matchScorer?.jour} {journee.matchScorer?.heure}
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 12, overflow: 'hidden' }}>
-            <button style={{ width: 44, height: 44, border: 'none', background: 'none', color: 'var(--tx2)', fontSize: 22, cursor: 'pointer' }} onClick={() => setScorerH(Math.max(0, scorerH - 1))}>−</button>
-            <div style={{ width: 40, textAlign: 'center', fontFamily: 'var(--D)', fontSize: 28, color: 'var(--tx)', letterSpacing: '.04em' }}>{scorerH}</div>
-            <button style={{ width: 44, height: 44, border: 'none', background: 'none', color: 'var(--tx2)', fontSize: 22, cursor: 'pointer' }} onClick={() => setScorerH(Math.min(9, scorerH + 1))}>+</button>
-          </div>
-          <div style={{ fontSize: 20, color: 'var(--tx3)' }}>—</div>
-          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 12, overflow: 'hidden' }}>
-            <button style={{ width: 44, height: 44, border: 'none', background: 'none', color: 'var(--tx2)', fontSize: 22, cursor: 'pointer' }} onClick={() => setScorerA(Math.max(0, scorerA - 1))}>−</button>
-            <div style={{ width: 40, textAlign: 'center', fontFamily: 'var(--D)', fontSize: 28, color: 'var(--tx)', letterSpacing: '.04em' }}>{scorerA}</div>
-            <button style={{ width: 44, height: 44, border: 'none', background: 'none', color: 'var(--tx2)', fontSize: 22, cursor: 'pointer' }} onClick={() => setScorerA(Math.min(9, scorerA + 1))}>+</button>
-          </div>
-        </div>
-        <div style={{ fontSize: 11, color: 'var(--tx3)', textAlign: 'center', marginTop: 10 }}>
-          Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt
+        <div style={{height:4,background:'var(--bg4)',borderRadius:2,overflow:'hidden'}}>
+          <div style={{height:'100%',width:`${pct}%`,background:'var(--g)',borderRadius:2,transition:'width .4s'}}></div>
         </div>
       </div>
 
-      {/* L1 MATCHS */}
-      <div className="section-lbl">🇫🇷 Ligue 1 — 8 matchs 1N2</div>
-      {(journee.matchesL1 || []).map((m, i) => {
+      {/* Bonus strip */}
+      <div style={{margin:'12px 16px 0',display:'flex',gap:8,flexWrap:'wrap'}}>
+        {/* Missile */}
+        {bonusStock.missile > 0 && !deadlinePassed && (
+          <button onClick={()=>setShowMissileModal(true)} style={{
+            display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
+            background:'var(--r-dim)',border:'1px solid var(--r-b)',
+            borderRadius:999,fontSize:12,fontWeight:700,color:'var(--r)',cursor:'pointer',
+          }}>
+            🎯 Missile ×{bonusStock.missile}
+          </button>
+        )}
+        {/* Jackpot */}
+        {bonusStock.jackpot > 0 && !deadlinePassed && (
+          <button onClick={()=>setActiveBonus(activeBonus?.type==='jackpot'?null:{type:'jackpot'})} style={{
+            display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
+            background:activeBonus?.type==='jackpot'?'var(--a-dim)':'rgba(255,255,255,.04)',
+            border:`1px solid ${activeBonus?.type==='jackpot'?'var(--a-b)':'rgba(255,255,255,.1)'}`,
+            borderRadius:999,fontSize:12,fontWeight:700,
+            color:activeBonus?.type==='jackpot'?'var(--a)':'var(--tx3)',cursor:'pointer',
+          }}>
+            🎰 Jackpot ×{bonusStock.jackpot} {activeBonus?.type==='jackpot'?'— Sélectionne un match':''}
+          </button>
+        )}
+        {/* Double Chance */}
+        {bonusStock.doubleChance > 0 && !deadlinePassed && (
+          <button onClick={()=>setActiveBonus(activeBonus?.type==='dc'?null:{type:'dc'})} style={{
+            display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
+            background:activeBonus?.type==='dc'?'var(--p-dim)':'rgba(255,255,255,.04)',
+            border:`1px solid ${activeBonus?.type==='dc'?'var(--p-b)':'rgba(255,255,255,.1)'}`,
+            borderRadius:999,fontSize:12,fontWeight:700,
+            color:activeBonus?.type==='dc'?'var(--p)':'var(--tx3)',cursor:'pointer',
+          }}>
+            2️⃣ DC ×{bonusStock.doubleChance} {activeBonus?.type==='dc'?'— Sélectionne un match':''}
+          </button>
+        )}
+      </div>
+
+      {/* Bonus actifs recap */}
+      {(jackpotMatch || dcMatch) && (
+        <div style={{margin:'8px 16px 0',padding:'10px 14px',background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:'var(--Rs)',fontSize:12}}>
+          {jackpotMatch && <div style={{color:'var(--a)',fontWeight:700}}>🎰 Jackpot → {matchLabel(jackpotMatch)}</div>}
+          {dcMatch && dcChoices.length===2 && <div style={{color:'var(--p)',fontWeight:700,marginTop:jackpotMatch?4:0}}>2️⃣ Double Chance → {matchLabel(dcMatch)} · {dcChoices.join(' ou ')}</div>}
+        </div>
+      )}
+
+      {/* ── SCORER ── */}
+      <div className="section-lbl" style={{padding:'16px 20px 8px'}}>🎯 Match à scorer — Ligue 1</div>
+      <div style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px'}}>
+        <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau</div>
+        <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
+          {journee.matchScorer?.dom||'?'} — {journee.matchScorer?.ext||'?'}
+          <span style={{marginLeft:8,fontSize:11,color:'var(--tx3)'}}>{journee.matchScorer?.jour} {journee.matchScorer?.heure}</span>
+        </div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+          <Stepper val={scorerH} onChange={setScorerH} />
+          <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
+          <Stepper val={scorerA} onChange={setScorerA} />
+        </div>
+        <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:10}}>Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt</div>
+      </div>
+
+      {/* ── L1 MATCHS ── */}
+      <div className="section-lbl" style={{padding:'8px 20px'}}>🇫🇷 Ligue 1 — 8 matchs 1N2</div>
+      {(journee.matchesL1||[]).map((m, i) => {
         if (!m?.dom) return null
+        const key = `l1_${i}`
         const sel = pronos.matchesL1?.[i]
+        const isJP = jackpotMatch === key
+        const isDC = dcMatch === key
+        const isSelectingBonus = activeBonus?.type === 'jackpot' || activeBonus?.type === 'dc'
+
         return (
-          <div key={i} style={{ margin: '0 16px 8px', background: 'var(--bg2)', border: `1px solid ${sel ? 'var(--g-b)' : 'var(--bd)'}`, borderRadius: 'var(--R)', padding: '13px 14px', transition: 'border-color .2s' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>{m.dom} — {m.ext}</div>
-              <div style={{ fontSize: 11, color: 'var(--tx3)' }}>{m.jour} {m.heure}</div>
+          <div key={i} style={{
+            margin:'0 16px 8px',
+            background: isJP ? 'rgba(251,191,36,.04)' : isDC ? 'rgba(192,132,252,.04)' : 'var(--bg2)',
+            border:`1px solid ${isJP?'var(--a-b)':isDC?'var(--p-b)':sel?'var(--g-b)':'var(--bd)'}`,
+            borderRadius:'var(--R)',padding:'13px 14px',transition:'border-color .2s',
+          }}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+              <div>
+                <div style={{fontSize:14,fontWeight:600}}>{m.dom} — {m.ext}</div>
+                <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{m.jour} {m.heure}</div>
+              </div>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                {isJP && <span className="pill pill-a">🎰 Jackpot</span>}
+                {isDC && <span className="pill pill-p">2️⃣ DC</span>}
+                {isSelectingBonus && !isJP && !isDC && (
+                  <button onClick={()=>{
+                    if (activeBonus.type==='jackpot') { setJackpotMatch(key); setActiveBonus(null) }
+                    if (activeBonus.type==='dc') { setDcMatch(key); setActiveBonus(null) }
+                  }} style={{
+                    padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
+                    borderColor:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
+                    background:'none',cursor:'pointer',fontSize:11,fontWeight:700,
+                    color:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
+                  }}>
+                    {activeBonus.type==='jackpot'?'🎰 Ici':'2️⃣ Ici'}
+                  </button>
+                )}
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 7 }}>
-              {['1','N','2'].map(v => (
-                <button key={v} onClick={() => setL1(i, v)} style={{
-                  flex: 1, height: 42, borderRadius: 10,
-                  border: `1.5px solid ${sel === v ? (v==='1'?'var(--b)':v==='N'?'var(--a)':'var(--p)') : 'var(--bd2)'}`,
-                  background: sel === v ? (v==='1'?'var(--b-dim)':v==='N'?'var(--a-dim)':'var(--p-dim)') : 'var(--bg3)',
-                  color: sel === v ? (v==='1'?'var(--b)':v==='N'?'var(--a)':'var(--p)') : 'var(--tx3)',
-                  fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                  transition: 'all .15s',
-                }}>
-                  {v === '1' ? '🏠 1' : v === 'N' ? '= N' : '✈ 2'}
-                </button>
-              ))}
-            </div>
+
+            {isDC ? (
+              // Double Chance — 3 boutons toggle
+              <div style={{display:'flex',gap:7}}>
+                {['1','N','2'].map(v => <DcBtn key={v} val={v} selected={dcChoices} onClick={()=>toggleDc(v)} />)}
+              </div>
+            ) : (
+              // Normal 1N2
+              <div style={{display:'flex',gap:7}}>
+                {['1','N','2'].map(v => (
+                  <PronoBtn key={v} val={v} selected={sel} onClick={()=>setL1(i,v)} />
+                ))}
+              </div>
+            )}
           </div>
         )
       })}
 
-      {/* EURO */}
-      <div className="section-lbl">🌍 Match européen — 1N2</div>
+      {/* ── EURO ── */}
+      <div className="section-lbl" style={{padding:'8px 20px'}}>🌍 Match européen — 1N2</div>
       {journee.matchEuro?.dom && (
-        <div style={{ margin: '0 16px 10px', background: 'rgba(249,115,22,.03)', border: `1px solid ${pronos.matchEuro ? 'var(--g-b)' : 'var(--o-b)'}`, borderRadius: 'var(--R)', padding: '13px 14px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>
-              {journee.matchEuro.dom} — {journee.matchEuro.ext}
-              <span style={{ marginLeft: 8, fontSize: 10, background: 'var(--o-dim)', color: 'var(--o)', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
-                {journee.matchEuro.ligue}
-              </span>
+        <div style={{
+          margin:'0 16px 10px',
+          background: jackpotMatch==='euro'?'rgba(251,191,36,.04)':dcMatch==='euro'?'rgba(192,132,252,.04)':'rgba(249,115,22,.03)',
+          border:`1px solid ${jackpotMatch==='euro'?'var(--a-b)':dcMatch==='euro'?'var(--p-b)':pronos.matchEuro?'var(--g-b)':'var(--o-b)'}`,
+          borderRadius:'var(--R)',padding:'13px 14px',
+        }}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+            <div>
+              <div style={{fontSize:14,fontWeight:600}}>
+                {journee.matchEuro.dom} — {journee.matchEuro.ext}
+                <span style={{marginLeft:8,fontSize:10,background:'var(--o-dim)',color:'var(--o)',padding:'1px 6px',borderRadius:4,fontWeight:700}}>{journee.matchEuro.ligue}</span>
+              </div>
+              <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{journee.matchEuro.jour} {journee.matchEuro.heure}</div>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--tx3)' }}>{journee.matchEuro.jour} {journee.matchEuro.heure}</div>
-          </div>
-          <div style={{ display: 'flex', gap: 7 }}>
-            {['1','N','2'].map(v => (
-              <button key={v} onClick={() => setPronos(p => ({ ...p, matchEuro: v }))} style={{
-                flex: 1, height: 42, borderRadius: 10,
-                border: `1.5px solid ${pronos.matchEuro === v ? (v==='1'?'var(--b)':v==='N'?'var(--a)':'var(--p)') : 'var(--bd2)'}`,
-                background: pronos.matchEuro === v ? (v==='1'?'var(--b-dim)':v==='N'?'var(--a-dim)':'var(--p-dim)') : 'var(--bg3)',
-                color: pronos.matchEuro === v ? (v==='1'?'var(--b)':v==='N'?'var(--a)':'var(--p)') : 'var(--tx3)',
-                fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'all .15s',
+            {(activeBonus?.type==='jackpot'||activeBonus?.type==='dc') && jackpotMatch!=='euro' && dcMatch!=='euro' && (
+              <button onClick={()=>{
+                if (activeBonus.type==='jackpot') { setJackpotMatch('euro'); setActiveBonus(null) }
+                if (activeBonus.type==='dc') { setDcMatch('euro'); setActiveBonus(null) }
+              }} style={{
+                padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
+                borderColor:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
+                background:'none',cursor:'pointer',fontSize:11,fontWeight:700,
+                color:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
               }}>
-                {v === '1' ? '🏠 1' : v === 'N' ? '= N' : '✈ 2'}
+                {activeBonus.type==='jackpot'?'🎰 Ici':'2️⃣ Ici'}
               </button>
-            ))}
+            )}
           </div>
+          {dcMatch==='euro' ? (
+            <div style={{display:'flex',gap:7}}>
+              {['1','N','2'].map(v => <DcBtn key={v} val={v} selected={dcChoices} onClick={()=>toggleDc(v)} />)}
+            </div>
+          ) : (
+            <div style={{display:'flex',gap:7}}>
+              {['1','N','2'].map(v => (
+                <PronoBtn key={v} val={v} selected={pronos.matchEuro} onClick={()=>setPronos(p=>({...p,matchEuro:v}))} />
+              ))}
+            </div>
+          )}
         </div>
       )}
-
-      {/* BONUS strip */}
-      <div style={{ margin: '4px 16px 10px', background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 'var(--R)', padding: '12px 14px' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
-          Bonus disponibles · Non utilisables sur le scorer
-        </div>
-        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-          {[
-            { ico: '🎯', lbl: `Missile ×${profil?.bonus?.missile ?? 5}`, color: 'var(--r)' },
-            { ico: '🎰', lbl: `Jackpot ×${profil?.bonus?.jackpot ?? 3}`, color: 'var(--a)' },
-            { ico: '2️⃣', lbl: `DC ×${profil?.bonus?.doubleChance ?? 4}`, color: 'var(--p)' },
-          ].map(b => (
-            <div key={b.lbl} style={{ padding: '5px 12px', borderRadius: 999, border: `1.5px dashed ${b.color}44`, fontSize: 12, fontWeight: 600, color: b.color, opacity: .8 }}>
-              {b.ico} {b.lbl}
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 11, color: 'var(--tx3)', marginTop: 6 }}>Gestion des bonus dans l'onglet 🎁</div>
-      </div>
 
       {/* CTA */}
-      <div style={{ padding: '4px 16px 24px' }}>
-        <button className="btn btn-primary" onClick={handleSubmit} disabled={saving || filled < 10}>
+      <div style={{padding:'4px 16px 24px'}}>
+        <button className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
           {saving
-            ? <><div className="spinner" style={{ width: 18, height: 18, borderTopColor: '#000' }}></div> Envoi...</>
-            : existingProno
-              ? '🔄 Mettre à jour mes pronos'
-              : `📤 Envoyer mes pronos (${filled}/10)`
+            ? <><div className="spinner" style={{width:18,height:18,borderTopColor:'#000'}}></div> Envoi...</>
+            : existingProno ? '🔄 Mettre à jour' : `📤 Envoyer mes pronos (${filled}/10)`
           }
         </button>
-        {filled < 10 && <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--tx3)', marginTop: 8 }}>
-          Renseigne les {10 - filled} matchs restants pour envoyer
-        </div>}
+        {filled < 10 && <div style={{textAlign:'center',fontSize:12,color:'var(--tx3)',marginTop:8}}>Renseigne les {10-filled} matchs restants</div>}
       </div>
     </div>
   )
 }
 
-function deadline(j) {
-  if (!j?.deadline) return ''
-  const dl = new Date(j.deadline.seconds * 1000)
-  return `Fermeture ${dl.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} ${dl.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
-}
-
-function renderResultView(journee, prono) {
+function Stepper({ val, onChange }) {
   return (
-    <div style={{ padding: '0 16px 24px' }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx2)', marginBottom: 10 }}>
-        Ton prono scorer : {prono.matchScorer || '—'}
-      </div>
-      {(journee.matchesL1 || []).map((m, i) => m?.dom && (
-        <div key={i} className="match-row">
-          <div className="match-info">
-            <div className="match-name">{m.dom} — {m.ext}</div>
-          </div>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx2)' }}>
-            {prono.matchesL1?.[i] || '—'}
-          </span>
-        </div>
-      ))}
-      {journee.matchEuro?.dom && (
-        <div className="match-row">
-          <div className="match-info">
-            <div className="match-name">🌍 {journee.matchEuro.dom} — {journee.matchEuro.ext}</div>
-          </div>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx2)' }}>{prono.matchEuro || '—'}</span>
-        </div>
-      )}
+    <div style={{display:'flex',alignItems:'center',background:'var(--bg3)',border:'1px solid var(--bd2)',borderRadius:12,overflow:'hidden'}}>
+      <button style={{width:44,height:44,border:'none',background:'none',color:'var(--tx2)',fontSize:22,cursor:'pointer'}} onClick={()=>onChange(Math.max(0,val-1))}>−</button>
+      <div style={{width:40,textAlign:'center',fontFamily:'var(--D)',fontSize:28,color:'var(--tx)',letterSpacing:'.04em'}}>{val}</div>
+      <button style={{width:44,height:44,border:'none',background:'none',color:'var(--tx2)',fontSize:22,cursor:'pointer'}} onClick={()=>onChange(Math.min(9,val+1))}>+</button>
     </div>
   )
+}
+
+function deadlineFmt(j) {
+  if (!j?.deadline) return ''
+  const dl = new Date(j.deadline.seconds*1000)
+  return `Fermeture ${dl.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`
 }
