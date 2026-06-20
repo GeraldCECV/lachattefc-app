@@ -39,12 +39,12 @@ export default function Reglement() {
       {/* Header */}
       <div style={{ padding:'16px 20px 8px' }}>
         <div className="page-title">Règlement</div>
-        <div className="page-sub">LA CHATTE A SES RÈGLES · Saison 25/26</div>
+        <div className="page-sub">LA CHATTE A SES RÈGLES · Saison 26/27</div>
       </div>
 
       {/* Bureau */}
       <div style={{ margin:'8px 16px 16px', background:'linear-gradient(135deg, rgba(155,226,45,.08), rgba(155,226,45,.03))', border:'1px solid var(--g-b)', borderRadius:'var(--R)', padding:16, boxShadow:'var(--shadow)' }}>
-        <div style={{ fontSize:10, fontWeight:900, color:'var(--g)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:10 }}>🏛️ Bureau 25/26</div>
+        <div style={{ fontSize:10, fontWeight:900, color:'var(--g)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:10 }}>🏛️ Bureau 26/27</div>
         <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
           {[
             { role:'Président', nom:'Kamel MENLAIKHAF' },
@@ -60,7 +60,7 @@ export default function Reglement() {
       </div>
 
       <Section num="1" title="Présentation">
-        <p style={{ marginBottom:10 }}>LA CHATTE est un jeu de pronostics entre amis sur le Championnat de France de Ligue 1 saison 2025/2026. Nous sommes <Strong>14 participants</Strong> cette année. <Strong>9ème saison</Strong> entre copains ! 🥳</p>
+        <p style={{ marginBottom:10 }}>LA CHATTE est un jeu de pronostics entre amis sur le Championnat de France de Ligue 1 saison 2026/2027. Nous sommes <Strong>14 participants</Strong> cette année. <Strong>9ème saison</Strong> entre copains ! 🥳</p>
         <p style={{ marginBottom:10 }}>Le concours est composé de :</p>
         <Li>Des pronostics sur les 34 journées de championnat — 1 match à scorer, 1 affiche européenne et 8 matchs à pronostiquer</Li>
         <Li><Strong>Particularité :</Strong> les journées 17 et 34 sont à scorer en intégralité</Li>

@@ -95,7 +95,7 @@ export default function Classement() {
       <div style={{ padding:'16px 20px 0', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <div>
           <div className="page-title">Classement</div>
-          <div className="page-sub">Saison 25/26</div>
+          <div className="page-sub">Saison 26/27</div>
         </div>
         {lastUpdate && (
           <div className="live">

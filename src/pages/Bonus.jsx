@@ -39,7 +39,7 @@ export default function Bonus() {
     <div className="scroll-area">
       <div style={{ padding:'16px 20px 0' }}>
         <div className="page-title">Bonus</div>
-        <div className="page-sub">Saison 25/26 · {profil?.nom?.split(' ')[0]}</div>
+        <div className="page-sub">Saison 26/27 · {profil?.nom?.split(' ')[0]}</div>
       </div>
 
       {loading ? (

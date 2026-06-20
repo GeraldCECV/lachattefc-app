@@ -46,7 +46,7 @@ export default function Login() {
         La Chatte FC
       </div>
       <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--g)', textTransform: 'uppercase', letterSpacing: '.15em', marginBottom: 32 }}>
-        Saison 25/26
+        Saison 26/27
       </div>
 
       {/* Form */}

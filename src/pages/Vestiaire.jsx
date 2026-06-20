@@ -70,7 +70,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <div style={{ textAlign:'right' }}>
             <div style={{ fontSize:10, color:'var(--tx3)', fontWeight:900, textTransform:'uppercase', letterSpacing:'.08em' }}>Saison</div>
-            <div style={{ fontFamily:'var(--D)', fontSize:24, color:'var(--g)', letterSpacing:'.05em', lineHeight:1, textShadow:'0 0 12px rgba(155,226,45,.3)' }}>25/26</div>
+            <div style={{ fontFamily:'var(--D)', fontSize:24, color:'var(--g)', letterSpacing:'.05em', lineHeight:1, textShadow:'0 0 12px rgba(155,226,45,.3)' }}>26/27</div>
           </div>
           {onProfil && (
             <button onClick={onProfil} style={{
