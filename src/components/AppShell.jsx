@@ -38,40 +38,34 @@ export default function AppShell() {
         <div style={{
           position:'fixed', inset:0, zIndex:500,
           background:'linear-gradient(180deg, rgba(7,16,12,.99), rgba(5,10,8,.99))',
-          overflowY:'auto',
-          overflowX:'hidden',
+          overflowY:'auto', overflowX:'hidden',
           WebkitOverflowScrolling:'touch',
+          paddingTop:'env(safe-area-inset-top)',
+          paddingBottom:'calc(env(safe-area-inset-bottom) + 20px)',
         }}>
-          {/* Spacer safe area */}
-          <div style={{ height:'env(safe-area-inset-top)' }} />
-          {/* Header sticky */}
+          {/* Bouton fermer FIXE en haut */}
           <div style={{
-            position:'sticky', top:'env(safe-area-inset-top)',
+            position:'fixed',
+            top:'env(safe-area-inset-top)',
+            right:0, left:0,
             display:'flex', justifyContent:'space-between', alignItems:'center',
-            padding:'14px 20px',
-            borderBottom:'1px solid var(--bd)',
+            padding:'12px 20px',
             background:'rgba(7,16,12,.98)',
-            zIndex:10,
+            borderBottom:'1px solid var(--bd)',
+            zIndex:600,
           }}>
-            <div className="page-title" style={{ fontSize:28 }}>Profil</div>
-            <button
-              onClick={() => setShowProfil(false)}
-              style={{
-                background:'var(--r-dim)', border:'1px solid var(--r-b)',
-                borderRadius:10, padding:'8px 16px',
-                color:'#FCA5A5', cursor:'pointer',
-                fontSize:13, fontWeight:900,
-                textTransform:'uppercase', letterSpacing:'.04em',
-                WebkitTapHighlightColor:'transparent',
-              }}
-            >
-              ✕ Fermer
-            </button>
+            <div className="page-title" style={{ fontSize:26 }}>Profil</div>
+            <button onClick={() => setShowProfil(false)} style={{
+              background:'var(--r-dim)', border:'1px solid var(--r-b)',
+              borderRadius:10, padding:'9px 18px',
+              color:'#FCA5A5', cursor:'pointer',
+              fontSize:13, fontWeight:900,
+              textTransform:'uppercase', letterSpacing:'.04em',
+            }}>✕ Fermer</button>
           </div>
-          {/* Contenu */}
+          {/* Spacer pour compenser le header fixe */}
+          <div style={{ height:58 }} />
           <Profil />
-          {/* Spacer safe area bottom */}
-          <div style={{ height:'calc(env(safe-area-inset-bottom) + 20px)' }} />
         </div>
       )}
 
