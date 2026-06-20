@@ -9,7 +9,7 @@ const COLORS = [
   ['rgba(155,226,45,.12)','#9BE22D'],
 ]
 
-export default function Vestiaire({ onNavigate }) {
+export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) {
   const { profil } = useUser()
   const [journee, setJournee] = useState(null)
   const [monProno, setMonProno] = useState(null)
@@ -67,9 +67,22 @@ export default function Vestiaire({ onNavigate }) {
           <div className="page-title">Vestiaire</div>
           <div className="page-sub">Salut {prenom} 👋</div>
         </div>
-        <div style={{ textAlign:'right' }}>
-          <div style={{ fontSize:10, color:'var(--tx3)', fontWeight:900, textTransform:'uppercase', letterSpacing:'.08em' }}>Saison</div>
-          <div style={{ fontFamily:'var(--D)', fontSize:24, color:'var(--g)', letterSpacing:'.05em', lineHeight:1, textShadow:'0 0 12px rgba(155,226,45,.3)' }}>25/26</div>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{ textAlign:'right' }}>
+            <div style={{ fontSize:10, color:'var(--tx3)', fontWeight:900, textTransform:'uppercase', letterSpacing:'.08em' }}>Saison</div>
+            <div style={{ fontFamily:'var(--D)', fontSize:24, color:'var(--g)', letterSpacing:'.05em', lineHeight:1, textShadow:'0 0 12px rgba(155,226,45,.3)' }}>25/26</div>
+          </div>
+          {onProfil && (
+            <button onClick={onProfil} style={{
+              width:36, height:36, borderRadius:'50%', flexShrink:0,
+              background:'var(--g-dim)', border:'1px solid var(--g-b)',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:12, fontWeight:900, color:'var(--g)',
+              cursor:'pointer', boxShadow:'0 0 10px rgba(155,226,45,.2)',
+            }}>
+              {(profilProp || profil)?.initiales?.slice(0,2) || '👤'}
+            </button>
+          )}
         </div>
       </div>
 

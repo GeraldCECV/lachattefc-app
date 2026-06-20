@@ -23,7 +23,7 @@ export default function AppShell() {
   const { profil } = useUser()
 
   const pages = {
-    vestiaire:  <Vestiaire onNavigate={setTab} />,
+    vestiaire:  <Vestiaire onNavigate={setTab} onProfil={() => setShowProfil(true)} profil={profil} />,
     pronos:     <Pronos />,
     classement: <Classement />,
     bonus:      <Bonus />,
@@ -37,9 +37,9 @@ export default function AppShell() {
       {showProfil && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.8)', zIndex:500, display:'flex', flexDirection:'column', paddingTop:'env(safe-area-inset-top)' }}>
           <div style={{ background:'linear-gradient(180deg, rgba(17,31,23,.98), rgba(8,15,11,.99))', flex:1, overflow:'auto' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'16px 20px', borderBottom:'1px solid var(--bd)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'16px 20px', borderBottom:'1px solid var(--bd)', position:'sticky', top:0, background:'rgba(8,15,11,.98)', zIndex:10 }}>
               <div className="page-title" style={{ fontSize:28 }}>Profil</div>
-              <button onClick={() => setShowProfil(false)} style={{ background:'rgba(255,255,255,.06)', border:'1px solid var(--bd2)', borderRadius:10, padding:'6px 12px', color:'var(--tx2)', cursor:'pointer', fontSize:13, fontWeight:700 }}>✕ Fermer</button>
+              <button onClick={() => setShowProfil(false)} style={{ background:'var(--r-dim)', border:'1px solid var(--r-b)', borderRadius:10, padding:'8px 14px', color:'#FCA5A5', cursor:'pointer', fontSize:13, fontWeight:900, textTransform:'uppercase', letterSpacing:'.04em' }}>✕ Fermer</button>
             </div>
             <Profil />
           </div>
@@ -47,20 +47,6 @@ export default function AppShell() {
       )}
 
       <div className="screen-content">
-        {/* Bouton profil en haut à droite sur le vestiaire */}
-        <div style={{ position:'absolute', top:16, right:16, zIndex:50 }}>
-          {tab === 'vestiaire' && (
-            <button onClick={() => setShowProfil(true)} style={{
-              width:36, height:36, borderRadius:'50%',
-              background:'var(--g-dim)', border:'1px solid var(--g-b)',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:14, fontWeight:900, color:'var(--g)',
-              cursor:'pointer', boxShadow:'0 0 10px rgba(155,226,45,.2)',
-            }}>
-              {profil?.initiales?.slice(0,2) || '👤'}
-            </button>
-          )}
-        </div>
         {pages[tab]}
       </div>
 
