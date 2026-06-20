@@ -38,17 +38,20 @@ export default function AppShell() {
         <div style={{
           position:'fixed', inset:0, zIndex:500,
           background:'linear-gradient(180deg, rgba(7,16,12,.99), rgba(5,10,8,.99))',
-          display:'flex', flexDirection:'column',
-          paddingTop:'env(safe-area-inset-top)',
-          paddingBottom:'env(safe-area-inset-bottom)',
+          overflowY:'auto',
+          overflowX:'hidden',
+          WebkitOverflowScrolling:'touch',
         }}>
-          {/* Header fixe */}
+          {/* Spacer safe area */}
+          <div style={{ height:'env(safe-area-inset-top)' }} />
+          {/* Header sticky */}
           <div style={{
+            position:'sticky', top:'env(safe-area-inset-top)',
             display:'flex', justifyContent:'space-between', alignItems:'center',
             padding:'14px 20px',
             borderBottom:'1px solid var(--bd)',
             background:'rgba(7,16,12,.98)',
-            flexShrink:0,
+            zIndex:10,
           }}>
             <div className="page-title" style={{ fontSize:28 }}>Profil</div>
             <button
@@ -59,15 +62,16 @@ export default function AppShell() {
                 color:'#FCA5A5', cursor:'pointer',
                 fontSize:13, fontWeight:900,
                 textTransform:'uppercase', letterSpacing:'.04em',
+                WebkitTapHighlightColor:'transparent',
               }}
             >
               ✕ Fermer
             </button>
           </div>
-          {/* Contenu scrollable */}
-          <div style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
-            <Profil />
-          </div>
+          {/* Contenu */}
+          <Profil />
+          {/* Spacer safe area bottom */}
+          <div style={{ height:'calc(env(safe-area-inset-bottom) + 20px)' }} />
         </div>
       )}
 

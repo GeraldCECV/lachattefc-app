@@ -46,7 +46,7 @@ export default function Profil() {
   const maxPts = historique.length > 0 ? Math.max(...historique.map(h=>h.pts), 1) : 1
 
   return (
-    <div className="scroll-area">
+    <div>
       {loading ? (
         <div style={{ display:'flex', justifyContent:'center', padding:40 }}>
           <div className="spinner" style={{ width:24, height:24 }}></div>
