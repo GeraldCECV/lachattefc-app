@@ -110,17 +110,19 @@ input, select, textarea { font-family: var(--F); }
 
 /* ── TAB BAR ── */
 .tab-bar {
-  height: calc(var(--tab-h) + env(safe-area-inset-bottom));
   background: rgba(7,16,12,.95);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-top: 1px solid rgba(155,226,45,.12);
   display: flex;
-  padding: 0 4px;
-  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  align-items: flex-start;
+  padding: 8px 4px 0;
+  padding-bottom: env(safe-area-inset-bottom);
   flex-shrink: 0;
   position: relative;
   z-index: 100;
+  /* Hauteur fixe contenu + safe area */
+  min-height: calc(62px + env(safe-area-inset-bottom));
 }
 
 .tab-item {
