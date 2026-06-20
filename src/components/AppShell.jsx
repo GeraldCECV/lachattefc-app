@@ -35,12 +35,37 @@ export default function AppShell() {
 
       {/* Profil modal */}
       {showProfil && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.8)', zIndex:500, display:'flex', flexDirection:'column', paddingTop:'env(safe-area-inset-top)' }}>
-          <div style={{ background:'linear-gradient(180deg, rgba(17,31,23,.98), rgba(8,15,11,.99))', flex:1, overflow:'auto' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'16px 20px', borderBottom:'1px solid var(--bd)', position:'sticky', top:0, background:'rgba(8,15,11,.98)', zIndex:10 }}>
-              <div className="page-title" style={{ fontSize:28 }}>Profil</div>
-              <button onClick={() => setShowProfil(false)} style={{ background:'var(--r-dim)', border:'1px solid var(--r-b)', borderRadius:10, padding:'8px 14px', color:'#FCA5A5', cursor:'pointer', fontSize:13, fontWeight:900, textTransform:'uppercase', letterSpacing:'.04em' }}>✕ Fermer</button>
-            </div>
+        <div style={{
+          position:'fixed', inset:0, zIndex:500,
+          background:'linear-gradient(180deg, rgba(7,16,12,.99), rgba(5,10,8,.99))',
+          display:'flex', flexDirection:'column',
+          paddingTop:'env(safe-area-inset-top)',
+          paddingBottom:'env(safe-area-inset-bottom)',
+        }}>
+          {/* Header fixe */}
+          <div style={{
+            display:'flex', justifyContent:'space-between', alignItems:'center',
+            padding:'14px 20px',
+            borderBottom:'1px solid var(--bd)',
+            background:'rgba(7,16,12,.98)',
+            flexShrink:0,
+          }}>
+            <div className="page-title" style={{ fontSize:28 }}>Profil</div>
+            <button
+              onClick={() => setShowProfil(false)}
+              style={{
+                background:'var(--r-dim)', border:'1px solid var(--r-b)',
+                borderRadius:10, padding:'8px 16px',
+                color:'#FCA5A5', cursor:'pointer',
+                fontSize:13, fontWeight:900,
+                textTransform:'uppercase', letterSpacing:'.04em',
+              }}
+            >
+              ✕ Fermer
+            </button>
+          </div>
+          {/* Contenu scrollable */}
+          <div style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
             <Profil />
           </div>
         </div>
