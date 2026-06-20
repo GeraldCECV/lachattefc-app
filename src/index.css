@@ -45,7 +45,7 @@ body {
 
 /* Scrollable content area */
 .scroll-area {
-  height: calc(100dvh - var(--tab-h));
+  height: calc(100dvh - var(--tab-h) - env(safe-area-inset-top));
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
