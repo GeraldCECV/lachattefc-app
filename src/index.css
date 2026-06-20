@@ -116,13 +116,21 @@ input, select, textarea { font-family: var(--F); }
   border-top: 1px solid rgba(155,226,45,.12);
   display: flex;
   align-items: flex-start;
-  padding: 8px 4px 0;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: 10px 4px 0;
+  /* Remplit jusqu'au bas de l'écran y compris la barre home iPhone */
+  padding-bottom: max(env(safe-area-inset-bottom), 16px);
   flex-shrink: 0;
-  position: relative;
   z-index: 100;
-  /* Hauteur fixe contenu + safe area */
-  min-height: calc(62px + env(safe-area-inset-bottom));
+}
+
+/* Fond qui s'étend sous la home bar */
+.tab-bar::after {
+  content: '';
+  position: absolute;
+  bottom: calc(-1 * env(safe-area-inset-bottom));
+  left: 0; right: 0;
+  height: env(safe-area-inset-bottom);
+  background: rgba(7,16,12,.95);
 }
 
 .tab-item {
