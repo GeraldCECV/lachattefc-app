@@ -11,6 +11,7 @@ export default function Reglement() {
     { s:'2022-2023', or:'Baptiste CLAIRE', pb:'Jérémie GALLOYER' },
     { s:'2023-2024', or:'Rafael SORTAIS', pb:'Simon GALLOYER' },
     { s:'2024-2025', or:'Kamel MENLAIKHAF', pb:'Simon GALLOYER' },
+    { s:'2025-2026', or:'Simon GALLOYER', pb:'Jérémie GALLOYER' },
   ]
 
   const Section = ({ num, title, children }) => (
@@ -50,6 +51,7 @@ export default function Reglement() {
             { role:'Président', nom:'Kamel MENLAIKHAF' },
             { role:'Vice-Président', nom:'Mathieu PLET' },
             { role:'Administrateur', nom:'Baptiste CLAIRE' },
+    { role:'Administrateur', nom:'Gérald DURAND-DESGRANGES' },
           ].map(b => (
             <div key={b.role} style={{ display:'flex', justifyContent:'space-between', fontSize:13 }}>
               <span style={{ color:'var(--tx3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em', fontSize:11 }}>{b.role}</span>
