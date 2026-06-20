@@ -96,25 +96,28 @@ input, select, textarea { font-family: var(--F); }
   display: flex;
   flex-direction: column;
   background: transparent;
+  /* Safe area top */
   padding-top: env(safe-area-inset-top);
+  box-sizing: border-box;
 }
 
 .screen-content {
   flex: 1;
   overflow: hidden;
   position: relative;
+  min-height: 0; /* important pour flex */
 }
 
 /* ── TAB BAR ── */
 .tab-bar {
-  height: var(--tab-h);
+  height: calc(var(--tab-h) + env(safe-area-inset-bottom));
   background: rgba(7,16,12,.95);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-top: 1px solid rgba(155,226,45,.12);
   display: flex;
   padding: 0 4px;
-  padding-bottom: calc(16px + var(--safe-bot));
+  padding-bottom: calc(18px + env(safe-area-inset-bottom));
   flex-shrink: 0;
   position: relative;
   z-index: 100;
@@ -156,11 +159,14 @@ input, select, textarea { font-family: var(--F); }
 /* ── SCROLL AREA ── */
 .scroll-area {
   height: 100%;
+  width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
 }
 .scroll-area::-webkit-scrollbar { display: none; }
 
