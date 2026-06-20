@@ -4,18 +4,18 @@ import { db } from '../firebase/config'
 import { useUser } from '../App'
 
 const COLORS = [
-  ['rgba(255,215,0,.15)','#FFD700'],['rgba(192,192,192,.12)','#C0C0C0'],
-  ['rgba(205,127,50,.12)','#CD7F32'],['rgba(96,165,250,.12)','var(--b)'],
-  ['rgba(34,197,94,.12)','var(--g)'],['rgba(167,139,250,.12)','var(--p)'],
-  ['rgba(245,158,11,.12)','var(--a)'],['rgba(239,68,68,.12)','var(--r)'],
-  ['rgba(20,184,166,.12)','#0d9488'],['rgba(249,115,22,.12)','var(--o)'],
+  ['rgba(255,215,0,.14)','#FFD700'],['rgba(192,192,192,.12)','#C0C0C0'],
+  ['rgba(205,127,50,.12)','#CD7F32'],['rgba(96,165,250,.12)','#93C5FD'],
+  ['rgba(155,226,45,.12)','#9BE22D'],['rgba(192,132,252,.12)','#DDD6FE'],
+  ['rgba(251,191,36,.12)','#FCD34D'],['rgba(248,113,113,.12)','#FCA5A5'],
+  ['rgba(20,184,166,.12)','#5EEAD4'],['rgba(251,146,60,.12)','#FDBA74'],
 ]
-const getC = idx => COLORS[idx % COLORS.length]
+const getC = i => COLORS[i % COLORS.length]
 
 export default function Classement() {
   const { profil } = useUser()
   const [tab, setTab] = useState('journee')
-  const [joueurs, setJoueurs] = useState([])
+  const [joueursMap, setJoueursMap] = useState({})
   const [journee, setJournee] = useState(null)
   const [classJ, setClassJ] = useState([])
   const [classG, setClassG] = useState([])
@@ -25,31 +25,24 @@ export default function Classement() {
   useEffect(() => {
     let unsub = null
     const load = async () => {
-      const jSnap = await getDocs(collection(db, 'joueurs'))
+      const snap = await getDocs(collection(db,'joueurs'))
       const map = {}
-      jSnap.docs.forEach((d, i) => { map[d.id] = { id: d.id, idx: i, ...d.data() } })
-      setJoueurs(Object.values(map))
+      snap.docs.forEach((d,i) => { map[d.id] = { id:d.id, idx:i, ...d.data() } })
+      setJoueursMap(map)
+      setClassG(Object.values(map).sort((a,b)=>(b.pointsTotal||0)-(a.pointsTotal||0)).map((j,i)=>({...j,rank:i+1})))
 
-      const g = Object.values(map).sort((a, b) => (b.pointsTotal||0)-(a.pointsTotal||0)).map((j,i) => ({...j,rank:i+1}))
-      setClassG(g)
-
-      const snap = await getDocs(query(collection(db,'journees'),orderBy('numero','desc'),limit(1)))
-      if (!snap.empty) {
-        const jDoc = snap.docs[0]
-        setJournee({ id: jDoc.id, ...jDoc.data() })
-
+      const jSnap = await getDocs(query(collection(db,'journees'),orderBy('numero','desc'),limit(1)))
+      if (!jSnap.empty) {
+        const jDoc = jSnap.docs[0]
+        setJournee({ id:jDoc.id, ...jDoc.data() })
         unsub = onSnapshot(doc(db,'journees',jDoc.id), d => {
           if (!d.exists()) return
           const data = d.data()
-          setJournee({ id: d.id, ...data })
+          setJournee({ id:d.id, ...data })
           setLastUpdate(new Date())
-          const pts = data.pointsJoueurs || {}
-          const gains = data.gainsJoueurs || {}
-          const ranked = Object.values(map)
-            .map(j => ({ ...j, ptsJ: pts[j.id]||0, gainJ: gains[j.id]||0 }))
-            .sort((a,b) => b.ptsJ-a.ptsJ)
-            .map((j,i) => ({...j,rank:i+1}))
-          setClassJ(ranked)
+          const pts = data.pointsJoueurs||{}
+          const gains = data.gainsJoueurs||{}
+          setClassJ(Object.values(map).map(j=>({...j,ptsJ:pts[j.id]||0,gainJ:gains[j.id]||0})).sort((a,b)=>b.ptsJ-a.ptsJ).map((j,i)=>({...j,rank:i+1})))
         })
       }
       setLoading(false)
@@ -58,57 +51,40 @@ export default function Classement() {
     return () => { if (unsub) unsub() }
   }, [])
 
-  const TabBtn = ({ id, label }) => (
-    <button onClick={() => setTab(id)} style={{
-      flex: 1, padding: '12px 8px', border: 'none', background: 'none',
-      fontSize: 13, fontWeight: 600,
-      color: tab === id ? 'var(--g)' : 'var(--tx3)',
-      borderBottom: `2px solid ${tab === id ? 'var(--g)' : 'transparent'}`,
-      cursor: 'pointer', transition: 'all .15s',
-    }}>
-      {label}
-    </button>
-  )
-
-  const Rank = ({ rank, size = 'normal' }) => {
-    if (rank === 1) return <span style={{ fontSize: size==='lg'?22:18 }}>🥇</span>
-    if (rank === 2) return <span style={{ fontSize: size==='lg'?22:18 }}>🥈</span>
-    if (rank === 3) return <span style={{ fontSize: size==='lg'?22:18 }}>🥉</span>
-    return <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--tx3)', width: 28, textAlign: 'center', display: 'inline-block' }}>{rank}</span>
+  const Rank = ({rank}) => {
+    if (rank===1) return <span style={{fontSize:18}}>🥇</span>
+    if (rank===2) return <span style={{fontSize:18}}>🥈</span>
+    if (rank===3) return <span style={{fontSize:18}}>🥉</span>
+    return <span style={{fontSize:13,fontWeight:900,color:'var(--tx3)',width:24,textAlign:'center',display:'inline-block'}}>{rank}</span>
   }
 
-  const PlayerRow = ({ j, idx, pts, gain, showNet = false }) => {
-    const [bg, color] = getC(idx)
+  const PlayerRow = ({j, idx, pts, gain, net}) => {
+    const [bg,color] = getC(idx)
     const isMe = j.id === profil?.id
-    const isLast = idx === (tab==='journee' ? classJ : classG).length - 1
-    const miseTotal = (j.journeesJouees||0) * 5
-    const net = (j.gainsTotal||0) - miseTotal
-
+    const isLast = idx === (tab==='journee'?classJ:classG).length-1
     return (
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '11px 16px',
-        background: isMe ? 'rgba(34,197,94,.06)' : isLast ? 'rgba(239,68,68,.03)' : 'transparent',
-        borderLeft: isMe ? '3px solid var(--g)' : '3px solid transparent',
-        borderBottom: '1px solid var(--bd)',
+        display:'flex', alignItems:'center', gap:10,
+        padding:'12px 16px',
+        background: isMe?'rgba(155,226,45,.06)':isLast?'rgba(248,113,113,.04)':'transparent',
+        borderLeft: `3px solid ${isMe?'var(--g)':'transparent'}`,
+        borderBottom:'1px solid rgba(155,226,45,.08)',
       }}>
         <Rank rank={j.rank} />
-        <div className="av" style={{ width: 34, height: 34, background: isMe ? 'var(--g-dim)' : bg, color: isMe ? 'var(--g)' : color, fontSize: 11 }}>
+        <div className="av" style={{ width:34, height:34, background:isMe?'var(--g-dim)':bg, color:isMe?'var(--g)':color, fontSize:11, border:`1px solid ${isMe?'var(--g-b)':'rgba(255,255,255,.08)'}` }}>
           {j.initiales}
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: isMe ? 700 : 500, color: isMe ? 'var(--g)' : 'var(--tx)' }}>
-            {j.nom?.split(' ')[0]} {isLast ? '💩' : ''} {isMe ? '(toi)' : ''}
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:13, fontWeight:isMe?900:700, color:isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', letterSpacing:'.02em' }}>
+            {j.nom?.split(' ')[0]} {isLast?'💩':''} {isMe?<span style={{fontSize:10,color:'var(--tx3)',fontWeight:400,textTransform:'none'}}>(toi)</span>:''}
           </div>
-          {showNet && <div style={{ fontSize: 11, color: net >= 0 ? 'var(--g)' : 'var(--r)', fontWeight: 600, marginTop: 1 }}>
-            {net >= 0 ? '+' : ''}{net}€ net
-          </div>}
+          {net!==undefined && <div style={{ fontSize:11, color:net>=0?'var(--g)':'var(--r)', fontWeight:900, marginTop:1 }}>{net>=0?'+':''}{net}€ net</div>}
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontFamily: 'var(--D)', fontSize: 22, letterSpacing: '.03em', color: isMe ? 'var(--g)' : 'var(--tx)', lineHeight: 1 }}>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ fontFamily:'var(--D)', fontSize:24, letterSpacing:'.03em', color:isMe?'var(--g)':'var(--tx)', lineHeight:1, textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
             {pts}
           </div>
-          {gain > 0 && <div style={{ fontSize: 11, color: 'var(--g)', fontWeight: 600 }}>+{gain}€</div>}
+          {gain>0 && <div style={{ fontSize:11, color:'var(--g)', fontWeight:900 }}>+{gain}€</div>}
         </div>
       </div>
     )
@@ -116,11 +92,10 @@ export default function Classement() {
 
   return (
     <div className="scroll-area">
-      {/* Header */}
-      <div style={{ padding: '16px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding:'16px 20px 0', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <div>
-          <div style={{ fontFamily: 'var(--D)', fontSize: 28, letterSpacing: '.04em' }}>🏆 Classement</div>
-          <div style={{ fontSize: 13, color: 'var(--tx2)', marginTop: 2 }}>Saison 25/26</div>
+          <div className="page-title">Classement</div>
+          <div className="page-sub">Saison 25/26</div>
         </div>
         {lastUpdate && (
           <div className="live">
@@ -131,64 +106,60 @@ export default function Classement() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', margin: '14px 16px 0', background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 'var(--R)', overflow: 'hidden' }}>
-        <TabBtn id="journee" label={`⚡ J${journee?.numero || '?'}`} />
-        <TabBtn id="general" label="🏆 Général" />
+      <div style={{ margin:'14px 16px 0', background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--R)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
+        <div style={{ display:'flex', borderBottom:'1px solid rgba(155,226,45,.1)', padding:'0 4px' }}>
+          {[
+            { id:'journee', label:`⚡ J${journee?.numero||'?'}` },
+            { id:'general', label:'🏆 Général' },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              flex:1, padding:'12px 8px', border:'none', background:'none',
+              fontSize:12, fontWeight:900, cursor:'pointer',
+              textTransform:'uppercase', letterSpacing:'.05em',
+              color: tab===t.id ? 'var(--g)' : 'var(--tx3)',
+              borderBottom: `2px solid ${tab===t.id ? 'var(--g)' : 'transparent'}`,
+              transition:'all .15s',
+            }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ padding:'10px 16px', borderBottom:'1px solid rgba(155,226,45,.08)', display:'flex', justifyContent:'space-between' }}>
+          <span style={{ fontSize:11, color:'var(--tx3)', fontWeight:700 }}>
+            {tab==='journee'
+              ? `${journee?.statut==='ouverte'?'⏰ En cours':journee?.statut==='fermee'?'🔒 Fermée':'🏁 Finalisée'} · reset chaque journée`
+              : 'Cumulatif depuis J1 · màj chaque lundi'
+            }
+          </span>
+        </div>
+
+        {loading ? (
+          <div style={{ display:'flex', justifyContent:'center', padding:40 }}>
+            <div className="spinner" style={{ width:24, height:24 }}></div>
+          </div>
+        ) : tab==='journee' ? (
+          classJ.length===0 ? (
+            <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13, fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>
+              Aucun prono soumis pour cette journée
+            </div>
+          ) : classJ.map((j,i) => <PlayerRow key={j.id} j={j} idx={i} pts={j.ptsJ} gain={j.gainJ} />)
+        ) : (
+          classG.length===0 ? (
+            <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13 }}>Aucun joueur enregistré</div>
+          ) : classG.map((j,i) => {
+            const net = (j.gainsTotal||0) - (j.journeesJouees||0)*5
+            return <PlayerRow key={j.id} j={j} idx={i} pts={j.pointsTotal||0} gain={j.gainsTotal||0} net={net} />
+          })
+        )}
       </div>
 
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-          <div className="spinner" style={{ width: 24, height: 24 }}></div>
-        </div>
-      ) : (
-        <div style={{ margin: '10px 0 24px', background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 'var(--R)', overflow: 'hidden', marginLeft: 16, marginRight: 16 }}>
-
-          {/* Journée */}
-          {tab === 'journee' && (
-            <>
-              <div style={{ padding: '10px 16px', background: 'var(--bg3)', borderBottom: '1px solid var(--bd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: 'var(--tx3)' }}>
-                  {journee?.statut === 'ouverte' ? '⏰ En cours' : journee?.statut === 'fermee' ? '🔒 Fermée' : '🏁 Finalisée'}
-                </span>
-                <span style={{ fontSize: 11, color: 'var(--tx3)' }}>Se remet à 0 chaque journée</span>
-              </div>
-              {classJ.length === 0 ? (
-                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--tx3)', fontSize: 13 }}>
-                  Aucun prono soumis pour cette journée
-                </div>
-              ) : classJ.map((j, i) => (
-                <PlayerRow key={j.id} j={j} idx={i} pts={j.ptsJ} gain={j.gainJ} />
-              ))}
-            </>
-          )}
-
-          {/* Général */}
-          {tab === 'general' && (
-            <>
-              <div style={{ padding: '10px 16px', background: 'var(--bg3)', borderBottom: '1px solid var(--bd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: 'var(--tx3)' }}>Cumulatif depuis J1</span>
-                <span style={{ fontSize: 11, color: 'var(--tx3)' }}>Màj chaque lundi</span>
-              </div>
-              {classG.length === 0 ? (
-                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--tx3)', fontSize: 13 }}>
-                  Aucun joueur enregistré
-                </div>
-              ) : classG.map((j, i) => (
-                <PlayerRow key={j.id} j={j} idx={i} pts={j.pointsTotal||0} gain={j.gainsTotal||0} showNet={true} />
-              ))}
-            </>
-          )}
-        </div>
-      )}
-
       {/* Barème */}
-      <div style={{ margin: '0 16px 24px', padding: '12px 14px', background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 'var(--Rs)' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
-          💰 Barème gains / journée
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', fontSize: 12, color: 'var(--tx2)' }}>
+      <div style={{ margin:'12px 16px 24px', padding:'12px 14px', background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--Rs)', boxShadow:'var(--shadow)' }}>
+        <div style={{ fontSize:10, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>💰 Barème gains / journée</div>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 12px', fontSize:12, color:'var(--tx2)', fontWeight:700 }}>
           {[[1,21],[2,16],[3,12],[4,9],[5,7],[6,5]].map(([r,g]) => (
-            <span key={r}>{r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : `${r}e`} → {g}€</span>
+            <span key={r}>{r===1?'🥇':r===2?'🥈':r===3?'🥉':`${r}e`} → <span style={{color:'var(--g)'}}>{g}€</span></span>
           ))}
         </div>
       </div>
