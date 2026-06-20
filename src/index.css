@@ -36,9 +36,6 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
-  /* Couvre toute la zone y compris encoche/Dynamic Island */
-  padding-top: env(safe-area-inset-top);
-  padding-top: constant(safe-area-inset-top);
 }
 
 #root {
@@ -48,7 +45,7 @@ body {
 
 /* Scrollable content area */
 .scroll-area {
-  height: calc(100vh - var(--tab-h) - 48px - var(--safe-top));
+  height: calc(100dvh - var(--tab-h));
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
