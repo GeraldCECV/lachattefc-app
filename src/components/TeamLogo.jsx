@@ -1,91 +1,110 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
-// Map des équipes L1 + grands championnats vers leur ID football-data.org
-const TEAM_IDS = {
-  // Ligue 1
-  'psg': 524, 'paris': 524, 'paris saint-germain': 524,
-  'om': 516, 'marseille': 516, 'olympique de marseille': 516,
-  'monaco': 548, 'as monaco': 548,
-  'lyon': 523, 'ol': 523, 'olympique lyonnais': 523,
-  'lille': 521, 'losc': 521,
-  'nice': 522, 'ogc nice': 522,
-  'lens': 546, 'rc lens': 546,
-  'rennes': 529, 'stade rennais': 529,
-  'strasbourg': 576, 'rc strasbourg': 576,
-  'nantes': 543, 'fc nantes': 543,
-  'toulouse': 573, 'toulouse fc': 573,
-  'brest': 3006, 'stade brestois': 3006,
-  'auxerre': 532, 'aj auxerre': 532,
-  'angers': 531, 'angers sco': 531,
-  'le havre': 539, 'le havre ac': 539,
-  'reims': 547, 'stade de reims': 547,
-  'montpellier': 541,
-  'saint-etienne': 527, 'asse': 527,
+// IDs des équipes sur api-football (logo via thesportsdb ou sofascore)
+const TEAM_LOGOS = {
+  // Ligue 1 - logos via API-Football CDN
+  'psg': 'https://media.api-sports.io/football/teams/85.png',
+  'paris saint-germain': 'https://media.api-sports.io/football/teams/85.png',
+  'paris fc': 'https://media.api-sports.io/football/teams/85.png',
+  'marseille': 'https://media.api-sports.io/football/teams/81.png',
+  'om': 'https://media.api-sports.io/football/teams/81.png',
+  'olympique de marseille': 'https://media.api-sports.io/football/teams/81.png',
+  'monaco': 'https://media.api-sports.io/football/teams/91.png',
+  'as monaco': 'https://media.api-sports.io/football/teams/91.png',
+  'lyon': 'https://media.api-sports.io/football/teams/80.png',
+  'ol': 'https://media.api-sports.io/football/teams/80.png',
+  'olympique lyonnais': 'https://media.api-sports.io/football/teams/80.png',
+  'olympique lyon': 'https://media.api-sports.io/football/teams/80.png',
+  'lille': 'https://media.api-sports.io/football/teams/79.png',
+  'losc': 'https://media.api-sports.io/football/teams/79.png',
+  'rc lens': 'https://media.api-sports.io/football/teams/116.png',
+  'lens': 'https://media.api-sports.io/football/teams/116.png',
+  'nice': 'https://media.api-sports.io/football/teams/84.png',
+  'ogc nice': 'https://media.api-sports.io/football/teams/84.png',
+  'rennes': 'https://media.api-sports.io/football/teams/94.png',
+  'stade rennais': 'https://media.api-sports.io/football/teams/94.png',
+  'strasbourg': 'https://media.api-sports.io/football/teams/95.png',
+  'rc strasbourg': 'https://media.api-sports.io/football/teams/95.png',
+  'nantes': 'https://media.api-sports.io/football/teams/83.png',
+  'fc nantes': 'https://media.api-sports.io/football/teams/83.png',
+  'toulouse': 'https://media.api-sports.io/football/teams/96.png',
+  'toulouse fc': 'https://media.api-sports.io/football/teams/96.png',
+  'brest': 'https://media.api-sports.io/football/teams/113.png',
+  'stade brestois': 'https://media.api-sports.io/football/teams/113.png',
+  'auxerre': 'https://media.api-sports.io/football/teams/778.png',
+  'aj auxerre': 'https://media.api-sports.io/football/teams/778.png',
+  'angers': 'https://media.api-sports.io/football/teams/77.png',
+  'angers sco': 'https://media.api-sports.io/football/teams/77.png',
+  'le havre': 'https://media.api-sports.io/football/teams/1074.png',
+  'le havre ac': 'https://media.api-sports.io/football/teams/1074.png',
+  'reims': 'https://media.api-sports.io/football/teams/93.png',
+  'stade de reims': 'https://media.api-sports.io/football/teams/93.png',
+  'montpellier': 'https://media.api-sports.io/football/teams/82.png',
+  'mhsc': 'https://media.api-sports.io/football/teams/82.png',
+  'saint-etienne': 'https://media.api-sports.io/football/teams/92.png',
+  'asse': 'https://media.api-sports.io/football/teams/92.png',
+  'lorient': 'https://media.api-sports.io/football/teams/1104.png',
+  'fc lorient': 'https://media.api-sports.io/football/teams/1104.png',
+  'metz': 'https://media.api-sports.io/football/teams/112.png',
+  'fc metz': 'https://media.api-sports.io/football/teams/112.png',
   // Premier League
-  'arsenal': 57, 'chelsea': 61, 'liverpool': 64, 'manchester city': 65,
-  'manchester united': 66, 'tottenham': 73, 'newcastle': 67,
-  'aston villa': 58, 'west ham': 563, 'brighton': 397,
+  'arsenal': 'https://media.api-sports.io/football/teams/42.png',
+  'chelsea': 'https://media.api-sports.io/football/teams/49.png',
+  'liverpool': 'https://media.api-sports.io/football/teams/40.png',
+  'manchester city': 'https://media.api-sports.io/football/teams/50.png',
+  'manchester united': 'https://media.api-sports.io/football/teams/33.png',
+  'man united': 'https://media.api-sports.io/football/teams/33.png',
+  'man u': 'https://media.api-sports.io/football/teams/33.png',
+  'tottenham': 'https://media.api-sports.io/football/teams/47.png',
+  'newcastle': 'https://media.api-sports.io/football/teams/34.png',
+  'aston villa': 'https://media.api-sports.io/football/teams/66.png',
   // La Liga
-  'real madrid': 86, 'barcelona': 81, 'atletico madrid': 78,
-  'sevilla': 559, 'villarreal': 94, 'real sociedad': 92,
-  'athletic club': 77, 'valencia': 95, 'betis': 90,
+  'real madrid': 'https://media.api-sports.io/football/teams/541.png',
+  'barcelona': 'https://media.api-sports.io/football/teams/529.png',
+  'fc barcelona': 'https://media.api-sports.io/football/teams/529.png',
+  'atletico madrid': 'https://media.api-sports.io/football/teams/530.png',
+  'sevilla': 'https://media.api-sports.io/football/teams/536.png',
+  'real sociedad': 'https://media.api-sports.io/football/teams/548.png',
+  'athletic club': 'https://media.api-sports.io/football/teams/531.png',
+  'villarreal': 'https://media.api-sports.io/football/teams/533.png',
   // Bundesliga
-  'bayern': 5, 'bayern munich': 5, 'dortmund': 4, 'borussia dortmund': 4,
-  'leipzig': 721, 'leverkusen': 3, 'bayer leverkusen': 3,
-  'frankfurt': 19, 'wolfsburg': 11, 'freiburg': 17,
+  'bayern': 'https://media.api-sports.io/football/teams/157.png',
+  'bayern munich': 'https://media.api-sports.io/football/teams/157.png',
+  'dortmund': 'https://media.api-sports.io/football/teams/165.png',
+  'borussia dortmund': 'https://media.api-sports.io/football/teams/165.png',
+  'leverkusen': 'https://media.api-sports.io/football/teams/168.png',
+  'bayer leverkusen': 'https://media.api-sports.io/football/teams/168.png',
+  'leipzig': 'https://media.api-sports.io/football/teams/173.png',
   // Serie A
-  'juventus': 109, 'inter': 108, 'inter milan': 108,
-  'milan': 98, 'ac milan': 98, 'napoli': 113, 'roma': 100,
-  'lazio': 110, 'atalanta': 102, 'fiorentina': 99,
+  'juventus': 'https://media.api-sports.io/football/teams/496.png',
+  'inter': 'https://media.api-sports.io/football/teams/505.png',
+  'inter milan': 'https://media.api-sports.io/football/teams/505.png',
+  'milan': 'https://media.api-sports.io/football/teams/489.png',
+  'ac milan': 'https://media.api-sports.io/football/teams/489.png',
+  'napoli': 'https://media.api-sports.io/football/teams/492.png',
+  'roma': 'https://media.api-sports.io/football/teams/497.png',
 }
-
-const API_KEY = '9823b9cd729441f9a1d8808b7b41ad29'
-const cache = {}
 
 function normalize(name) {
-  return name?.toLowerCase().trim() || ''
+  return name?.toLowerCase().trim().replace(/\s+/g, ' ') || ''
 }
 
-function getTeamId(name) {
+function getLogo(name) {
+  if (!name) return null
   const n = normalize(name)
-  // Direct match
-  if (TEAM_IDS[n]) return TEAM_IDS[n]
+  if (TEAM_LOGOS[n]) return TEAM_LOGOS[n]
   // Partial match
-  for (const [key, id] of Object.entries(TEAM_IDS)) {
-    if (n.includes(key) || key.includes(n)) return id
+  for (const [key, url] of Object.entries(TEAM_LOGOS)) {
+    if (n.includes(key) || key.includes(n)) return url
   }
   return null
 }
 
 export default function TeamLogo({ name, size = 28 }) {
-  const [logo, setLogo] = useState(null)
   const [error, setError] = useState(false)
+  const logo = getLogo(name)
 
-  useEffect(() => {
-    const id = getTeamId(name)
-    if (!id) { setError(true); return }
-
-    // Check cache
-    if (cache[id]) { setLogo(cache[id]); return }
-
-    // Fetch from API
-    fetch(`https://api.football-data.org/v4/teams/${id}`, {
-      headers: { 'X-Auth-Token': API_KEY }
-    })
-      .then(r => r.json())
-      .then(d => {
-        if (d.crest) {
-          cache[id] = d.crest
-          setLogo(d.crest)
-        } else {
-          setError(true)
-        }
-      })
-      .catch(() => setError(true))
-  }, [name])
-
-  if (error || !logo) {
-    // Fallback — initiales colorées
+  if (!logo || error) {
     const initials = name?.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase() || '?'
     return (
       <div style={{
