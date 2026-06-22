@@ -158,7 +158,7 @@ export default function Classement() {
       <div style={{ margin:'12px 16px 24px', padding:'12px 14px', background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--Rs)', boxShadow:'var(--shadow)' }}>
         <div style={{ fontSize:10, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>💰 Barème gains / journée</div>
         <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 12px', fontSize:12, color:'var(--tx2)', fontWeight:700 }}>
-          {[[1,21],[2,16],[3,12],[4,9],[5,7],[6,5]].map(([r,g]) => (
+          {[[1,24],[2,18],[3,14],[4,11],[5,8],[6,5]].map(([r,g]) => (
             <span key={r}>{r===1?'🥇':r===2?'🥈':r===3?'🥉':`${r}e`} → <span style={{color:'var(--g)'}}>{g}€</span></span>
           ))}
         </div>
