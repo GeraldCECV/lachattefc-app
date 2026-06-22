@@ -10,7 +10,7 @@ export default defineConfig({
       includeAssets: ['apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'La Chatte FC',
-        short_name: 'La Chatte',
+        short_name: 'La Chatte FC',
         description: 'Concours de pronos La Chatte FC — Saison 25/26',
         theme_color: '#07100C',
         background_color: '#07100C',
