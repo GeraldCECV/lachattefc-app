@@ -276,6 +276,64 @@ export default function Pronos() {
     </div>
   )
 
+  // ── BOXING DAY ──
+  if (journee.type === 'boxing-day') {
+    const matchesBoxing = journee.matchesBoxing || []
+    const [scores, setScores] = useState(matchesBoxing.map(() => ({ h: 0, a: 0 })))
+
+    const handleBoxingSubmit = async () => {
+      setSaving(true)
+      try {
+        const data = {
+          joueurId: user.uid,
+          joueurNom: profil?.nom,
+          soumisLe: serverTimestamp(),
+          matchesBoxing: scores.map(s => `${s.h}-${s.a}`),
+          type: 'boxing-day',
+        }
+        await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
+        setExistingProno(data)
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      } catch(e) { alert('Erreur : '+e.message) }
+      setSaving(false)
+    }
+
+    return (
+      <div className="scroll-area">
+        <div style={{padding:'16px 20px 0'}}>
+          <div style={{fontFamily:'var(--D)',fontSize:28,letterSpacing:'.04em',color:'var(--a)'}}>🎄 Boxing Day</div>
+          <div style={{fontSize:13,color:'var(--tx2)',marginTop:2}}>26 décembre · 10 matchs PL · Tous à scorer · Pas de bonus</div>
+        </div>
+        {saved && <div className="alert alert-g" style={{margin:'12px 16px 0'}}>✅ Pronos envoyés !</div>}
+        <div className="section-lbl" style={{padding:'14px 20px 8px'}}>🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League — 10 matchs à scorer</div>
+        {matchesBoxing.map((m, i) => (
+          <div key={i} style={{margin:'0 16px 8px',background:'rgba(251,191,36,.04)',border:'1px solid var(--a-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
+              <TeamLogo name={m.dom} size={22} />
+              <span style={{fontSize:14,fontWeight:700}}>{m.dom}</span>
+              <span style={{color:'var(--tx3)'}}>—</span>
+              <span style={{fontSize:14,fontWeight:700}}>{m.ext}</span>
+              <TeamLogo name={m.ext} size={22} />
+              <span style={{fontSize:11,color:'var(--tx3)',marginLeft:'auto'}}>{m.jour} {m.heure}</span>
+            </div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+              <Stepper val={scores[i]?.h||0} onChange={v => setScores(prev => prev.map((s,j) => j===i?{...s,h:v}:s))} />
+              <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
+              <Stepper val={scores[i]?.a||0} onChange={v => setScores(prev => prev.map((s,j) => j===i?{...s,a:v}:s))} />
+            </div>
+            <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:8}}>Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt</div>
+          </div>
+        ))}
+        <div style={{padding:'4px 16px 24px'}}>
+          <button className="btn btn-primary" onClick={handleBoxingSubmit} disabled={saving}>
+            {saving ? <><div className="spinner" style={{width:18,height:18,borderTopColor:'#000'}}></div> Envoi...</> : existingProno ? '🔄 Mettre à jour' : '🎄 Envoyer mes pronos Boxing Day'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (deadlinePassed && !existingProno) return (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',padding:'24px 32px',textAlign:'center'}}>
       <div style={{width:80,height:80,background:'var(--r-dim)',border:'1px solid var(--r-b)',borderRadius:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:36,marginBottom:20}}>🔒</div>
