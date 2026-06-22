@@ -16,7 +16,9 @@ export const JOUEURS = [
   { id: 'max',    nom: 'Maxence',             initiales: 'MX', role: 'joueur' },
   { id: 'gerald', nom: 'Gérald',              initiales: 'GE', role: 'admin' },
   { id: 'nico',   nom: 'Nicolas',             initiales: 'NC', role: 'joueur' },
-  { id: 'thomas', nom: 'Thomas',              initiales: 'TH', role: 'joueur' },
+  { id: 'thomas',  nom: 'Thomas',              initiales: 'TH', role: 'joueur' },
+  { id: 'michael', nom: 'Michael Daigneau',    initiales: 'MD', role: 'joueur' },
+  { id: 'vincent', nom: 'Vincent Fouqueray',   initiales: 'VF', role: 'joueur' },
 ];
 
 // Bonus de départ par saison (selon le règlement)
