@@ -62,7 +62,7 @@ export default function Reglement() {
       </div>
 
       <Section num="1" title="Présentation">
-        <p style={{ marginBottom:10 }}>LA CHATTE est un jeu de pronostics entre amis sur le Championnat de France de Ligue 1 saison 2026/2027. Nous sommes <Strong>14 participants</Strong> cette année. <Strong>9ème saison</Strong> entre copains ! 🥳</p>
+        <p style={{ marginBottom:10 }}>LA CHATTE est un jeu de pronostics entre amis sur le Championnat de France de Ligue 1 saison 2026/2027. Nous sommes <Strong>16 participants</Strong> cette année. <Strong>10ème saison</Strong> entre copains ! 🥳</p>
         <p style={{ marginBottom:10 }}>Le concours est composé de :</p>
         <Li>Des pronostics sur les 34 journées de championnat — 1 match à scorer, 1 affiche européenne et 8 matchs à pronostiquer</Li>
         <Li><Strong>Particularité :</Strong> les journées 17 et 34 sont à scorer en intégralité</Li>
@@ -121,8 +121,8 @@ export default function Reglement() {
 
       <Section num="8" title="Gains">
         <div style={{ marginBottom:12 }}>
-          <div style={{ fontWeight:900, color:'var(--g)', marginBottom:8, fontSize:12, textTransform:'uppercase', letterSpacing:'.05em' }}>Gains par journée — Pot : 70€</div>
-          {[[1,'🥇','21€'],[2,'🥈','16€'],[3,'🥉','12€'],[4,'4e','9€'],[5,'5e','7€'],[6,'6e','5€']].map(([r,m,g]) => (
+          <div style={{ fontWeight:900, color:'var(--g)', marginBottom:8, fontSize:12, textTransform:'uppercase', letterSpacing:'.05em' }}>Gains par journée — Pot : 80€</div>
+          {[[1,'🥇','24€'],[2,'🥈','18€'],[3,'🥉','14€'],[4,'4e','11€'],[5,'5e','8€'],[6,'6e','5€']].map(([r,m,g]) => (
             <div key={r} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid rgba(155,226,45,.06)', fontSize:13 }}>
               <span>{m} pronostiqueur</span>
               <span style={{ fontWeight:900, color:'var(--g)' }}>{g}</span>
@@ -131,9 +131,9 @@ export default function Reglement() {
         </div>
         <p style={{ fontSize:12, color:'var(--tx3)', marginBottom:6 }}>En cas d'égalité → partage des gains.</p>
         <div style={{ background:'rgba(251,191,36,.08)', border:'1px solid var(--a-b)', borderRadius:'var(--Rs)', padding:'10px 12px', fontSize:13 }}>
-          🏆 Si un joueur a <Strong>tout bon</Strong> (bon score + au moins 1pt partout) → il rafle les <Strong>70€</Strong> !
+          🏆 Si un joueur a <Strong>tout bon</Strong> (bon score + au moins 1pt partout) → il rafle les <Strong>80€</Strong> !
         </div>
-        <p style={{ fontSize:12, color:'var(--tx3)', marginTop:10 }}>Mise totale par joueur : <Strong>177€</Strong> (5€ × 34 journées + 7€ tableau final)</p>
+        <p style={{ fontSize:12, color:'var(--tx3)', marginTop:10 }}>Mise totale par joueur : <Strong>177€</Strong> (5€ × 34 journées + 7€ tableau final) · Pot journée : <Strong>80€</Strong></p>
       </Section>
 
       <Section num="10" title="Soirée de clôture">
