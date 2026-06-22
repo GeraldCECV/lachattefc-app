@@ -41,7 +41,7 @@ const TEAM_LOGOS = {
   'aj auxerre': 'https://www.thesportsdb.com/images/media/team/badge/twssrr1524072782.png',
   'saint-etienne': 'https://www.thesportsdb.com/images/media/team/badge/vuurqw1473773406.png',
   'asse': 'https://www.thesportsdb.com/images/media/team/badge/vuurqw1473773406.png',
-  'lorient': 'https://www.thesportsdb.com/images/media/team/badge/trsuqv1524073046.png',
+  'lorient': 'https://www.thesportsdb.com/images/media/team/badge/xvtsqr1524072782.png',
   'metz': 'https://www.thesportsdb.com/images/media/team/badge/vvstqr1524072934.png',
   // Premier League
   'arsenal': 'https://www.thesportsdb.com/images/media/team/badge/vrtrtu1448813215.png',
