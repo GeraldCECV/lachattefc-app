@@ -63,6 +63,7 @@ export default function Pronos() {
   const [dcMatch, setDcMatch] = useState(null) // 'l1_0' etc
   const [dcChoices, setDcChoices] = useState([]) // ['1','N'] max 2
   const [missileData, setMissileData] = useState({ cible:null, matchKey:null, prono:null })
+  const [missileUsed, setMissileUsed] = useState(false)
   const [joueurs, setJoueurs] = useState([])
   const [showBonusPanel, setShowBonusPanel] = useState(null) // matchKey
   const [showMissileModal, setShowMissileModal] = useState(false)
@@ -200,6 +201,10 @@ export default function Pronos() {
         bonusUpdate['bonus.doubleChance'] = Math.max(0, stockServeur.doubleChance - 1)
         setBonusStock(prev => ({ ...prev, doubleChance: Math.max(0, prev.doubleChance - 1) }))
       }
+      // Débiter le missile si utilisé cette session
+      if (missileUsed) {
+        bonusUpdate['bonus.missile'] = Math.max(0, stockServeur.missile - 1)
+      }
       if (Object.keys(bonusUpdate).length > 0) {
         await updateDoc(doc(db,'joueurs',user.uid), bonusUpdate)
       }
@@ -227,10 +232,10 @@ export default function Pronos() {
         journeeId: journee.id,
         applique: false,
       })
-      // Débiter le missile dans le profil joueur
-      const newStock = bonusStock.missile - 1
-      await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': newStock })
-      setBonusStock(prev => ({ ...prev, missile: newStock }))
+      // Ne pas débiter immédiatement - sera débité à l'envoi des pronos
+      setMissileUsed(true)
+      // Réduire l'affichage local pour empêcher un 2ème missile (sans toucher Firestore)
+      setBonusStock(prev => ({ ...prev, missile: prev.missile - 1 }))
       setMissileMsg('✅ Missile lancé !')
       setTimeout(() => { setShowMissileModal(false); setMissileMsg(''); setMissileData({cible:null,matchKey:null,prono:null}); setMissileStep(1) }, 1500)
     } catch(e) { setMissileMsg('Erreur : '+e.message) }
