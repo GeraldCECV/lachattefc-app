@@ -132,27 +132,60 @@ export default function Pronos() {
     if (!user || !journee) return
     setSaving(true)
     try {
-      const data = {
+      // ── Vérifier si un missile a été posé sur ce joueur ──
+      // Si oui, écraser le prono concerné avant de sauvegarder
+      const missilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
+      const missilesSurMoi = missilesSnap.docs
+        .map(d => ({ id:d.id, ...d.data() }))
+        .filter(m => m.cible === user.uid && !m.applique)
+
+      const pronosFinaux = {
         ...pronos,
         matchScorer: `${scorerH}-${scorerA}`,
+        matchesL1: [...(pronos.matchesL1 || Array(8).fill(null))],
+      }
+
+      // Appliquer les missiles reçus
+      for (const missile of missilesSurMoi) {
+        const { matchKey, pronoImpose } = missile
+        if (matchKey.startsWith('l1_')) {
+          const i = parseInt(matchKey.replace('l1_', ''))
+          pronosFinaux.matchesL1[i] = pronoImpose
+        } else if (matchKey === 'euro') {
+          pronosFinaux.matchEuro = pronoImpose
+        }
+        // Marquer le missile comme appliqué
+        await updateDoc(doc(db,'journees',journee.id,'missiles',missile.id), { applique: true })
+      }
+
+      // ── Vérifier le stock bonus côté serveur ──
+      const joueurSnap = await getDoc(doc(db,'joueurs',user.uid))
+      const stockServeur = joueurSnap.exists() ? joueurSnap.data().bonus : { missile:0, jackpot:0, doubleChance:0 }
+
+      // Invalider jackpot si stock épuisé
+      const jackpotValide = jackpotMatch && (stockServeur.jackpot > 0)
+      const dcValide = dcMatch && dcChoices.length === 2 && (stockServeur.doubleChance > 0)
+
+      const data = {
+        ...pronosFinaux,
         joueurId: user.uid,
         joueurNom: profil?.nom,
         soumisLe: serverTimestamp(),
-        // Bonus joués
-        jackpotMatch: jackpotMatch || null,
-        dcMatch: dcMatch || null,
-        dcChoices: dcChoices.length > 0 ? dcChoices : null,
+        jackpotMatch: jackpotValide ? jackpotMatch : null,
+        dcMatch: dcValide ? dcMatch : null,
+        dcChoices: dcValide ? dcChoices : null,
+        missilesRecus: missilesSurMoi.length > 0 ? missilesSurMoi.map(m => m.id) : null,
       }
       await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
 
       // Débiter les bonus utilisés au moment de l'envoi
       const bonusUpdate = {}
-      if (jackpotMatch && !existingProno?.jackpotMatch) {
-        bonusUpdate['bonus.jackpot'] = Math.max(0, bonusStock.jackpot - 1)
+      if (jackpotValide && !existingProno?.jackpotMatch) {
+        bonusUpdate['bonus.jackpot'] = Math.max(0, stockServeur.jackpot - 1)
         setBonusStock(prev => ({ ...prev, jackpot: Math.max(0, prev.jackpot - 1) }))
       }
-      if (dcMatch && dcChoices.length === 2 && !existingProno?.dcMatch) {
-        bonusUpdate['bonus.doubleChance'] = Math.max(0, bonusStock.doubleChance - 1)
+      if (dcValide && !existingProno?.dcMatch) {
+        bonusUpdate['bonus.doubleChance'] = Math.max(0, stockServeur.doubleChance - 1)
         setBonusStock(prev => ({ ...prev, doubleChance: Math.max(0, prev.doubleChance - 1) }))
       }
       if (Object.keys(bonusUpdate).length > 0) {
