@@ -276,6 +276,66 @@ export default function Pronos() {
     </div>
   )
 
+  // ── MULTIPLEX J34 ──
+  if (journee.type === 'multiplex') {
+    const matchesL1 = journee.matchesL1 || []
+    const [scores, setScores] = useState(matchesL1.map(() => ({ h: 0, a: 0 })))
+
+    const handleMultiplexSubmit = async () => {
+      setSaving(true)
+      try {
+        const data = {
+          joueurId: user.uid,
+          joueurNom: profil?.nom,
+          soumisLe: serverTimestamp(),
+          matchesMultiplex: scores.map(s => `${s.h}-${s.a}`),
+          type: 'multiplex',
+        }
+        await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
+        setExistingProno(data)
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      } catch(e) { alert('Erreur : '+e.message) }
+      setSaving(false)
+    }
+
+    return (
+      <div className="scroll-area">
+        <div style={{padding:'16px 20px 0'}}>
+          <div style={{fontFamily:'var(--D)',fontSize:28,letterSpacing:'.04em',color:'var(--g)'}}>🏆 Journée Multiplex</div>
+          <div style={{fontSize:13,color:'var(--tx2)',marginTop:2}}>J{journee.numero} · Tous les matchs à scorer simultanément · Pas de bonus</div>
+        </div>
+        {saved && <div className="alert alert-g" style={{margin:'12px 16px 0'}}>✅ Pronos envoyés !</div>}
+        <div style={{margin:'12px 16px 0',padding:'10px 14px',background:'rgba(155,226,45,.06)',border:'1px solid var(--g-b)',borderRadius:'var(--Rs)',fontSize:12,color:'var(--g)',fontWeight:700}}>
+          ⚽ Multiplex — tous les matchs débutent en même temps. Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt
+        </div>
+        <div className="section-lbl" style={{padding:'14px 20px 8px'}}>🇫🇷 Ligue 1 — {matchesL1.length} matchs à scorer</div>
+        {matchesL1.map((m, i) => (
+          <div key={i} style={{margin:'0 16px 8px',background:'rgba(155,226,45,.04)',border:'1px solid var(--g-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
+              <TeamLogo name={m.dom} size={22} />
+              <span style={{fontSize:14,fontWeight:700}}>{m.dom}</span>
+              <span style={{color:'var(--tx3)'}}>—</span>
+              <span style={{fontSize:14,fontWeight:700}}>{m.ext}</span>
+              <TeamLogo name={m.ext} size={22} />
+              <span style={{fontSize:11,color:'var(--tx3)',marginLeft:'auto'}}>{m.jour} {m.heure}</span>
+            </div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+              <Stepper val={scores[i]?.h||0} onChange={v => setScores(prev => prev.map((s,j) => j===i?{...s,h:v}:s))} />
+              <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
+              <Stepper val={scores[i]?.a||0} onChange={v => setScores(prev => prev.map((s,j) => j===i?{...s,a:v}:s))} />
+            </div>
+          </div>
+        ))}
+        <div style={{padding:'4px 16px 24px'}}>
+          <button className="btn btn-primary" onClick={handleMultiplexSubmit} disabled={saving}>
+            {saving ? <><div className="spinner" style={{width:18,height:18,borderTopColor:'#000'}}></div> Envoi...</> : existingProno ? '🔄 Mettre à jour' : '📤 Envoyer mes pronos Multiplex'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // ── BOXING DAY ──
   if (journee.type === 'boxing-day') {
     const matchesBoxing = journee.matchesBoxing || []
