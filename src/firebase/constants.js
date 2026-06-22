@@ -28,11 +28,11 @@ export const BONUS_DEPART = {
   doubleChance: 4,
 };
 
-// Barème des gains par journée (règlement Article 8)
+// Barème des gains par journée (règlement Article 8) — 16 joueurs, pot 80€
 export const GAINS_JOURNEE = {
-  1: 21, 2: 16, 3: 12, 4: 9, 5: 7, 6: 5
+  1: 24, 2: 18, 3: 14, 4: 11, 5: 8, 6: 5
 };
-export const GAIN_TOTAL_J = 70;
+export const GAIN_TOTAL_J = 80;
 
 // Règles de points
 export const POINTS = {
