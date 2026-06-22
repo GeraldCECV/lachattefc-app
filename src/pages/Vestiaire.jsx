@@ -21,7 +21,16 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
   useEffect(() => {
     let unsubJ = null
     const load = async () => {
-      const snap = await getDocs(query(collection(db,'journees'), orderBy('numero','desc'), limit(1)))
+      // Charger la première journée ouverte ou en cours
+      const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
+      const now = new Date()
+      const openDocs = allSnap.docs.filter(d => {
+        const data = d.data()
+        if (data.statut === 'resultats') return false
+        const dl = data.deadline ? new Date(data.deadline.seconds * 1000) : null
+        return !dl || dl > now || data.statut === 'ouverte' || data.statut === 'fermee'
+      })
+      const snap = { docs: openDocs.length > 0 ? [openDocs[0]] : allSnap.docs.slice(-1), empty: allSnap.empty }
       if (!snap.empty) {
         const jDoc = snap.docs[0]
         unsubJ = onSnapshot(doc(db,'journees',jDoc.id), d => {

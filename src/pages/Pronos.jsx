@@ -71,7 +71,18 @@ export default function Pronos() {
 
   useEffect(() => {
     const load = async () => {
-      const snap = await getDocs(query(collection(db,'journees'), orderBy('numero','desc'), limit(1)))
+      // Charger la première journée ouverte
+      let snap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
+      // Trouver la première journée ouverte dont la deadline n'est pas passée
+      const now = new Date()
+      const openDocs = snap.docs.filter(d => {
+        const data = d.data()
+        if (data.statut === 'resultats') return false
+        const dl = data.deadline ? new Date(data.deadline.seconds * 1000) : null
+        return !dl || dl > now || data.statut === 'ouverte'
+      })
+      if (openDocs.length === 0) { setLoading(false); return }
+      snap = { docs: [openDocs[0]], empty: false }
       if (snap.empty) { setLoading(false); return }
       const jDoc = snap.docs[0]
       const j = { id:jDoc.id, ...jDoc.data() }
