@@ -220,11 +220,14 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                       </div>
                       <div className="match-time">L1 · {journee.matchScorer.jour} {journee.matchScorer.heure}</div>
                     </div>
-                    {journee.resultats?.scorer && (
-                      <div style={{ fontFamily:'var(--D)', fontSize:20, color:'var(--g)', letterSpacing:'.04em', textShadow:'0 0 8px rgba(155,226,45,.3)' }}>
-                        {journee.resultats.scorer.h}—{journee.resultats.scorer.a}
+                    {journee.resultats?.scorer ? (
+                      <div style={{ textAlign:'right' }}>
+                        <div style={{ fontFamily:'var(--D)', fontSize:20, color: journee.resultats.scorer.status==='IN_PLAY'?'var(--r)':'var(--g)', letterSpacing:'.04em' }}>
+                          {journee.resultats.scorer.h}—{journee.resultats.scorer.a}
+                        </div>
+                        {journee.resultats.scorer.status==='IN_PLAY' && <div className="live"><div className="live-dot"></div>Live</div>}
                       </div>
-                    )}
+                    ) : <div style={{ fontSize:12, color:'var(--tx3)' }}>—</div>}
                   </div>
                 )}
                 {journee.matchesL1.slice(0,3).map((m,i) => m?.dom && (

@@ -15,6 +15,8 @@ const getC = i => COLORS[i % COLORS.length]
 export default function Classement() {
   const { profil } = useUser()
   const [tab, setTab] = useState('journee')
+  const [historiqueList, setHistoriqueList] = useState([])
+  const [loadingHistorique, setLoadingHistorique] = useState(false)
   const [joueursMap, setJoueursMap] = useState({})
   const [journee, setJournee] = useState(null)
   const [classJ, setClassJ] = useState([])
@@ -50,6 +52,20 @@ export default function Classement() {
     load()
     return () => { if (unsub) unsub() }
   }, [])
+
+  useEffect(() => {
+    if (tab !== 'historique') return
+    setLoadingHistorique(true)
+    const loadHist = async () => {
+      const snap = await getDocs(query(collection(db,'journees'), orderBy('numero','desc')))
+      const hist = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(j => j.statut === 'resultats' && j.pointsJoueurs)
+      setHistoriqueList(hist)
+      setLoadingHistorique(false)
+    }
+    loadHist()
+  }, [tab])
 
   const Rank = ({rank}) => {
     if (rank===1) return <span style={{fontSize:18}}>🥇</span>
@@ -153,6 +169,58 @@ export default function Classement() {
           })
         )}
       </div>
+
+      {/* Historique */}
+      {tab === 'historique' && (
+        <div style={{ margin:'10px 0 24px', marginLeft:16, marginRight:16 }}>
+          {loadingHistorique ? (
+            <div style={{ display:'flex', justifyContent:'center', padding:40 }}>
+              <div className="spinner" style={{ width:24, height:24 }}></div>
+            </div>
+          ) : historiqueList.length === 0 ? (
+            <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13, fontWeight:700, textTransform:'uppercase' }}>
+              Aucune journée finalisée
+            </div>
+          ) : historiqueList.map(j => {
+            const myPts = j.pointsJoueurs?.[profil?.id]
+            const myGain = j.gainsJoueurs?.[profil?.id] || 0
+            const sorted = Object.entries(j.pointsJoueurs).sort((a,b) => b[1]-a[1])
+            const myRank = sorted.findIndex(([uid]) => uid === profil?.id) + 1
+
+            return (
+              <div key={j.id} style={{ background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--R)', padding:16, marginBottom:12, boxShadow:'var(--shadow)' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                  <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.04em', textTransform:'uppercase' }}>
+                    Journée {j.numero}
+                  </div>
+                  <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                    {myRank <= 3 && <span style={{ fontSize:18 }}>{myRank===1?'🥇':myRank===2?'🥈':'🥉'}</span>}
+                    {myRank > 3 && <span style={{ fontSize:13, fontWeight:900, color:'var(--tx3)' }}>#{myRank}</span>}
+                    <span style={{ fontFamily:'var(--D)', fontSize:24, color:'var(--g)', letterSpacing:'.03em' }}>{myPts ?? '—'}</span>
+                    <span style={{ fontSize:11, color:'var(--tx3)' }}>pts</span>
+                    {myGain > 0 && <span style={{ fontSize:12, color:'var(--g)', fontWeight:900 }}>+{myGain}€</span>}
+                  </div>
+                </div>
+                {/* Top 3 de la journée */}
+                <div style={{ display:'flex', gap:8 }}>
+                  {sorted.slice(0,3).map(([uid, pts], i) => {
+                    const j2 = joueursMap[uid]
+                    return (
+                      <div key={uid} style={{ flex:1, background:'rgba(255,255,255,.04)', borderRadius:'var(--Rs)', padding:'6px 8px', textAlign:'center' }}>
+                        <div style={{ fontSize:14 }}>{i===0?'🥇':i===1?'🥈':'🥉'}</div>
+                        <div style={{ fontSize:11, fontWeight:700, color: uid===profil?.id?'var(--g)':'var(--tx)', marginTop:2 }}>
+                          {j2?.nom?.split(' ')[0] || '?'}
+                        </div>
+                        <div style={{ fontFamily:'var(--D)', fontSize:16, color:'var(--g)' }}>{pts}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Barème */}
       <div style={{ margin:'12px 16px 24px', padding:'12px 14px', background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--Rs)', boxShadow:'var(--shadow)' }}>

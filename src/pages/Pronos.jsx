@@ -64,6 +64,7 @@ export default function Pronos() {
   const [dcChoices, setDcChoices] = useState([]) // ['1','N'] max 2
   const [missileData, setMissileData] = useState({ cible:null, matchKey:null, prono:null })
   const [missileUsed, setMissileUsed] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [joueurs, setJoueurs] = useState([])
   const [showBonusPanel, setShowBonusPanel] = useState(null) // matchKey
   const [showMissileModal, setShowMissileModal] = useState(false)
@@ -222,6 +223,17 @@ export default function Pronos() {
       return
     }
     try {
+      // Vérifier doublon (même cible + même match)
+      const existingMissiles = await getDocs(collection(db,'journees',journee.id,'missiles'))
+      const doublon = existingMissiles.docs.find(d => {
+        const m = d.data()
+        return m.lanceur === user.uid && m.cible === missileData.cible && m.matchKey === missileData.matchKey
+      })
+      if (doublon) {
+        setMissileMsg('⚠️ Tu as déjà posé un missile sur ce joueur pour ce match !')
+        return
+      }
+
       await addDoc(collection(db,'journees',journee.id,'missiles'), {
         lanceur: user.uid,
         lanceurNom: profil?.nom,
@@ -284,7 +296,7 @@ export default function Pronos() {
       {/* ── MISSILE MODAL ── */}
       {showMissileModal && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:500,padding:'0 0 var(--tab-h) 0'}}>
-          <div style={{width:'100%',maxWidth:420,background:'var(--bg2)',border:'1px solid var(--r-b)',borderRadius:'20px 20px 0 0',padding:24}}>
+          <div style={{width:'100%',maxWidth:420,background:'#000',border:'1px solid var(--r-b)',borderRadius:'20px 20px 0 0',padding:24,boxShadow:'0 -8px 40px rgba(0,0,0,.8)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
               <div>
                 <div style={{fontFamily:'var(--D)',fontSize:26,letterSpacing:'.04em',color:'var(--r)'}}>🎯 Missile</div>
@@ -582,7 +594,30 @@ export default function Pronos() {
 
       {/* CTA */}
       <div style={{padding:'4px 16px 24px'}}>
-        <button className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
+        {/* Modal confirmation */}
+        {showConfirm && (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
+            <div style={{background:'#000',border:'1px solid var(--g-b)',borderRadius:'var(--R)',padding:24,width:'100%',maxWidth:400}}>
+              <div style={{fontFamily:'var(--D)',fontSize:26,letterSpacing:'.04em',color:'var(--g)',marginBottom:8}}>
+                Confirmer l'envoi ?
+              </div>
+              <div style={{fontSize:13,color:'var(--tx2)',marginBottom:16,lineHeight:1.6}}>
+                {filled}/10 matchs renseignés
+                {jackpotMatch && <div style={{color:'var(--a)',fontWeight:700,marginTop:4}}>🎰 Jackpot activé</div>}
+                {dcMatch && dcChoices.length===2 && <div style={{color:'var(--p)',fontWeight:700}}>2️⃣ Double Chance activé</div>}
+                {missileUsed && <div style={{color:'var(--r)',fontWeight:700}}>🎯 Missile lancé</div>}
+              </div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn btn-primary" style={{flex:1,height:46}} onClick={()=>{setShowConfirm(false);handleSubmit()}}>
+                  ✅ Confirmer
+                </button>
+                <button className="btn btn-secondary" onClick={()=>setShowConfirm(false)}>Annuler</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <button className="btn btn-primary" onClick={()=>setShowConfirm(true)} disabled={saving||filled<10}>
           {saving
             ? <><div className="spinner" style={{width:18,height:18,borderTopColor:'#000'}}></div> Envoi...</>
             : existingProno ? '🔄 Mettre à jour' : `📤 Envoyer mes pronos (${filled}/10)`
