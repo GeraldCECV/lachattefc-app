@@ -1,45 +1,49 @@
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getToken, onMessage } from 'firebase/messaging'
 import { doc, updateDoc } from 'firebase/firestore'
-import { db, messaging, VAPID_KEY } from '../firebase/config'
+import { db, VAPID_KEY } from '../firebase/config'
+import { getMessaging } from 'firebase/messaging'
+import app from '../firebase/config'
 
 export function useNotifications(userId) {
-  useEffect(() => {
-    if (!userId || !messaging) return
+  const [permission, setPermission] = useState(Notification.permission)
+  const [token, setToken] = useState(null)
 
-    const requestPermission = async () => {
-      try {
-        const permission = await Notification.requestPermission()
-        if (permission !== 'granted') return
+  const requestPermission = useCallback(async () => {
+    if (!userId) return false
+    try {
+      const messaging = getMessaging(app)
+      const perm = await Notification.requestPermission()
+      setPermission(perm)
+      if (perm !== 'granted') return false
 
-        // Get FCM token
-        const token = await getToken(messaging, { vapidKey: VAPID_KEY })
-        if (!token) return
+      const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY })
+      if (!fcmToken) return false
+      setToken(fcmToken)
 
-        // Save token to Firestore
-        await updateDoc(doc(db, 'joueurs', userId), {
-          fcmToken: token,
-          fcmUpdatedAt: new Date(),
-        })
+      await updateDoc(doc(db, 'joueurs', userId), {
+        fcmToken,
+        fcmUpdatedAt: new Date(),
+      })
 
-        // Handle foreground messages
-        onMessage(messaging, (payload) => {
-          const { title, body } = payload.notification || {}
-          if (title && Notification.permission === 'granted') {
-            new Notification(title, {
-              body,
-              icon: '/icon-192.png',
-              badge: '/icon-192.png',
-            })
-          }
-        })
-      } catch(e) {
-        console.log('Notifications non disponibles:', e.message)
-      }
+      // Handle foreground messages
+      onMessage(messaging, (payload) => {
+        const { title, body } = payload.notification || {}
+        if (title) {
+          new Notification(title, {
+            body,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+          })
+        }
+      })
+
+      return true
+    } catch(e) {
+      console.log('Notifications error:', e.message)
+      return false
     }
-
-    // Demander après 3 secondes pour ne pas être intrusif
-    const timer = setTimeout(requestPermission, 3000)
-    return () => clearTimeout(timer)
   }, [userId])
+
+  return { permission, token, requestPermission }
 }

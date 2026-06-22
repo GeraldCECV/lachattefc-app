@@ -1,5 +1,4 @@
 import { useState, useEffect, createContext, useContext } from 'react'
-import { useNotifications } from './hooks/useNotifications'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc, onSnapshot } from 'firebase/firestore'
