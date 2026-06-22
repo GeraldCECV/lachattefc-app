@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, doc, onSnapshot, query, orderBy, limit } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
+import TeamLogo from '../components/TeamLogo'
 
 const COLORS = [
   ['rgba(255,215,0,.14)','#FFD700'],['rgba(192,192,192,.12)','#C0C0C0'],
@@ -204,8 +205,8 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                 {journee.matchScorer?.dom && (
                   <div className="match-row">
                     <div className="match-info">
-                      <div className="match-name">
-                        🎯 {journee.matchScorer.dom} — {journee.matchScorer.ext}
+                      <div className="match-name" style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        🎯 <TeamLogo name={journee.matchScorer.dom} size={20} /> {journee.matchScorer.dom} — {journee.matchScorer.ext} <TeamLogo name={journee.matchScorer.ext} size={20} />
                         <span style={{ marginLeft:6, fontSize:10, background:'var(--b-dim)', color:'#93C5FD', padding:'1px 6px', borderRadius:4, fontWeight:900, border:'1px solid var(--b-b)' }}>SCORER</span>
                       </div>
                       <div className="match-time">L1 · {journee.matchScorer.jour} {journee.matchScorer.heure}</div>
@@ -220,7 +221,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                 {journee.matchesL1.slice(0,3).map((m,i) => m?.dom && (
                   <div key={i} className="match-row">
                     <div className="match-info">
-                      <div className="match-name">{m.dom} — {m.ext}</div>
+                      <div className="match-name" style={{ display:'flex', alignItems:'center', gap:5 }}><TeamLogo name={m.dom} size={18} />{m.dom} — {m.ext}<TeamLogo name={m.ext} size={18} /></div>
                       <div className="match-time">L1 · {m.jour} {m.heure}</div>
                     </div>
                     {journee.resultats?.[`l1_${i}`] && (
@@ -233,8 +234,8 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                 {journee.matchEuro?.dom && (
                   <div className="match-row">
                     <div className="match-info">
-                      <div className="match-name">
-                        🌍 {journee.matchEuro.dom} — {journee.matchEuro.ext}
+                      <div className="match-name" style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        🌍 <TeamLogo name={journee.matchEuro.dom} size={18} /> {journee.matchEuro.dom} — {journee.matchEuro.ext} <TeamLogo name={journee.matchEuro.ext} size={18} />
                         <span style={{ marginLeft:6, fontSize:10, background:'var(--o-dim)', color:'#FDBA74', padding:'1px 6px', borderRadius:4, fontWeight:900, border:'1px solid var(--o-b)' }}>{journee.matchEuro.ligue||'EURO'}</span>
                       </div>
                       <div className="match-time">{journee.matchEuro.jour} {journee.matchEuro.heure}</div>

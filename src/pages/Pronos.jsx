@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, doc, setDoc, getDoc, updateDoc, query, orderBy, limit, serverTimestamp, addDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
+import TeamLogo from '../components/TeamLogo'
 
 // ── Helpers ──
 const RESULT_COLORS = {
