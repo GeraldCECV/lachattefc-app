@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '../firebase/config'
 import logo from '../assets/logo-lachattefc.png'
 
@@ -9,6 +9,21 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPwd, setShowPwd] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
+  const [resetting, setResetting] = useState(false)
+
+  const handleReset = async () => {
+    if (!email) { setError('Saisis ton email d'abord'); return }
+    setResetting(true)
+    try {
+      await sendPasswordResetEmail(auth, email)
+      setResetSent(true)
+      setError('')
+    } catch(e) {
+      setError('Email introuvable — vérifie l'adresse saisie')
+    }
+    setResetting(false)
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -84,8 +99,27 @@ export default function Login() {
           }
         </button>
 
-        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: 'var(--tx3)', lineHeight: 1.6, fontWeight: 700 }}>
-          ACCÈS RÉSERVÉ AUX 14 CHATTEUX<br />
+        {resetSent && (
+          <div className="alert alert-g" style={{ marginTop:12 }}>
+            📧 Email envoyé ! Vérifie ta boîte mail pour réinitialiser ton mot de passe.
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={handleReset}
+          disabled={resetting}
+          style={{
+            background: 'none', border: 'none', color: 'var(--tx3)',
+            fontSize: 13, cursor: 'pointer', marginTop: 12,
+            textDecoration: 'underline', width: '100%', textAlign: 'center',
+          }}
+        >
+          {resetting ? 'Envoi...' : '🔑 Mot de passe oublié ?'}
+        </button>
+
+        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: 'var(--tx3)', lineHeight: 1.6, fontWeight: 700 }}>
+          ACCÈS RÉSERVÉ AUX 16 CHATTEUX<br />
           <span style={{ color: 'var(--tx3)', fontWeight: 400 }}>Mot de passe fourni par Gérald</span>
         </div>
       </div>
