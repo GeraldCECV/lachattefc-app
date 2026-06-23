@@ -146,6 +146,21 @@ export default function Pronos() {
     if (!user || !journee) return
     setSaving(true)
     try {
+      // ── Si mise à jour : supprimer l'ancien missile lancé si pas de nouveau missile ──
+      if (existingProno && !missileUsed) {
+        const oldMissilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
+        for (const mDoc of oldMissilesSnap.docs) {
+          if (mDoc.data().lanceur === user.uid) {
+            await deleteDoc(doc(db,'journees',journee.id,'missiles',mDoc.id))
+            // Rembourser le stock missile
+            const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+            const currentStock = jSnap.data()?.bonus?.missile || 0
+            await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': currentStock + 1 })
+            setBonusStock(prev => ({ ...prev, missile: prev.missile + 1 }))
+          }
+        }
+      }
+
       // ── Vérifier si un missile a été posé sur ce joueur ──
       // Si oui, écraser le prono concerné avant de sauvegarder
       const missilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
