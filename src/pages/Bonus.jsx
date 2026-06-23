@@ -107,9 +107,6 @@ export default function Bonus() {
             ))}
           </div>
 
-        </>
-      )}
-
           {/* Historique bonus */}
           {historique.length > 0 && (
             <>
