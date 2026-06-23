@@ -19,29 +19,36 @@ export default function Bonus() {
       }
       const jSnap = await getDocs(collection(db,'joueurs'))
       setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user?.uid))
-      // Charger historique bonus
-      const journeesSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
-      const hist = []
-      for (const jDoc of journeesSnap.docs) {
-        const j = jDoc.data()
-        if (!user) continue
-        // Pronos du joueur
-        const pronoDoc = await getDoc(doc(db,'journees',jDoc.id,'pronos',user.uid))
-        if (pronoDoc.exists()) {
-          const p = pronoDoc.data()
-          if (p.jackpotMatch) hist.push({ journee: j.numero, type:'jackpot', match: p.jackpotMatch, jId: jDoc.id })
-          if (p.dcMatch && p.dcChoices) hist.push({ journee: j.numero, type:'dc', match: p.dcMatch, choix: p.dcChoices, jId: jDoc.id })
-        }
-        // Missiles lancés par ce joueur
-        const missilesSnap = await getDocs(collection(db,'journees',jDoc.id,'missiles'))
-        missilesSnap.docs.forEach(d => {
-          const m = d.data()
-          if (m.lanceur === user.uid) {
-            hist.push({ journee: j.numero, type:'missile', match: m.matchKey, cibleId: m.cible, pronoImpose: m.pronoImpose, applique: m.applique, jId: jDoc.id })
-          }
+      // Charger historique bonus - uniquement journées avec statut resultats ou fermee
+      if (user) {
+        const journeesSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
+        const journeesActives = journeesSnap.docs.filter(d => {
+          const s = d.data().statut
+          return s === 'resultats' || s === 'fermee'
         })
+
+        // Charger pronos et missiles en parallèle
+        const hist = []
+        await Promise.all(journeesActives.map(async jDoc => {
+          const j = jDoc.data()
+          const [pronoDoc, missilesSnap] = await Promise.all([
+            getDoc(doc(db,'journees',jDoc.id,'pronos',user.uid)),
+            getDocs(collection(db,'journees',jDoc.id,'missiles')),
+          ])
+          if (pronoDoc.exists()) {
+            const p = pronoDoc.data()
+            if (p.jackpotMatch) hist.push({ journee: j.numero, type:'jackpot', match: p.jackpotMatch })
+            if (p.dcMatch) hist.push({ journee: j.numero, type:'dc', match: p.dcMatch, choix: p.dcChoices })
+          }
+          missilesSnap.docs.forEach(d => {
+            const m = d.data()
+            if (m.lanceur === user.uid) {
+              hist.push({ journee: j.numero, type:'missile', match: m.matchKey, pronoImpose: m.pronoImpose, applique: m.applique })
+            }
+          })
+        }))
+        setHistorique(hist.sort((a,b) => b.journee - a.journee))
       }
-      setHistorique(hist.reverse())
       setLoading(false)
     }
     load()
