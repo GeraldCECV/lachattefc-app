@@ -83,40 +83,6 @@ export default function Bonus() {
             ))}
           </div>
 
-          {/* Missile cible */}
-          <div className="section-lbl">🎯 Cibler un adversaire</div>
-          <div style={{ margin:'0 16px 14px' }} className="card">
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-              <div style={{ fontWeight:900, fontSize:13, textTransform:'uppercase', letterSpacing:'.04em' }}>Choisir la cible</div>
-              <span className="pill pill-r">{bonus?.missile??5} restants</span>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-              {joueurs.slice(0,8).map((j,i) => {
-                const [bg,color] = COLORS[i%COLORS.length]
-                const isTgt = targeted===j.id
-                return (
-                  <button key={j.id} onClick={()=>setTargeted(isTgt?null:j.id)} style={{
-                    display:'flex', alignItems:'center', gap:8, padding:'10px 12px',
-                    background:isTgt?'var(--r-dim)':'rgba(255,255,255,.04)',
-                    border:`1.5px solid ${isTgt?'var(--r)':'rgba(255,255,255,.06)'}`,
-                    borderRadius:'var(--Rs)', cursor:'pointer', transition:'all .15s',
-                  }}>
-                    <div className="av" style={{ width:28, height:28, background:bg, color, fontSize:10, border:`1px solid rgba(255,255,255,.08)` }}>
-                      {j.initiales}
-                    </div>
-                    <div style={{ fontSize:12, fontWeight:700, color:isTgt?'var(--r)':'var(--tx)', textTransform:'uppercase', letterSpacing:'.02em' }}>
-                      {j.nom?.split(' ')[0]}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-            {targeted && (
-              <div style={{ marginTop:12, padding:'10px 12px', background:'var(--r-dim)', border:'1px solid var(--r-b)', borderRadius:'var(--Rs)', fontSize:12, color:'#FCA5A5', fontWeight:700 }}>
-                🎯 Cible sélectionnée — choisis le match dans l'onglet Pronos
-              </div>
-            )}
-          </div>
         </>
       )}
     </div>
