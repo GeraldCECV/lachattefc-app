@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 
@@ -9,6 +9,7 @@ export default function Bonus() {
   const [joueurs, setJoueurs] = useState([])
   const [targeted, setTargeted] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [historique, setHistorique] = useState([])
 
   useEffect(() => {
     const load = async () => {
@@ -18,6 +19,29 @@ export default function Bonus() {
       }
       const jSnap = await getDocs(collection(db,'joueurs'))
       setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user?.uid))
+      // Charger historique bonus
+      const journeesSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
+      const hist = []
+      for (const jDoc of journeesSnap.docs) {
+        const j = jDoc.data()
+        if (!user) continue
+        // Pronos du joueur
+        const pronoDoc = await getDoc(doc(db,'journees',jDoc.id,'pronos',user.uid))
+        if (pronoDoc.exists()) {
+          const p = pronoDoc.data()
+          if (p.jackpotMatch) hist.push({ journee: j.numero, type:'jackpot', match: p.jackpotMatch, jId: jDoc.id })
+          if (p.dcMatch && p.dcChoices) hist.push({ journee: j.numero, type:'dc', match: p.dcMatch, choix: p.dcChoices, jId: jDoc.id })
+        }
+        // Missiles lancés par ce joueur
+        const missilesSnap = await getDocs(collection(db,'journees',jDoc.id,'missiles'))
+        missilesSnap.docs.forEach(d => {
+          const m = d.data()
+          if (m.lanceur === user.uid) {
+            hist.push({ journee: j.numero, type:'missile', match: m.matchKey, cibleId: m.cible, pronoImpose: m.pronoImpose, applique: m.applique, jId: jDoc.id })
+          }
+        })
+      }
+      setHistorique(hist.reverse())
       setLoading(false)
     }
     load()
@@ -83,6 +107,49 @@ export default function Bonus() {
             ))}
           </div>
 
+        </>
+      )}
+
+          {/* Historique bonus */}
+          {historique.length > 0 && (
+            <>
+              <div className="section-lbl">📋 Historique des bonus joués</div>
+              <div style={{ margin:'0 16px 24px', display:'flex', flexDirection:'column', gap:8 }}>
+                {historique.map((h, idx) => {
+                  const isMS = h.type === 'missile'
+                  const isJP = h.type === 'jackpot'
+                  const isDC = h.type === 'dc'
+                  const color = isMS ? 'var(--r)' : isJP ? 'var(--a)' : 'var(--p)'
+                  const dim = isMS ? 'var(--r-dim)' : isJP ? 'var(--a-dim)' : 'var(--p-dim)'
+                  const border = isMS ? 'var(--r-b)' : isJP ? 'var(--a-b)' : 'var(--p-b)'
+                  const ico = isMS ? '🎯' : isJP ? '🎰' : '2️⃣'
+                  const label = isMS ? 'Missile' : isJP ? 'Jackpot' : 'Double Chance'
+
+                  return (
+                    <div key={idx} style={{ background:dim, border:`1px solid ${border}`, borderRadius:'var(--Rs)', padding:'10px 14px', display:'flex', alignItems:'flex-start', gap:10 }}>
+                      <span style={{ fontSize:18, flexShrink:0 }}>{ico}</span>
+                      <div style={{ flex:1 }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                          <span style={{ fontWeight:900, color, fontSize:12, textTransform:'uppercase', letterSpacing:'.04em' }}>{label}</span>
+                          <span style={{ fontSize:11, color:'var(--tx3)', fontWeight:700 }}>J{h.journee}</span>
+                        </div>
+                        <div style={{ fontSize:12, color:'var(--tx2)', marginTop:3, lineHeight:1.5 }}>
+                          📍 {h.match?.replace('l1_','#').replace('scorer','Scorer').replace('euro','Euro')}
+                          {isMS && h.pronoImpose && <span> → <strong style={{color}}>{h.pronoImpose}</strong></span>}
+                          {isDC && h.choix && <span> → <strong style={{color}}>{h.choix.join(' ou ')}</strong></span>}
+                        </div>
+                        {isMS && (
+                          <div style={{ fontSize:11, marginTop:3, color: h.applique ? 'var(--g)' : 'var(--a)', fontWeight:700 }}>
+                            {h.applique ? '✅ Missile appliqué' : '⏳ En attente'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
