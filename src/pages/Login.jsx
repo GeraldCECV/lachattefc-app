@@ -20,7 +20,7 @@ export default function Login() {
       setResetSent(true)
       setError('')
     } catch(e) {
-      setError('Email introuvable — vérifie l'adresse saisie')
+      setError('Email introuvable — verifie ton adresse')
     }
     setResetting(false)
   }
