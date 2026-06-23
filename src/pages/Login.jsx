@@ -13,7 +13,7 @@ export default function Login() {
   const [resetting, setResetting] = useState(false)
 
   const handleReset = async () => {
-    if (!email) { setError('Saisis ton email d'abord'); return }
+    if (!email) { setError('Entre ton email ci-dessus'); return }
     setResetting(true)
     try {
       await sendPasswordResetEmail(auth, email)
