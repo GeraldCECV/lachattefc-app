@@ -203,12 +203,12 @@ export default function PronosChatteux() {
                           <div style={{
                             display:'inline-flex', flexDirection:'column', alignItems:'center',
                             padding:'3px 5px', borderRadius:6, minWidth:38,
-                            background: correct === 'exact' ? 'rgba(155,226,45,.15)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.08)' : correct === 'wrong' ? 'rgba(248,113,113,.08)' : 'rgba(255,255,255,.04)',
-                            border: `1px solid ${correct === 'exact' ? 'var(--g-b)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.15)' : correct === 'wrong' ? 'var(--r-b)' : 'rgba(255,255,255,.06)'}`,
+                            background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.08)' : correct === 'wrong' ? 'rgba(248,113,113,.08)' : 'rgba(255,255,255,.04)',
+                            border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.5)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.15)' : correct === 'wrong' ? 'var(--r-b)' : 'rgba(255,255,255,.06)'}`,
                           }}>
                             <div style={{
                               fontFamily:'var(--D)', fontSize:16, letterSpacing:'.04em',
-                              color: prono.isMissile ? 'var(--r)' : col.isScorer ? 'var(--b)' : 'var(--tx)',
+                              color: correct === 'exact' ? '#FFD700' : prono.isMissile ? 'var(--r)' : col.isScorer ? 'var(--b)' : 'var(--tx)',
                               lineHeight:1,
                             }}>
                               {prono.val}
