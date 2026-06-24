@@ -17,11 +17,15 @@ export default function PronosChatteux() {
       try {
       // Charger journée ouverte ou fermée
       const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
-      // Priorité : fermee > ouverte > resultats (la plus récente)
+      // Priorité : fermee > resultats récents > ouverte
+      // On veut afficher la dernière journée fermée ou avec résultats
       const fermee = allSnap.docs.filter(d => d.data().statut === 'fermee').pop()
+      const lastResultats = allSnap.docs.filter(d => d.data().statut === 'resultats').pop()
       const ouverte = allSnap.docs.filter(d => d.data().statut === 'ouverte').pop()
-      const resultats = allSnap.docs.filter(d => d.data().statut === 'resultats').pop()
-      const jDoc = fermee || ouverte || resultats
+      // Si une journée est fermée → l'afficher
+      // Si pas de fermée mais une avec résultats → l'afficher
+      // Si ni l'une ni l'autre → afficher la journée ouverte avec message "secrets"
+      const jDoc = fermee || lastResultats || ouverte
       if (!jDoc) { setLoading(false); return }
 
       const j = { id: jDoc.id, ...jDoc.data() }
