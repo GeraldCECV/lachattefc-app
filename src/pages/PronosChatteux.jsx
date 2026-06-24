@@ -93,7 +93,7 @@ export default function PronosChatteux() {
     const missile = missiles.find(m => m.cible === uid && m.matchKey === key && m.applique)
     if (missile) return { val: missile.pronoImpose, isMissile: true }
     if (key === 'scorer') return p.matchScorer ? { val: p.matchScorer } : null
-    if (key === 'euro') return p.euro ? { val: p.euro } : null
+    if (key === 'euro') return p.matchEuro ? { val: p.matchEuro } : null
     const idx = parseInt(key.replace('l1_',''))
     return p.matchesL1?.[idx] ? { val: p.matchesL1[idx] } : null
   }
