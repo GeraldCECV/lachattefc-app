@@ -6,9 +6,9 @@ import TeamLogo from '../components/TeamLogo'
 
 // ── Helpers ──
 const RESULT_COLORS = {
-  '1': { sel:'var(--b)', dim:'var(--b-dim)', label:'🏠 1' },
-  'N': { sel:'var(--a)', dim:'var(--a-dim)', label:'= N' },
-  '2': { sel:'var(--p)', dim:'var(--p-dim)', label:'✈ 2' },
+  '1': { sel:'var(--b)', dim:'var(--b-dim)', label:'1' },
+  'N': { sel:'var(--a)', dim:'var(--a-dim)', label:'N' },
+  '2': { sel:'var(--p)', dim:'var(--p-dim)', label:'2' },
 }
 
 function PronoBtn({ val, selected, onClick, disabled }) {
