@@ -14,6 +14,7 @@ export default function PronosChatteux() {
 
   useEffect(() => {
     const load = async () => {
+      try {
       // Charger journée ouverte ou fermée
       const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
       // Priorité : fermee > ouverte > resultats (la plus récente)
@@ -43,6 +44,9 @@ export default function PronosChatteux() {
         setMissiles(missilesSnap.docs.map(d => ({ id:d.id, ...d.data() })))
       }
 
+      } catch(e) {
+        console.error('PronosChatteux load error:', e)
+      }
       setLoading(false)
     }
     load()
