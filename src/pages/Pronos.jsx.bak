@@ -55,7 +55,6 @@ export default function Pronos() {
   const [scorerH, setScorerH] = useState(0)
   const [scorerA, setScorerA] = useState(0)
   const [deadlinePassed, setDeadlinePassed] = useState(false)
-  const journeeAVenir = journee?.statut === 'a-venir'
 
   // Bonus state
   const [bonusStock, setBonusStock] = useState({ missile:5, jackpot:3, doubleChance:4 })
