@@ -465,3 +465,64 @@ input, select, textarea { font-family: var(--F); }
   0%, 100% { opacity: 1; }
   50% { opacity: .4; }
 }
+
+/* MATCH ROW (Vestiaire) */
+.match-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.match-row:last-child { border-bottom: none; }
+
+.match-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.match-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tx);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.match-sub {
+  font-size: 11px;
+  color: var(--tx3);
+  margin-top: 2px;
+}
+
+.match-time {
+  font-size: 11px;
+  color: var(--tx3);
+  margin-top: 2px;
+}
+
+/* LIVE BADGE */
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 900;
+  color: var(--r);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--r);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
