@@ -34,9 +34,11 @@ export default function Classement() {
       setJoueursMap(map)
       setClassG(Object.values(map).sort((a,b)=>(b.pointsTotal||0)-(a.pointsTotal||0)).map((j,i)=>({...j,rank:i+1})))
 
-      const jSnap = await getDocs(query(collection(db,'journees'),orderBy('numero','desc'),limit(1)))
-      if (!jSnap.empty) {
-        const jDoc = jSnap.docs[0]
+      const allJ = await getDocs(query(collection(db,'journees'),orderBy('numero','asc')))
+      const openJ = allJ.docs.find(d => ['ouverte','fermee'].includes(d.data().statut))
+      const jDoc = openJ || allJ.docs[allJ.docs.length-1]
+      if (jDoc) {
+        {
         setJournee({ id:jDoc.id, ...jDoc.data() })
         unsub = onSnapshot(doc(db,'journees',jDoc.id), d => {
           if (!d.exists()) return
@@ -47,7 +49,7 @@ export default function Classement() {
           const gains = data.gainsJoueurs||{}
           setClassJ(Object.values(map).map(j=>({...j,ptsJ:pts[j.id]||0,gainJ:gains[j.id]||0})).sort((a,b)=>b.ptsJ-a.ptsJ).map((j,i)=>({...j,rank:i+1})))
         })
-      }
+        }}
       setLoading(false)
     }
     load()
