@@ -15,7 +15,6 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
   const [journee, setJournee] = useState(null)
   const [monProno, setMonProno] = useState(null)
   const [topClassement, setTopClassement] = useState([])
-  const [countdown, setCountdown] = useState({})
   const [loading, setLoading] = useState(true)
   const [countdown, setCountdown] = useState('')
 
