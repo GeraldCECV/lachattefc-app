@@ -76,6 +76,25 @@ export default function PronosChatteux() {
     </div>
   )
 
+  // Calcul des surprises (distribution des pronos par match)
+  const distribs = {}
+  if (journee?.statut === 'fermee' || journee?.statut === 'resultats') {
+    const allKeys = [
+      ...(journee.matchScorer?.dom ? ['scorer'] : []),
+      ...(journee.matchesL1||[]).map((_,i) => `l1_${i}`).filter((_,i) => journee.matchesL1[i]?.dom),
+      ...(journee.matchEuro?.dom ? ['euro'] : []),
+    ]
+    allKeys.forEach(key => {
+      const votes = {}
+      Object.values(pronos).forEach(p => {
+        const v = key === 'scorer' ? p.matchScorer : key === 'euro' ? p.matchEuro : p.matchesL1?.[parseInt(key.replace('l1_',''))]
+        if (v) votes[v] = (votes[v]||0) + 1
+      })
+      const total = Object.values(votes).reduce((a,b)=>a+b,0)
+      distribs[key] = { votes, total }
+    })
+  }
+
   // Build match columns
   const scorer = journee.matchScorer
   const matchesL1 = (journee.matchesL1 || []).filter(m => m?.dom)
@@ -177,6 +196,9 @@ export default function PronosChatteux() {
                   {/* Cellules pronos */}
                   {cols.map(col => {
                     const prono = getVal(j.id, col.key)
+                    const distrib = distribs[col.key]
+                    const isSurprise = prono && distrib && distrib.total > 0 &&
+                      (distrib.votes[prono.val] || 0) / distrib.total <= 0.25
                     const bonus = hasBonus(j.id, col.key)
                     const resultScore = journee.resultats?.[col.key]
                     
@@ -203,8 +225,8 @@ export default function PronosChatteux() {
                           <div style={{
                             display:'inline-flex', flexDirection:'column', alignItems:'center',
                             padding:'3px 5px', borderRadius:6, minWidth:38,
-                            background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.08)' : correct === 'wrong' ? 'rgba(248,113,113,.08)' : 'rgba(255,255,255,.04)',
-                            border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.5)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.15)' : correct === 'wrong' ? 'var(--r-b)' : 'rgba(255,255,255,.06)'}`,
+                            background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.08)' : correct === 'wrong' ? 'rgba(248,113,113,.08)' : isSurprise && !correct ? 'rgba(192,132,252,.1)' : 'rgba(255,255,255,.04)',
+                            border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.5)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.15)' : correct === 'wrong' ? 'var(--r-b)' : isSurprise && !correct ? 'var(--p-b)' : 'rgba(255,255,255,.06)'}`,
                           }}>
                             <div style={{
                               fontFamily:'var(--D)', fontSize:16, letterSpacing:'.04em',
@@ -213,6 +235,7 @@ export default function PronosChatteux() {
                             }}>
                               {prono.val}
                             </div>
+                            {isSurprise && !correct && <div style={{ fontSize:8, color:'var(--p)', lineHeight:1 }}>⚡</div>}
                             {bonus && <div style={{ fontSize:9, lineHeight:1 }}>{bonus}</div>}
                             {prono.isMissile && <div style={{ fontSize:9, color:'var(--r)', lineHeight:1 }}>🎯</div>}
                           </div>
