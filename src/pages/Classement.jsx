@@ -14,7 +14,7 @@ const getC = i => COLORS[i % COLORS.length]
 
 export default function Classement() {
   const { profil } = useUser()
-  const [tab, setTab] = useState('journee')
+  const [tab, setTab] = useState('general')
   const [historiqueList, setHistoriqueList] = useState([])
   const [loadingHistorique, setLoadingHistorique] = useState(false)
   const [joueursMap, setJoueursMap] = useState({})
@@ -125,8 +125,9 @@ export default function Classement() {
       <div style={{ margin:'14px 16px 0', background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--R)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
         <div style={{ display:'flex', borderBottom:'1px solid rgba(155,226,45,.1)', padding:'0 4px' }}>
           {[
-            { id:'journee', label:`⚡ J${journee?.numero||'?'}` },
             { id:'general', label:'🏆 Général' },
+            { id:'journee', label:`⚡ J${journee?.numero||'?'}` },
+            { id:'historique', label:'📅 Historique' },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               flex:1, padding:'12px 8px', border:'none', background:'none',
@@ -159,7 +160,53 @@ export default function Classement() {
             <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13, fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>
               Aucun prono soumis pour cette journée
             </div>
-          ) : classJ.map((j,i) => <PlayerRow key={j.id} j={j} idx={i} pts={j.ptsJ} gain={j.gainJ} />)
+          ) : (
+            classJ.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">⚡</div>
+                <div className="empty-state-title">Aucun prono soumis</div>
+                <div className="empty-state-sub">Les points apparaîtront dès que les matchs seront joués</div>
+              </div>
+            ) : (
+              <table className="table" style={{ fontSize:13 }}>
+                <thead>
+                  <tr>
+                    <th style={{width:40}}>#</th>
+                    <th>Joueur</th>
+                    <th style={{textAlign:'right'}}>Pts</th>
+                    <th style={{textAlign:'right'}}>Gain</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {classJ.map((j,i) => {
+                    const [bg,color] = getC(i)
+                    const isMe = j.id === profil?.id
+                    return (
+                      <tr key={j.id} style={{ background: isMe ? 'rgba(155,226,45,.06)' : 'transparent' }}>
+                        <td>
+                          <span style={{ fontFamily:'var(--D)', fontSize:20, color: i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--tx3)' }}>
+                            {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                            <div className="av" style={{ width:28, height:28, fontSize:10, background:isMe?'var(--g-dim)':bg, color:isMe?'var(--g)':color, border:`1px solid ${isMe?'var(--g-b)':'rgba(255,255,255,.08)'}` }}>
+                              {j.initiales}
+                            </div>
+                            <span style={{ fontWeight:isMe?900:700, color:isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', fontSize:12 }}>
+                              {j.nom?.split(' ')[0]} {isMe && <span style={{fontSize:10,color:'var(--tx3)',fontWeight:400,textTransform:'none'}}>(toi)</span>}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ textAlign:'right', fontFamily:'var(--D)', fontSize:22, color:isMe?'var(--g)':'var(--tx)' }}>{j.ptsJ}</td>
+                        <td style={{ textAlign:'right', color:'var(--g)', fontWeight:900, fontSize:12 }}>{j.gainJ > 0 ? `+${j.gainJ}€` : '—'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )
+          )
         ) : (
           classG.length===0 ? (
             <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13 }}>Aucun joueur enregistré</div>
