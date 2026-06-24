@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'La Chatte FC',
         short_name: 'La Chatte FC',
-        description: 'Concours de pronos La Chatte FC — Saison 25/26',
+        description: 'Concours de pronos La Chatte FC — Saison 26/27',
         theme_color: '#07100C',
         background_color: '#ffffff',
         display: 'standalone',

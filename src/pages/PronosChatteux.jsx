@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, getDoc, query, orderBy } from 'firebase/firestore'
+import { collections, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'

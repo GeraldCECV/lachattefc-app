@@ -40,7 +40,7 @@ export function useNotifications(userId) {
 
       return true
     } catch(e) {
-      console.log('Notifications error:', e.message)
+      // console.log('Notifications error:', e.message)
       return false
     }
   }, [userId])
