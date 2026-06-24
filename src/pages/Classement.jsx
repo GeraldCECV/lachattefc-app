@@ -130,7 +130,7 @@ export default function Classement() {
         <div style={{ display:'flex', borderBottom:'1px solid rgba(155,226,45,.1)', padding:'0 4px' }}>
           {[
             { id:'general', label:'🏆 Général' },
-            { id:'journee', label:`⚡ J${journee?.numero||'?'}` },
+            { id:'journee', label: journee ? `⚡ J${journee.numero}${journee.statut==='ouverte'||journee.statut==='fermee' ? ' 🔴' : ''}` : '⚡ Journée' },
             { id:'historique', label:'📅 Historique' },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
