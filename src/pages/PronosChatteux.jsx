@@ -15,43 +15,39 @@ export default function PronosChatteux() {
   useEffect(() => {
     const load = async () => {
       try {
-      // Charger journée ouverte ou fermée
-      const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
-      // Priorité : fermee > resultats récents > ouverte
-      // On veut afficher la dernière journée fermée ou avec résultats
-      const fermee = allSnap.docs.filter(d => d.data().statut === 'fermee').pop()
-      const lastResultats = allSnap.docs.filter(d => d.data().statut === 'resultats').pop()
-      const ouverte = allSnap.docs.filter(d => d.data().statut === 'ouverte').pop()
-      // Si une journée est fermée → l'afficher
-      // Si pas de fermée mais une avec résultats → l'afficher
-      // Si ni l'une ni l'autre → afficher la journée ouverte avec message "secrets"
-      const jDoc = fermee || lastResultats || ouverte
-      if (!jDoc) { setLoading(false); return }
+        // Charger toutes les journées
+        const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
+        // Priorité : fermee > resultats > ouverte
+        const fermee = allSnap.docs.filter(d => d.data().statut === 'fermee').pop()
+        const lastResultats = allSnap.docs.filter(d => d.data().statut === 'resultats').pop()
+        const ouverte = allSnap.docs.filter(d => d.data().statut === 'ouverte').pop()
+        const jDoc = fermee || lastResultats || ouverte
+        if (!jDoc) { setLoading(false); return }
 
-      const j = { id: jDoc.id, ...jDoc.data() }
-      setJournee(j)
+        const j = { id: jDoc.id, ...jDoc.data() }
+        setJournee(j)
 
-      // Charger joueurs
-      const joueursSnap = await getDocs(collection(db,'joueurs'))
-      const joueursData = joueursSnap.docs.map(d => ({ id:d.id, ...d.data() }))
-        .sort((a,b) => (a.nom||'').localeCompare(b.nom||''))
-      setJoueurs(joueursData)
+        // Charger joueurs
+        const joueursSnap = await getDocs(collection(db,'joueurs'))
+        const joueursData = joueursSnap.docs.map(d => ({ id:d.id, ...d.data() }))
+          .sort((a,b) => (a.nom||'').localeCompare(b.nom||''))
+        setJoueurs(joueursData)
 
-      // Charger pronos + missiles seulement si journée fermée ou résultats
-      if (j.statut === 'fermee' || j.statut === 'resultats') {
-        const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
-        const pronosData = {}
-        pronosSnap.docs.forEach(d => { pronosData[d.id] = d.data() })
-        setPronos(pronosData)
+        // Charger pronos + missiles si journée fermée ou résultats
+        if (j.statut === 'fermee' || j.statut === 'resultats') {
+          const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
+          const pronosData = {}
+          pronosSnap.docs.forEach(d => { pronosData[d.id] = d.data() })
+          setPronos(pronosData)
 
-        const missilesSnap = await getDocs(collection(db,'journees',jDoc.id,'missiles'))
-        setMissiles(missilesSnap.docs.map(d => ({ id:d.id, ...d.data() })))
-      }
-
+          const missilesSnap = await getDocs(collection(db,'journees',jDoc.id,'missiles'))
+          setMissiles(missilesSnap.docs.map(d => ({ id:d.id, ...d.data() })))
+        }
       } catch(e) {
         console.error('PronosChatteux load error:', e)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     load()
   }, [])
