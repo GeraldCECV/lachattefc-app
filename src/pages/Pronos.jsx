@@ -629,9 +629,13 @@ export default function Pronos() {
             borderRadius:'var(--R)',padding:'13px 14px',transition:'border-color .2s',
           }}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-              <div>
-                <div style={{fontSize:14,fontWeight:600}}>{m.dom} — {m.ext}</div>
-                <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{m.jour} {m.heure}</div>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <TeamLogo name={m.dom} size={22} />
+                <div>
+                  <div style={{fontSize:14,fontWeight:600}}>{m.dom} — {m.ext}</div>
+                  <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{m.jour} {m.heure}</div>
+                </div>
+                <TeamLogo name={m.ext} size={22} />
               </div>
               <div style={{display:'flex',gap:6,alignItems:'center'}}>
                 {isJP && <span className="pill pill-a">🎰 Jackpot</span>}
