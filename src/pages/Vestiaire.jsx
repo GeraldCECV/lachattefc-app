@@ -17,6 +17,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
   const [topClassement, setTopClassement] = useState([])
   const [countdown, setCountdown] = useState({})
   const [loading, setLoading] = useState(true)
+  const [countdown, setCountdown] = useState('')
 
   useEffect(() => {
     let unsubJ = null
