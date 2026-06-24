@@ -182,7 +182,7 @@ export default function PronosChatteux() {
                     
                     // Calculer si bon résultat
                     let correct = null
-                    if (resultScore && prono && resultScore.status === 'FINISHED') {
+                    if (resultScore && prono && (resultScore.status === 'FINISHED' || resultScore.status === 'IN_PLAY')) {
                       const rh = resultScore.h, ra = resultScore.a
                       if (col.isScorer) {
                         const [ph, pa] = (prono.val || '').split('-').map(Number)
