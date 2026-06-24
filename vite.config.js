@@ -13,7 +13,7 @@ export default defineConfig({
         short_name: 'La Chatte FC',
         description: 'Concours de pronos La Chatte FC — Saison 25/26',
         theme_color: '#07100C',
-        background_color: '#07100C',
+        background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
