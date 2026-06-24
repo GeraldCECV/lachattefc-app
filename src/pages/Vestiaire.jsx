@@ -28,7 +28,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
         const data = d.data()
         if (data.statut === 'resultats') return false
         const dl = data.deadline ? new Date(data.deadline.seconds * 1000) : null
-        return !dl || dl > now || data.statut === 'ouverte' || data.statut === 'fermee'
+        return data.statut === 'ouverte' || data.statut === 'fermee'
       })
       const snap = { docs: openDocs.length > 0 ? [openDocs[0]] : allSnap.docs.slice(-1), empty: allSnap.empty }
       if (!snap.empty) {
