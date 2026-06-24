@@ -17,6 +17,7 @@ export default function Classement() {
   const [tab, setTab] = useState('general')
   const [historiqueList, setHistoriqueList] = useState([])
   const [loadingHistorique, setLoadingHistorique] = useState(false)
+  const [selectedHistJ, setSelectedHistJ] = useState(null)
   const [joueursMap, setJoueursMap] = useState({})
   const [journee, setJournee] = useState(null)
   const [classJ, setClassJ] = useState([])
@@ -62,6 +63,7 @@ export default function Classement() {
         .map(d => ({ id: d.id, ...d.data() }))
         .filter(j => j.statut === 'resultats' && j.pointsJoueurs)
       setHistoriqueList(hist)
+      if (hist.length > 0) setSelectedHistJ(hist[0].id)
       setLoadingHistorique(false)
     }
     loadHist()
@@ -219,53 +221,85 @@ export default function Classement() {
 
       {/* Historique */}
       {tab === 'historique' && (
-        <div style={{ margin:'10px 0 24px', marginLeft:16, marginRight:16 }}>
+        <div style={{ margin:'10px 16px 24px' }}>
           {loadingHistorique ? (
             <div style={{ display:'flex', justifyContent:'center', padding:40 }}>
               <div className="spinner" style={{ width:24, height:24 }}></div>
             </div>
           ) : historiqueList.length === 0 ? (
-            <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13, fontWeight:700, textTransform:'uppercase' }}>
-              Aucune journée finalisée
+            <div className="empty-state">
+              <div className="empty-state-icon">📅</div>
+              <div className="empty-state-title">Aucune journée finalisée</div>
+              <div className="empty-state-sub">L'historique apparaîtra ici après chaque journée</div>
             </div>
-          ) : historiqueList.map(j => {
-            const myPts = j.pointsJoueurs?.[profil?.id]
-            const myGain = j.gainsJoueurs?.[profil?.id] || 0
-            const sorted = Object.entries(j.pointsJoueurs).sort((a,b) => b[1]-a[1])
-            const myRank = sorted.findIndex(([uid]) => uid === profil?.id) + 1
-
-            return (
-              <div key={j.id} style={{ background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--R)', padding:16, marginBottom:12, boxShadow:'var(--shadow)' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-                  <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.04em', textTransform:'uppercase' }}>
-                    Journée {j.numero}
-                  </div>
-                  <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                    {myRank <= 3 && <span style={{ fontSize:18 }}>{myRank===1?'🥇':myRank===2?'🥈':'🥉'}</span>}
-                    {myRank > 3 && <span style={{ fontSize:13, fontWeight:900, color:'var(--tx3)' }}>#{myRank}</span>}
-                    <span style={{ fontFamily:'var(--D)', fontSize:24, color:'var(--g)', letterSpacing:'.03em' }}>{myPts ?? '—'}</span>
-                    <span style={{ fontSize:11, color:'var(--tx3)' }}>pts</span>
-                    {myGain > 0 && <span style={{ fontSize:12, color:'var(--g)', fontWeight:900 }}>+{myGain}€</span>}
-                  </div>
-                </div>
-                {/* Top 3 de la journée */}
-                <div style={{ display:'flex', gap:8 }}>
-                  {sorted.slice(0,3).map(([uid, pts], i) => {
-                    const j2 = joueursMap[uid]
-                    return (
-                      <div key={uid} style={{ flex:1, background:'rgba(255,255,255,.04)', borderRadius:'var(--Rs)', padding:'6px 8px', textAlign:'center' }}>
-                        <div style={{ fontSize:14 }}>{i===0?'🥇':i===1?'🥈':'🥉'}</div>
-                        <div style={{ fontSize:11, fontWeight:700, color: uid===profil?.id?'var(--g)':'var(--tx)', marginTop:2 }}>
-                          {j2?.nom?.split(' ')[0] || '?'}
-                        </div>
-                        <div style={{ fontFamily:'var(--D)', fontSize:16, color:'var(--g)' }}>{pts}</div>
-                      </div>
-                    )
-                  })}
-                </div>
+          ) : (
+            <>
+              {/* Sélecteur journée */}
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:14 }}>
+                {historiqueList.map(j => (
+                  <button key={j.id} onClick={() => setSelectedHistJ(j.id)} style={{
+                    padding:'6px 12px', borderRadius:'var(--Rs)', fontSize:12, fontWeight:900,
+                    textTransform:'uppercase', letterSpacing:'.04em', cursor:'pointer',
+                    background: selectedHistJ===j.id ? 'linear-gradient(180deg, #B9F84F, #75B91D)' : 'rgba(255,255,255,.05)',
+                    color: selectedHistJ===j.id ? '#07100C' : 'var(--tx3)',
+                    border: `1px solid ${selectedHistJ===j.id ? 'rgba(155,226,45,.4)' : 'var(--bd2)'}`,
+                  }}>
+                    J{j.numero}
+                  </button>
+                ))}
               </div>
-            )
-          })}
+
+              {/* Tableau classement journée sélectionnée */}
+              {(() => {
+                const j = historiqueList.find(j => j.id === selectedHistJ)
+                if (!j) return null
+                const sorted = Object.entries(j.pointsJoueurs || {}).sort((a,b) => b[1]-a[1])
+                return (
+                  <div style={{ background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--R)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
+                    <table className="table" style={{ fontSize:13 }}>
+                      <thead>
+                        <tr>
+                          <th style={{width:40}}>#</th>
+                          <th>Joueur</th>
+                          <th style={{textAlign:'right'}}>Pts J{j.numero}</th>
+                          <th style={{textAlign:'right'}}>Gain</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sorted.map(([uid, pts], i) => {
+                          const jj = joueursMap[uid]
+                          const gain = j.gainsJoueurs?.[uid] || 0
+                          const isMe = uid === profil?.id
+                          const [bg, color] = getC(i)
+                          return (
+                            <tr key={uid} style={{ background: isMe ? 'rgba(155,226,45,.06)' : 'transparent' }}>
+                              <td>
+                                <span style={{ fontFamily:'var(--D)', fontSize:20, color: i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--tx3)' }}>
+                                  {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                                  <div className="av" style={{ width:28, height:28, fontSize:10, background:isMe?'var(--g-dim)':bg, color:isMe?'var(--g)':color, border:`1px solid ${isMe?'var(--g-b)':'rgba(255,255,255,.08)'}` }}>
+                                    {jj?.initiales || '?'}
+                                  </div>
+                                  <span style={{ fontWeight:isMe?900:700, color:isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', fontSize:12 }}>
+                                    {jj?.nom?.split(' ')[0] || uid} {isMe && <span style={{fontSize:10,color:'var(--tx3)',fontWeight:400,textTransform:'none'}}>(toi)</span>}
+                                  </span>
+                                </div>
+                              </td>
+                              <td style={{ textAlign:'right', fontFamily:'var(--D)', fontSize:22, color:isMe?'var(--g)':'var(--tx)' }}>{pts}</td>
+                              <td style={{ textAlign:'right', color:'var(--g)', fontWeight:900, fontSize:12 }}>{gain > 0 ? `+${gain}€` : '—'}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              })()}
+            </>
+          )}
         </div>
       )}
 
