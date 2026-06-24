@@ -230,7 +230,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                     ) : <div style={{ fontSize:12, color:'var(--tx3)' }}>—</div>}
                   </div>
                 )}
-                {journee.matchesL1.map((m,i) => m?.dom && m.dom !== journee.matchScorer?.dom && (
+                {journee.matchesL1.map((m,i) => m?.dom && (
                   <div key={i} className="match-row">
                     <div className="match-info">
                       <div className="match-name" style={{ display:'flex', alignItems:'center', gap:5 }}><TeamLogo name={m.dom} size={18} />{m.dom} — {m.ext}<TeamLogo name={m.ext} size={18} /></div>
