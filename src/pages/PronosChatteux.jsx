@@ -170,6 +170,7 @@ export default function PronosChatteux() {
               <th style={{ position:'sticky', left:0, zIndex:2, background:'#07100C', padding:'8px 12px', textAlign:'left', fontSize:11, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', borderBottom:'1px solid var(--bd)', minWidth:90 }}>
                 Joueur
               </th>
+              <th style={{ position:'sticky', left:90, zIndex:2, background:'#07100C', padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', fontSize:9, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', minWidth:40 }}>PTS</th>
               {cols.map(col => (
                 <th key={col.key} style={{ padding:'4px 2px', textAlign:'center', borderBottom:'1px solid var(--bd)', background: col.isScorer ? 'rgba(96,165,250,.06)' : col.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(0,0,0,.2)', minWidth:50 }}>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
@@ -185,7 +186,6 @@ export default function PronosChatteux() {
               ))}
               <th style={{ padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', background:'rgba(0,0,0,.2)', fontSize:9, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', minWidth:60 }}>Bonus</th>
               <th style={{ padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', background:'rgba(248,113,113,.04)', fontSize:9, fontWeight:900, color:'var(--r)', textTransform:'uppercase', minWidth:140 }}>🚀 Missile</th>
-              <th style={{ padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', background:'rgba(0,0,0,.2)', fontSize:9, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', minWidth:50 }}>PTS</th>
             </tr>
           </thead>
 
@@ -208,15 +208,6 @@ export default function PronosChatteux() {
                     minWidth:90,
                   }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      {pts !== null && (
-                        <div style={{
-                          fontFamily:'var(--D)', fontSize:16, fontWeight:900, minWidth:24, textAlign:'center',
-                          color: pts >= 8 ? '#FFD700' : pts >= 4 ? 'var(--g)' : 'var(--tx)',
-                          lineHeight:1, flexShrink:0,
-                        }}>
-                          {pts}
-                        </div>
-                      )}
                       <div className="av" style={{ width:24, height:24, fontSize:9, flexShrink:0, background: isMe?'var(--g-dim)':'rgba(255,255,255,.06)', color: isMe?'var(--g)':'var(--tx3)' }}>
                         {j.initiales}
                       </div>
@@ -227,6 +218,22 @@ export default function PronosChatteux() {
                         {!hasProno && <div style={{ fontSize:9, color:'var(--r)', fontWeight:900 }}>ABS</div>}
                       </div>
                     </div>
+                  </td>
+
+                  {/* Colonne PTS sticky */}
+                  <td style={{
+                    position:'sticky', left:90, zIndex:1,
+                    background: isMe ? 'rgba(155,226,45,.08)' : '#07100C',
+                    padding:'4px 6px', borderBottom:'1px solid rgba(255,255,255,.05)',
+                    textAlign:'center', verticalAlign:'middle', minWidth:40,
+                  }}>
+                    {pts !== null ? (
+                      <div style={{ fontFamily:'var(--D)', fontSize:16, fontWeight:900, color: pts >= 8 ? '#FFD700' : pts >= 4 ? 'var(--g)' : 'var(--tx)', lineHeight:1 }}>
+                        {pts}
+                      </div>
+                    ) : (
+                      <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
+                    )}
                   </td>
 
                   {/* Cellules pronos */}
@@ -327,17 +334,6 @@ export default function PronosChatteux() {
                           ? <div style={{ color:'var(--g)', fontSize:9, fontWeight:700 }}>✓ appliqué</div>
                           : <div style={{ color:'var(--a)', fontSize:9 }}>⏳ en attente</div>
                         }
-                      </div>
-                    ) : (
-                      <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
-                    )}
-                  </td>
-
-                  {/* Colonne PTS — valeur Firebase */}
-                  <td style={{ textAlign:'center', padding:'4px 6px', borderBottom:'1px solid rgba(255,255,255,.05)', verticalAlign:'middle' }}>
-                    {j.pointsTotal != null ? (
-                      <div style={{ fontFamily:'var(--D)', fontSize:18, color:'var(--tx)', fontWeight:900 }}>
-                        {j.pointsTotal}
                       </div>
                     ) : (
                       <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
