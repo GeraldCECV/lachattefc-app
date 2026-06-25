@@ -211,53 +211,38 @@ export default function Classement() {
               </table>
             )
           )
-        ) : (
-          classG.length===0 ? (
-            <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13 }}>Aucun joueur enregistré</div>
-          ) : classG.map((j,i) => {
-            const net = (j.gainsTotal||0) - (j.journeesJouees||0)*5
-            return <PlayerRow key={j.id} j={j} idx={i} pts={j.pointsTotal||0} gain={j.gainsTotal||0} net={net} />
-          })
-        )}
-      </div>
-
-      {/* Historique */}
-      {tab === 'historique' && (
-        <div style={{ margin:'10px 16px 24px' }}>
-          {loadingHistorique ? (
-            <div style={{ display:'flex', justifyContent:'center', padding:40 }}>
-              <div className="spinner" style={{ width:24, height:24 }}></div>
-            </div>
-          ) : historiqueList.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">📅</div>
-              <div className="empty-state-title">Aucune journée finalisée</div>
-              <div className="empty-state-sub">L'historique apparaîtra ici après chaque journée</div>
-            </div>
-          ) : (
-            <>
-              {/* Sélecteur journée */}
-              <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:14 }}>
-                {historiqueList.map(j => (
-                  <button key={j.id} onClick={() => setSelectedHistJ(j.id)} style={{
-                    padding:'6px 12px', borderRadius:'var(--Rs)', fontSize:12, fontWeight:900,
-                    textTransform:'uppercase', letterSpacing:'.04em', cursor:'pointer',
-                    background: selectedHistJ===j.id ? 'linear-gradient(180deg, #B9F84F, #75B91D)' : 'rgba(255,255,255,.05)',
-                    color: selectedHistJ===j.id ? '#07100C' : 'var(--tx3)',
-                    border: `1px solid ${selectedHistJ===j.id ? 'rgba(155,226,45,.4)' : 'var(--bd2)'}`,
-                  }}>
-                    J{j.numero}
-                  </button>
-                ))}
+        ) : tab==='historique' ? (
+          <div style={{ padding:'10px 16px 16px' }}>
+            {loadingHistorique ? (
+              <div style={{ display:'flex', justifyContent:'center', padding:40 }}>
+                <div className="spinner" style={{ width:24, height:24 }}></div>
               </div>
-
-              {/* Tableau classement journée sélectionnée */}
-              {(() => {
-                const j = historiqueList.find(j => j.id === selectedHistJ)
-                if (!j) return null
-                const sorted = Object.entries(j.pointsJoueurs || {}).sort((a,b) => b[1]-a[1])
-                return (
-                  <div style={{ background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--R)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
+            ) : historiqueList.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">📅</div>
+                <div className="empty-state-title">Aucune journée finalisée</div>
+                <div className="empty-state-sub">L'historique apparaîtra ici après chaque journée</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:14 }}>
+                  {historiqueList.map(j => (
+                    <button key={j.id} onClick={() => setSelectedHistJ(j.id)} style={{
+                      padding:'6px 12px', borderRadius:'var(--Rs)', fontSize:12, fontWeight:900,
+                      textTransform:'uppercase', letterSpacing:'.04em', cursor:'pointer',
+                      background: selectedHistJ===j.id ? 'linear-gradient(180deg, #B9F84F, #75B91D)' : 'rgba(255,255,255,.05)',
+                      color: selectedHistJ===j.id ? '#07100C' : 'var(--tx3)',
+                      border: `1px solid ${selectedHistJ===j.id ? 'rgba(155,226,45,.4)' : 'var(--bd2)'}`,
+                    }}>
+                      J{j.numero}
+                    </button>
+                  ))}
+                </div>
+                {(() => {
+                  const j = historiqueList.find(j => j.id === selectedHistJ)
+                  if (!j) return null
+                  const sorted = Object.entries(j.pointsJoueurs || {}).sort((a,b) => b[1]-a[1])
+                  return (
                     <table className="table" style={{ fontSize:13 }}>
                       <thead>
                         <tr>
@@ -297,13 +282,20 @@ export default function Classement() {
                         })}
                       </tbody>
                     </table>
-                  </div>
-                )
-              })()}
-            </>
-          )}
-        </div>
-      )}
+                  )
+                })()}
+              </>
+            )}
+          </div>
+        ) : (
+          classG.length===0 ? (
+            <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13 }}>Aucun joueur enregistré</div>
+          ) : classG.map((j,i) => {
+            const net = (j.gainsTotal||0) - (j.journeesJouees||0)*5
+            return <PlayerRow key={j.id} j={j} idx={i} pts={j.pointsTotal||0} gain={j.gainsTotal||0} net={net} />
+          })
+        )}
+      </div>
 
       {/* Barème */}
       <div style={{ margin:'12px 16px 24px', padding:'12px 14px', background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--Rs)', boxShadow:'var(--shadow)' }}>
