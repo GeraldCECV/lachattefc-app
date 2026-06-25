@@ -290,8 +290,9 @@ export default function Classement() {
           classG.length===0 ? (
             <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13 }}>Aucun joueur enregistré</div>
           ) : classG.map((j,i) => {
+            const penalite = journee?.penalites?.[j.id] || 0
             const net = (j.gainsTotal||0) - (j.journeesJouees||0)*5
-            return <PlayerRow key={j.id} j={j} idx={i} pts={j.pointsTotal||0} gain={j.gainsTotal||0} net={net} />
+            return <PlayerRow key={j.id} j={j} idx={i} pts={(j.pointsTotal||0) + penalite} gain={j.gainsTotal||0} net={net} />
           })
         )}
       </div>

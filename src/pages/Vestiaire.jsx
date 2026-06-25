@@ -191,7 +191,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                     </div>
                   </div>
                   <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color:isMe?'var(--g)':'var(--tx)', textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
-                    {j.pointsTotal||0}
+                    {(j.pointsTotal||0) + (journee?.penalites?.[j.id] || 0)}
                   </div>
                 </div>
               )
