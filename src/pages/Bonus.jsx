@@ -61,7 +61,7 @@ export default function Bonus() {
   ]
 
   const BONUS_INFO = [
-    { key:'missile', ico:'🎯', lbl:'Missiles', color:'var(--r)', dim:'var(--r-dim)', border:'var(--r-b)' },
+    { key:'missile', ico:'🚀', lbl:'Missiles', color:'var(--r)', dim:'var(--r-dim)', border:'var(--r-b)' },
     { key:'jackpot', ico:'🎰', lbl:'Jackpots', color:'var(--a)', dim:'var(--a-dim)', border:'var(--a-b)' },
     { key:'doubleChance', ico:'2️⃣', lbl:'Doubles', color:'var(--p)', dim:'var(--p-dim)', border:'var(--p-b)' },
   ]
@@ -100,7 +100,7 @@ export default function Bonus() {
           <div className="section-lbl">📖 Règles</div>
           <div style={{ margin:'0 16px 14px', display:'flex', flexDirection:'column', gap:8 }}>
             {[
-              { ico:'🎯', title:'Missile', color:'var(--r)', dim:'var(--r-dim)', border:'var(--r-b)', desc:'Le plus puissant. Tu choisis un adversaire + un match et tu REMPLACES son prono par le résultat de ton choix. Prévaut sur tous les autres bonus.' },
+              { ico:'🚀', title:'Missile', color:'var(--r)', dim:'var(--r-dim)', border:'var(--r-b)', desc:'Le plus puissant. Tu choisis un adversaire + un match et tu REMPLACES son prono par le résultat de ton choix. Prévaut sur tous les autres bonus.' },
               { ico:'🎰', title:'Jackpot', color:'var(--a)', dim:'var(--a-dim)', border:'var(--a-b)', desc:'Double tes points sur le match de ton choix. Non utilisable sur le scorer.' },
               { ico:'2️⃣', title:'Double Chance', color:'var(--p)', dim:'var(--p-dim)', border:'var(--p-b)', desc:'Joue 2 résultats sur 1 match (ex: 1/N). Si l\'un des deux est bon → 1pt.' },
             ].map(b => (
@@ -126,7 +126,7 @@ export default function Bonus() {
                   const color = isMS ? 'var(--r)' : isJP ? 'var(--a)' : 'var(--p)'
                   const dim = isMS ? 'var(--r-dim)' : isJP ? 'var(--a-dim)' : 'var(--p-dim)'
                   const border = isMS ? 'var(--r-b)' : isJP ? 'var(--a-b)' : 'var(--p-b)'
-                  const ico = isMS ? '🎯' : isJP ? '🎰' : '2️⃣'
+                  const ico = isMS ? '🚀' : isJP ? '🎰' : '2️⃣'
                   const label = isMS ? 'Missile' : isJP ? 'Jackpot' : 'Double Chance'
 
                   return (
