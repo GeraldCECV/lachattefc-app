@@ -192,9 +192,9 @@ export default function Pronos() {
       const joueurSnap = await getDoc(doc(db,'joueurs',user.uid))
       const stockServeur = joueurSnap.exists() ? joueurSnap.data().bonus : { missile:0, jackpot:0, doubleChance:0 }
 
-      // Invalider jackpot si stock épuisé
-      const jackpotValide = jackpotMatch && (stockServeur.jackpot > 0)
-      const dcValide = dcMatch && dcChoices.length === 2 && (stockServeur.doubleChance > 0)
+      // Invalider jackpot si stock épuisé ou posé sur le scorer
+      const jackpotValide = jackpotMatch && jackpotMatch !== 'scorer' && (stockServeur.jackpot > 0)
+      const dcValide = dcMatch && dcMatch !== 'scorer' && dcChoices.length === 2 && (stockServeur.doubleChance > 0)
 
       const data = {
         ...pronosFinaux,
