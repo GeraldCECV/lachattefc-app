@@ -119,42 +119,6 @@ export default function PronosChatteux() {
     return null
   }
 
-  // Calcul points pour un joueur (si statut resultats)
-  const calcPoints = (uid) => {
-    const p = pronos[uid]
-    if (!p || journee.statut !== 'resultats') return null
-    let pts = 0
-    cols.forEach(col => {
-      const prono = getVal(uid, col.key)
-      const resultScore = journee.resultats?.[col.key]
-      if (!prono || !resultScore || (resultScore.status !== 'FINISHED')) return
-      const rh = resultScore.h, ra = resultScore.a
-      if (col.isScorer) {
-        const [ph, pa] = (prono.val || '').split('-').map(Number)
-        if (ph === rh && pa === ra) {
-          pts += 3
-          if (p.jackpotMatch === col.key) pts += 3
-        } else if (Math.sign(ph-pa) === Math.sign(rh-ra)) {
-          pts += 1
-          if (p.dcMatch === col.key) pts += 1
-        }
-      } else {
-        const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
-        if (prono.val === issue) {
-          pts += 1
-          if (p.dcMatch === col.key) pts += 1
-        }
-      }
-    })
-    return pts
-  }
-
-  const thStyle = (extra = {}) => ({
-    padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)',
-    background:'rgba(0,0,0,.2)', fontSize:9, fontWeight:900, color:'var(--tx3)',
-    textTransform:'uppercase', whiteSpace:'nowrap', ...extra
-  })
-
   return (
     <div style={{ padding:'16px 0 24px' }}>
       {/* Header */}
@@ -170,14 +134,13 @@ export default function PronosChatteux() {
 
       {/* Tableau scrollable */}
       <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch', paddingBottom:8 }}>
-        <table style={{ borderCollapse:'separate', borderSpacing:0, minWidth: 90 + cols.length * 52 + 160 }}>
+        <table style={{ borderCollapse:'separate', borderSpacing:0, minWidth: 80 + cols.length * 52 }}>
+          {/* Header matchs */}
           <thead>
             <tr>
-              {/* Joueur */}
               <th style={{ position:'sticky', left:0, zIndex:2, background:'#07100C', padding:'8px 12px', textAlign:'left', fontSize:11, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', borderBottom:'1px solid var(--bd)', minWidth:90 }}>
                 Joueur
               </th>
-              {/* Colonnes matchs */}
               {cols.map(col => (
                 <th key={col.key} style={{ padding:'4px 2px', textAlign:'center', borderBottom:'1px solid var(--bd)', background: col.isScorer ? 'rgba(96,165,250,.06)' : col.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(0,0,0,.2)', minWidth:50 }}>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
@@ -191,41 +154,19 @@ export default function PronosChatteux() {
                   </div>
                 </th>
               ))}
-              {/* BONUS */}
-              <th style={thStyle({ minWidth:60 })}>
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
-                  <span style={{ fontSize:14 }}>🎯</span>
-                  <span>Bonus</span>
-                </div>
-              </th>
-              {/* MISSILE */}
-              <th style={thStyle({ minWidth:140, background:'rgba(248,113,113,.04)' })}>
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
-                  <span style={{ fontSize:14 }}>⚽</span>
-                  <span style={{ color:'var(--r)' }}>Missile</span>
-                </div>
-              </th>
-              {/* PTS */}
-              {journee.statut === 'resultats' && (
-                <th style={thStyle({ minWidth:50, background:'rgba(255,200,0,.04)' })}>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
-                    <span style={{ fontSize:14 }}>🏆</span>
-                    <span style={{ color:'#FFD700' }}>PTS</span>
-                  </div>
-                </th>
-              )}
+              <th style={{ padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', background:'rgba(0,0,0,.2)', fontSize:9, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', minWidth:60 }}>Bonus</th>
+              <th style={{ padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', background:'rgba(248,113,113,.04)', fontSize:9, fontWeight:900, color:'var(--r)', textTransform:'uppercase', minWidth:140 }}>🚀 Missile</th>
+              <th style={{ padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', background:'rgba(0,0,0,.2)', fontSize:9, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', minWidth:50 }}>PTS</th>
             </tr>
           </thead>
 
+          {/* Lignes joueurs */}
           <tbody>
             {joueurs.map(j => {
               const isMe = j.id === profil?.id
               const hasProno = !!pronos[j.id]
-              // Missile lancé par ce joueur
               const missileLance = missiles.find(m => m.lanceur === j.id)
-              // Missile reçu par ce joueur
               const missileRecu = missiles.find(m => m.cible === j.id)
-              const pts = calcPoints(j.id)
 
               return (
                 <tr key={j.id}>
@@ -288,7 +229,7 @@ export default function PronosChatteux() {
                               {prono.val}
                             </div>
                             {bonus && <div style={{ fontSize:9, lineHeight:1 }}>{bonus}</div>}
-                            {prono.isMissile && <div style={{ fontSize:9, color:'var(--r)', lineHeight:1 }}>⚽</div>}
+                            {prono.isMissile && <div style={{ fontSize:9, color:'var(--r)', lineHeight:1 }}>🚀</div>}
                           </div>
                         ) : (
                           <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
@@ -324,7 +265,6 @@ export default function PronosChatteux() {
                   <td style={{ textAlign:'center', padding:'4px 8px', borderBottom:'1px solid rgba(255,255,255,.05)', verticalAlign:'middle', background:'rgba(248,113,113,.02)' }}>
                     {missileLance ? (
                       <div style={{ fontSize:10, lineHeight:1.5 }}>
-                        {/* Lanceur → Cible */}
                         <div style={{ color:'var(--r)', fontWeight:700, whiteSpace:'nowrap' }}>
                           ↗ <strong>{joueursById[missileLance.cible]?.nom?.split(' ')[0] || '?'}</strong>
                         </div>
@@ -338,7 +278,6 @@ export default function PronosChatteux() {
                       </div>
                     ) : missileRecu ? (
                       <div style={{ fontSize:10, lineHeight:1.5 }}>
-                        {/* Reçu de */}
                         <div style={{ color:'var(--a)', fontWeight:700, whiteSpace:'nowrap' }}>
                           ↙ <strong>{joueursById[missileRecu.lanceur]?.nom?.split(' ')[0] || '?'}</strong>
                         </div>
@@ -355,22 +294,16 @@ export default function PronosChatteux() {
                     )}
                   </td>
 
-                  {/* Colonne PTS */}
-                  {journee.statut === 'resultats' && (
-                    <td style={{ textAlign:'center', padding:'4px 6px', borderBottom:'1px solid rgba(255,255,255,.05)', verticalAlign:'middle' }}>
-                      {pts !== null ? (
-                        <div style={{
-                          display:'inline-block', fontFamily:'var(--D)', fontSize:18,
-                          color: pts >= 10 ? '#FFD700' : pts >= 6 ? 'var(--g)' : 'var(--tx)',
-                          fontWeight:900,
-                        }}>
-                          {pts}
-                        </div>
-                      ) : (
-                        <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
-                      )}
-                    </td>
-                  )}
+                  {/* Colonne PTS — valeur Firebase */}
+                  <td style={{ textAlign:'center', padding:'4px 6px', borderBottom:'1px solid rgba(255,255,255,.05)', verticalAlign:'middle' }}>
+                    {j.pointsTotal != null ? (
+                      <div style={{ fontFamily:'var(--D)', fontSize:18, color:'var(--tx)', fontWeight:900 }}>
+                        {j.pointsTotal}
+                      </div>
+                    ) : (
+                      <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
+                    )}
+                  </td>
                 </tr>
               )
             })}
