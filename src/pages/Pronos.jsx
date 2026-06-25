@@ -429,10 +429,8 @@ export default function Pronos() {
 
       {/* ── MISSILE MODAL ── */}
       {showMissileModal && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:500,padding:'0 0 var(--tab-h) 0'}}>
-          <div style={{width:'100%',maxWidth:420,background:'#000',border:'1px solid var(--r-b)',borderRadius:'20px 20px 0 0',boxShadow:'0 -8px 40px rgba(0,0,0,.8)',maxHeight:'80vh',display:'flex',flexDirection:'column'}}>
-            {/* Inner scrollable content wrapper starts below */}
-            <div style={{overflowY:'scroll',WebkitOverflowScrolling:'touch',flex:1,padding:24}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:500,overflowY:'scroll',WebkitOverflowScrolling:'touch',paddingBottom:100}}>
+          <div style={{width:'100%',maxWidth:420,margin:'60px auto 0',background:'#0a0a0a',border:'1px solid var(--r-b)',borderRadius:20,padding:24,boxShadow:'0 8px 40px rgba(0,0,0,.8)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
               <div>
                 <div style={{fontFamily:'var(--D)',fontSize:26,letterSpacing:'.04em',color:'var(--r)'}}>🎯 Missile</div>
@@ -523,7 +521,6 @@ export default function Pronos() {
                 </div>
               </>
             )}
-            </div>
           </div>
         </div>
       )}
