@@ -178,7 +178,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
               const [bg,color] = COLORS[idx]||['rgba(155,226,45,.1)','var(--g)']
               const isMe = j.id === profil?.id
               return (
-                <div key={j.id} className="match-row" style={isMe?{background:'rgba(155,226,45,.06)',borderRadius:10,padding:'10px 8px',margin:'0 -8px'}:{}}>
+                <div key={j.id} className="match-row" style={isMe?{background:'rgba(155,226,45,.06)',borderRadius:10}:{}}>
                   <div style={{ width:26, textAlign:'center', fontSize:idx<3?18:13, fontWeight:900, color:idx<3?color:'var(--tx3)', flexShrink:0 }}>
                     {idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':idx+1}
                   </div>
