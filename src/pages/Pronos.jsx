@@ -433,7 +433,7 @@ export default function Pronos() {
           <div style={{width:'100%',maxWidth:420,margin:'60px auto 0',background:'#0a0a0a',border:'1px solid var(--r-b)',borderRadius:20,padding:24,boxShadow:'0 8px 40px rgba(0,0,0,.8)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
               <div>
-                <div style={{fontFamily:'var(--D)',fontSize:26,letterSpacing:'.04em',color:'var(--r)'}}>⚽ Missile</div>
+                <div style={{fontFamily:'var(--D)',fontSize:26,letterSpacing:'.04em',color:'var(--r)'}}>🚀 Missile</div>
                 <div style={{fontSize:12,color:'var(--tx3)',marginTop:2}}>
                   {missileStep===1?'1/3 · Choisir la cible':missileStep===2?'2/3 · Choisir le match':'3/3 · Choisir le prono à imposer'}
                 </div>
@@ -516,7 +516,7 @@ export default function Pronos() {
                 <div style={{display:'flex',gap:8}}>
                   <button className="btn btn-secondary" onClick={()=>setMissileStep(2)}>← Retour</button>
                   <button className="btn btn-danger" style={{flex:1,height:44}} onClick={submitMissile} disabled={!missileData.prono}>
-                    ⚽ Lancer le missile
+                    🚀 Lancer le missile
                   </button>
                 </div>
               </>
@@ -558,7 +558,7 @@ export default function Pronos() {
             background:'var(--r-dim)',border:'1px solid var(--r-b)',
             borderRadius:999,fontSize:12,fontWeight:700,color:'var(--r)',cursor:'pointer',
           }}>
-            ⚽ Missile ×{bonusStock.missile}
+            🚀 Missile ×{bonusStock.missile}
           </button>
         )}
         {/* Jackpot */}
@@ -743,7 +743,7 @@ export default function Pronos() {
                 {filled}/10 matchs renseignés
                 {jackpotMatch && <div style={{color:'var(--a)',fontWeight:700,marginTop:4}}>🎰 Jackpot activé</div>}
                 {dcMatch && dcChoices.length===2 && <div style={{color:'var(--p)',fontWeight:700}}>2️⃣ Double Chance activé</div>}
-                {missileUsed && <div style={{color:'var(--r)',fontWeight:700}}>⚽ Missile lancé</div>}
+                {missileUsed && <div style={{color:'var(--r)',fontWeight:700}}>🚀 Missile lancé</div>}
               </div>
               <div style={{display:'flex',gap:10}}>
                 <button className="btn btn-primary" style={{flex:1,height:46}} onClick={()=>{setShowConfirm(false);handleSubmit()}}>
