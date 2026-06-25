@@ -119,6 +119,35 @@ export default function PronosChatteux() {
     return null
   }
 
+  const calcPoints = (uid) => {
+    if (journee.statut !== 'resultats') return null
+    const p = pronos[uid]
+    if (!p) return null
+    let pts = 0
+    cols.forEach(col => {
+      const prono = getVal(uid, col.key)
+      const res = journee.resultats?.[col.key]
+      if (!prono || !res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY')) return
+      const rh = parseInt(res.h), ra = parseInt(res.a)
+      if (col.isScorer) {
+        const [ph, pa] = (prono.val || '').split('-').map(Number)
+        if (ph === rh && pa === ra) pts += 3
+        else if (Math.sign(ph - pa) === Math.sign(rh - ra)) pts += 1
+      } else {
+        const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
+        if (prono.val === issue) {
+          const total = Object.keys(pronos).filter(u => getVal(u, col.key)?.val === issue).length
+          const allTotal = Object.keys(pronos).length
+          const ratio = allTotal > 0 ? total / allTotal : 1
+          let p2 = ratio <= 0.25 ? 2 : 1
+          if (p?.jackpotMatch === col.key) p2 *= 2
+          pts += p2
+        }
+      }
+    })
+    return pts
+  }
+
   return (
     <div style={{ padding:'16px 0 24px' }}>
       {/* Header */}
@@ -167,6 +196,7 @@ export default function PronosChatteux() {
               const hasProno = !!pronos[j.id]
               const missileLance = missiles.find(m => m.lanceur === j.id)
               const missileRecu = missiles.find(m => m.cible === j.id)
+              const pts = calcPoints(j.id)
 
               return (
                 <tr key={j.id}>
@@ -178,6 +208,15 @@ export default function PronosChatteux() {
                     minWidth:90,
                   }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      {pts !== null && (
+                        <div style={{
+                          fontFamily:'var(--D)', fontSize:16, fontWeight:900, minWidth:24, textAlign:'center',
+                          color: pts >= 8 ? '#FFD700' : pts >= 4 ? 'var(--g)' : 'var(--tx)',
+                          lineHeight:1, flexShrink:0,
+                        }}>
+                          {pts}
+                        </div>
+                      )}
                       <div className="av" style={{ width:24, height:24, fontSize:9, flexShrink:0, background: isMe?'var(--g-dim)':'rgba(255,255,255,.06)', color: isMe?'var(--g)':'var(--tx3)' }}>
                         {j.initiales}
                       </div>
