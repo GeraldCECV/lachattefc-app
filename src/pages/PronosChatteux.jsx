@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
@@ -13,6 +13,7 @@ export default function PronosChatteux() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let unsub = null
     const load = async () => {
       try {
         const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
@@ -22,15 +23,12 @@ export default function PronosChatteux() {
         const jDoc = fermee || lastResultats || ouverte
         if (!jDoc) { setLoading(false); return }
 
-        const j = { id: jDoc.id, ...jDoc.data() }
-        setJournee(j)
-
         const joueursSnap = await getDocs(collection(db,'joueurs'))
         const joueursData = joueursSnap.docs.map(d => ({ id:d.id, ...d.data() }))
           .sort((a,b) => (a.nom||'').localeCompare(b.nom||''))
         setJoueurs(joueursData)
 
-        if (j.statut === 'fermee' || j.statut === 'resultats') {
+        if (jDoc.data().statut === 'fermee' || jDoc.data().statut === 'resultats') {
           const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
           const pronosData = {}
           pronosSnap.docs.forEach(d => { pronosData[d.id] = d.data() })
@@ -39,13 +37,21 @@ export default function PronosChatteux() {
           const missilesSnap = await getDocs(collection(db,'journees',jDoc.id,'missiles'))
           setMissiles(missilesSnap.docs.map(d => ({ id:d.id, ...d.data() })))
         }
+
+        // onSnapshot sur le document journée pour les scores live
+        unsub = onSnapshot(doc(db,'journees',jDoc.id), d => {
+          if (!d.exists()) return
+          setJournee({ id:d.id, ...d.data() })
+        })
+
+        setLoading(false)
       } catch(e) {
         console.error('PronosChatteux load error:', e)
-      } finally {
         setLoading(false)
       }
     }
     load()
+    return () => { if (unsub) unsub() }
   }, [])
 
   if (loading) return (
