@@ -79,7 +79,7 @@ export default function Reglement() {
           <p>Si le résultat est trouvé par <Strong>moins de 25%</Strong> des participants → <Strong>2 points</Strong> au lieu de 1.</p>
         </div>
         <div style={{ margin:'10px 0', padding:'12px', background:'rgba(96,165,250,.06)', border:'1px solid var(--b-b)', borderRadius:'var(--Rs)' }}>
-          <div style={{ fontWeight:900, color:'#93C5FD', marginBottom:6, fontSize:12, textTransform:'uppercase', letterSpacing:'.05em' }}>🎯 Match à scorer</div>
+          <div style={{ fontWeight:900, color:'#93C5FD', marginBottom:6, fontSize:12, textTransform:'uppercase', letterSpacing:'.05em' }}>⚽ Match à scorer</div>
           <Li>Bon score = <Strong>3 pts</Strong></Li>
           <Li>Bon écart = <Strong>2 pts</Strong></Li>
           <Li>Bonne issue seulement = <Strong>1 pt</Strong></Li>

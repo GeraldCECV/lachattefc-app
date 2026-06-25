@@ -82,7 +82,7 @@ export default function PronosChatteux() {
   const euro = journee.matchEuro?.dom ? journee.matchEuro : null
 
   const cols = [
-    scorer?.dom ? { key:'scorer', label:'🎯', dom: scorer.dom, ext: scorer.ext, isScorer: true } : null,
+    scorer?.dom ? { key:'scorer', label:'⚽', dom: scorer.dom, ext: scorer.ext, isScorer: true } : null,
     ...matchesL1.map((m, i) => ({ key:`l1_${i}`, label:`#${i+1}`, dom: m.dom, ext: m.ext })),
     euro ? { key:'euro', label:'🌍', dom: euro.dom, ext: euro.ext, isEuro: true } : null,
   ].filter(Boolean)
@@ -169,7 +169,7 @@ export default function PronosChatteux() {
                           {j.nom?.split(' ')[0]}
                         </div>
                         {!hasProno && <div style={{ fontSize:9, color:'var(--r)', fontWeight:900 }}>ABS</div>}
-                        {myMissiles.length > 0 && <div style={{ fontSize:9, color:'var(--r)' }}>🎯×{myMissiles.length}</div>}
+                        {myMissiles.length > 0 && <div style={{ fontSize:9, color:'var(--r)' }}>⚽×{myMissiles.length}</div>}
                       </div>
                     </div>
                   </td>
@@ -214,7 +214,7 @@ export default function PronosChatteux() {
                               {prono.val}
                             </div>
                             {bonus && <div style={{ fontSize:9, lineHeight:1 }}>{bonus}</div>}
-                            {prono.isMissile && <div style={{ fontSize:9, color:'var(--r)', lineHeight:1 }}>🎯</div>}
+                            {prono.isMissile && <div style={{ fontSize:9, color:'var(--r)', lineHeight:1 }}>⚽</div>}
                           </div>
                         ) : (
                           <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>

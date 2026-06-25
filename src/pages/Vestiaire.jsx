@@ -215,8 +215,8 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                   <div className="match-row">
                     <div className="match-info">
                       <div className="match-name" style={{ display:'flex', alignItems:'center', gap:6 }}>
-                        🎯 <TeamLogo name={journee.matchScorer.dom} size={20} /> {journee.matchScorer.dom} — {journee.matchScorer.ext} <TeamLogo name={journee.matchScorer.ext} size={20} />
-                        <span style={{ marginLeft:6, fontSize:10, background:'var(--b-dim)', color:'#93C5FD', padding:'1px 6px', borderRadius:4, fontWeight:900, border:'1px solid var(--b-b)' }}>SCORER</span>
+                        ⚽ <TeamLogo name={journee.matchScorer.dom} size={20} /> {journee.matchScorer.dom} — {journee.matchScorer.ext} <TeamLogo name={journee.matchScorer.ext} size={20} />
+                        <span style={{ marginLeft:6, fontSize:10, background:'var(--b-dim)', color:'#93C5FD', padding:'1px 6px', borderRadius:4, fontWeight:900, border:'1px solid var(--b-b)' }}>À SCORER</span>
                       </div>
                       <div className="match-time">L1 · {journee.matchScorer.jour} {journee.matchScorer.heure}</div>
                     </div>
