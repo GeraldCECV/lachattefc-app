@@ -98,13 +98,12 @@ export default function Classement() {
           <div style={{ fontSize:13, fontWeight:isMe?900:700, color:isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', letterSpacing:'.02em' }}>
             {j.nom?.split(' ')[0]} {isLast?'💩':''} {isMe?<span style={{fontSize:10,color:'var(--tx3)',fontWeight:400,textTransform:'none'}}>(toi)</span>:''}
           </div>
-          {net!==undefined && <div style={{ fontSize:11, color:net>=0?'var(--g)':'var(--r)', fontWeight:900, marginTop:1 }}>{net>=0?'+':''}{net}€ net</div>}
+          {net!==undefined && false && <div style={{ fontSize:11, color:net>=0?'var(--g)':'var(--r)', fontWeight:900, marginTop:1 }}>{net>=0?'+':''}{net}€ net</div>}
         </div>
         <div style={{ textAlign:'right' }}>
-          <div style={{ fontFamily:'var(--D)', fontSize:24, letterSpacing:'.03em', color:isMe?'var(--g)':'var(--tx)', lineHeight:1, textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
-            {pts}
+          <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color:net>=0?'var(--g)':'var(--r)', lineHeight:1, textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
+            {net>=0?'+':''}{net}€
           </div>
-          {gain>0 && <div style={{ fontSize:11, color:'var(--g)', fontWeight:900 }}>+{gain}€</div>}
         </div>
       </div>
     )
