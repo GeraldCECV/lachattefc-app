@@ -71,6 +71,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           setTopClassement(sorted.slice(0,5))
         })
         if (profil) {
+          setMonProno(null)
           const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
           const monDoc = pronosSnap.docs.find(d => d.id === profil.id)
           if (monDoc) setMonProno(monDoc.data())
