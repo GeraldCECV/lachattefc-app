@@ -50,12 +50,12 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           joueurs.forEach(j => {
             ptsAvecPenalites[j.id] = (pts[j.id] || 0) + (penalites[j.id] || 0)
           })
-          const totalPts = Object.values(ptsAvecPenalites).reduce((s, p) => s + p, 0)
+          const hasSomePoints = Object.values(pts).some(p => p > 0)
 
           const classement = joueurs
             .map(j => ({ ...j, ptsJ: ptsAvecPenalites[j.id] || 0 }))
             .sort((a,b) => b.ptsJ - a.ptsJ)
-            .map((j, idx) => ({ ...j, gainJ: totalPts > 0 ? (BAREME[idx] || 0) : 0 }))
+            .map((j, idx) => ({ ...j, gainJ: hasSomePoints ? (BAREME[idx] || 0) : 0 }))
             .slice(0,5)
 
           setTopClassement(classement)
