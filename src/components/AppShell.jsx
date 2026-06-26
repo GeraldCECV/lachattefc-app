@@ -90,7 +90,7 @@ export default function AppShell() {
               <TabIcon name={t.ico} size={20} />
             </span>
             <span className="tab-lbl">{t.lbl}</span>
-            {t.id === 'pronos' && tab !== 'pronos' && <div className="tab-notif show" />}
+            
           </button>
         ))}
       </div>
