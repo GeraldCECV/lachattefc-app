@@ -28,8 +28,8 @@ export function useNotifications(userId) {
 
       // Handle foreground messages
       onMessage(messaging, (payload) => {
-        const title = payload.notification?.title || 'La Chatte FC'
-        const body = payload.notification?.body || ''
+        const title = payload.data?.title || payload.notification?.title || 'La Chatte FC'
+        const body = payload.data?.body || payload.notification?.body || ''
         if (title && Notification.permission === 'granted') {
           new Notification(title, {
             body,
