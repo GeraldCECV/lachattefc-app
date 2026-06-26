@@ -28,6 +28,7 @@ export function useNotifications(userId) {
 
       // Handle foreground messages
       onMessage(messaging, (payload) => {
+        console.log('📬 payload complet:', JSON.stringify(payload))
         const title = payload.data?.title || payload.notification?.title || 'La Chatte FC'
         const body = payload.data?.body || payload.notification?.body || ''
         if (title && Notification.permission === 'granted') {
