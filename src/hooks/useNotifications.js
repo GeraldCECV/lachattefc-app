@@ -9,6 +9,29 @@ export function useNotifications(userId) {
   const [permission, setPermission] = useState(Notification.permission)
   const [token, setToken] = useState(null)
 
+  // Enregistrer onMessage dès que l'app est chargée et que la permission est accordée
+  useEffect(() => {
+    if (Notification.permission !== 'granted') return
+    try {
+      const messaging = getMessaging(app)
+      const unsub = onMessage(messaging, (payload) => {
+        console.log('📬 payload complet:', JSON.stringify(payload))
+        const title = payload.data?.title || payload.notification?.title || 'La Chatte FC'
+        const body = payload.data?.body || payload.notification?.body || ''
+        if (title) {
+          new Notification(title, {
+            body,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+          })
+        }
+      })
+      return () => unsub()
+    } catch(e) {
+      console.log('onMessage init error:', e.message)
+    }
+  }, [])
+
   const requestPermission = useCallback(async () => {
     if (!userId) return false
     try {
@@ -26,23 +49,8 @@ export function useNotifications(userId) {
         fcmUpdatedAt: new Date(),
       })
 
-      // Handle foreground messages
-      onMessage(messaging, (payload) => {
-        console.log('📬 payload complet:', JSON.stringify(payload))
-        const title = payload.data?.title || payload.notification?.title || 'La Chatte FC'
-        const body = payload.data?.body || payload.notification?.body || ''
-        if (title && Notification.permission === 'granted') {
-          new Notification(title, {
-            body,
-            icon: '/icon-192.png',
-            badge: '/icon-192.png',
-          })
-        }
-      })
-
       return true
     } catch(e) {
-      // console.log('Notifications error:', e.message)
       return false
     }
   }, [userId])
