@@ -11,9 +11,11 @@ export function useNotifications(userId) {
 
   // Enregistrer onMessage dès que l'app est chargée et que la permission est accordée
   useEffect(() => {
+    console.log('🔔 useNotifications useEffect - permission:', Notification.permission)
     if (Notification.permission !== 'granted') return
     try {
       const messaging = getMessaging(app)
+      console.log('🔔 messaging initialisé, enregistrement onMessage...')
       const unsub = onMessage(messaging, (payload) => {
         console.log('📬 payload complet:', JSON.stringify(payload))
         const title = payload.data?.title || payload.notification?.title || 'La Chatte FC'
