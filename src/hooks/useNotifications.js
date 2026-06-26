@@ -11,27 +11,8 @@ export function useNotifications(userId) {
 
   // Enregistrer onMessage dès que l'app est chargée et que la permission est accordée
   useEffect(() => {
-    console.log('🔔 useNotifications useEffect - permission:', Notification.permission)
-    if (Notification.permission !== 'granted') return
-    try {
-      const messaging = getMessaging(app)
-      console.log('🔔 messaging initialisé, enregistrement onMessage...')
-      const unsub = onMessage(messaging, (payload) => {
-        console.log('📬 payload complet:', JSON.stringify(payload))
-        const title = payload.data?.title || payload.notification?.title || 'La Chatte FC'
-        const body = payload.data?.body || payload.notification?.body || ''
-        if (title) {
-          new Notification(title, {
-            body,
-            icon: '/icon-192.png',
-            badge: '/icon-192.png',
-          })
-        }
-      })
-      return () => unsub()
-    } catch(e) {
-      console.log('onMessage init error:', e.message)
-    }
+    // Sur iOS PWA, le SW gère toutes les notifications
+    // onMessage foreground désactivé pour éviter le double
   }, [])
 
   const requestPermission = useCallback(async () => {
