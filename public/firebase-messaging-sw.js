@@ -12,19 +12,8 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  // Intercepter le message pour éviter le double affichage
-  // Firebase afficherait automatiquement via notification field — on le bypass
-  const title = payload.notification?.title || payload.data?.title || 'La Chatte FC';
-  const body = payload.notification?.body || payload.data?.body || '';
-  return self.registration.showNotification(title, {
-    body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate: [200, 100, 200],
-    data: { url: payload.data?.url || 'https://lachattefc-app.vercel.app' },
-  });
-});
+// Firebase gère automatiquement l'affichage en background
+// via le champ notification du message
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();

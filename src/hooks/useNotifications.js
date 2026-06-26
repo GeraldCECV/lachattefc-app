@@ -26,10 +26,17 @@ export function useNotifications(userId) {
         fcmUpdatedAt: new Date(),
       })
 
-      // Handle foreground messages — pas besoin de créer manuellement,
-      // le Service Worker gère l'affichage automatiquement
+      // Handle foreground messages
       onMessage(messaging, (payload) => {
-        console.log('📬 Notification reçue en foreground:', payload.notification?.title)
+        const title = payload.notification?.title || 'La Chatte FC'
+        const body = payload.notification?.body || ''
+        if (title && Notification.permission === 'granted') {
+          new Notification(title, {
+            body,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+          })
+        }
       })
 
       return true
