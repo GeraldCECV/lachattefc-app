@@ -63,7 +63,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
             while (fin < sorted.length && sorted[fin].ptsJ === epts) fin++
             let gainPartage = 0
             for (let r = ei; r < fin; r++) gainPartage += BAREME[r] || 0
-            const gainParJoueur = hasSomePoints ? Math.round(gainPartage / (fin - ei)) : 0
+            const gainParJoueur = hasSomePoints ? Math.round(gainPartage / (fin - ei) * 100) / 100 : 0
             for (let k = ei; k < fin; k++) sorted[k] = { ...sorted[k], gainJ: gainParJoueur }
             ei = fin
           }
