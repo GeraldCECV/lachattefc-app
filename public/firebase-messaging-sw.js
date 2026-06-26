@@ -10,21 +10,7 @@ firebase.initializeApp({
   appId: "1:4702396559:web:84b28a8ea357a4533450fa",
 });
 
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-  // Uniquement en background (app fermée)
-  // En foreground, onMessage dans l'app gère l'affichage
-  const title = payload.notification?.title || 'La Chatte FC';
-  const body = payload.notification?.body || '';
-  return self.registration.showNotification(title, {
-    body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate: [200, 100, 200],
-    data: { url: payload.data?.url || 'https://lachattefc-app.vercel.app' },
-  });
-});
+firebase.messaging();
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
