@@ -13,14 +13,14 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'La Chatte FC';
-  const body = payload.notification?.body || '';
+  const title = payload.data?.title || payload.notification?.title || 'La Chatte FC';
+  const body = payload.data?.body || payload.notification?.body || '';
+  const icon = payload.data?.icon || '/icon-192.png';
   self.registration.showNotification(title, {
     body,
-    icon: '/icon-192.png',
+    icon,
     badge: '/icon-192.png',
-    image: '/icon-512.png',
     vibrate: [200, 100, 200],
-    data: payload.data || {},
+    data: { url: payload.data?.url || '/' },
   });
 });
