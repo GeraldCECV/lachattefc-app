@@ -43,11 +43,12 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           const joueurs = joueursSnap.docs.map(j => ({ id:j.id, ...j.data() }))
           const pts = jData.pointsJoueurs || {}
           const BAREME = [24, 18, 14, 11, 8, 5, 0]
+          const totalPts = Object.values(pts).reduce((s, p) => s + p, 0)
 
           const classement = joueurs
             .map(j => ({ ...j, ptsJ: pts[j.id] || 0 }))
             .sort((a,b) => b.ptsJ - a.ptsJ)
-            .map((j, idx) => ({ ...j, gainJ: BAREME[idx] || 0 }))
+            .map((j, idx) => ({ ...j, gainJ: totalPts > 0 ? (BAREME[idx] || 0) : 0 }))
             .slice(0,5)
 
           setTopClassement(classement)
