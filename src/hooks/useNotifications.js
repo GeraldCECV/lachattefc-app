@@ -26,16 +26,10 @@ export function useNotifications(userId) {
         fcmUpdatedAt: new Date(),
       })
 
-      // Handle foreground messages
+      // Handle foreground messages — pas besoin de créer manuellement,
+      // le Service Worker gère l'affichage automatiquement
       onMessage(messaging, (payload) => {
-        const { title, body } = payload.notification || {}
-        if (title) {
-          new Notification(title, {
-            body,
-            icon: '/icon-192.png',
-            badge: '/icon-192.png',
-          })
-        }
+        console.log('📬 Notification reçue en foreground:', payload.notification?.title)
       })
 
       return true
