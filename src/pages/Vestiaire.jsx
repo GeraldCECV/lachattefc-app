@@ -74,7 +74,10 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
         if (profil) {
           setMonProno(null)
           const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
+          console.log('🔍 pronos J docs:', pronosSnap.docs.map(d => d.id))
+          console.log('🔍 profil.id:', profil.id)
           const monDoc = pronosSnap.docs.find(d => d.id === profil.id)
+          console.log('🔍 monDoc trouvé:', !!monDoc)
           if (monDoc) setMonProno(monDoc.data())
         }
       }
