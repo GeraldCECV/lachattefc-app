@@ -43,7 +43,11 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
         }
       }
       const jSnap = await getDocs(collection(db,'joueurs'))
-      setTopClassement(jSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.pointsTotal||0)-(a.pointsTotal||0)).slice(0,5))
+      setTopClassement(jSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{
+        const netA = (a.gainsTotal||0) - (a.journeesJouees||0)*5
+        const netB = (b.gainsTotal||0) - (b.journeesJouees||0)*5
+        return netB - netA
+      }).slice(0,5))
       setLoading(false)
     }
     load()
@@ -177,6 +181,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
             {topClassement.map((j,idx) => {
               const [bg,color] = COLORS[idx]||['rgba(155,226,45,.1)','var(--g)']
               const isMe = j.id === profil?.id
+              const net = (j.gainsTotal||0) - (j.journeesJouees||0)*5
               return (
                 <div key={j.id} className="match-row" style={isMe?{background:'rgba(155,226,45,.06)',borderRadius:10}:{}}>
                   <div style={{ width:26, textAlign:'center', fontSize:idx<3?18:13, fontWeight:900, color:idx<3?color:'var(--tx3)', flexShrink:0 }}>
@@ -190,8 +195,8 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                       {j.nom?.split(' ')[0]} {isMe?<span style={{fontSize:10,color:'var(--tx3)'}}>（toi）</span>:''}
                     </div>
                   </div>
-                  <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color:isMe?'var(--g)':'var(--tx)', textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
-                    {(j.pointsTotal||0) + (journee?.penalites?.[j.id] || 0)}
+                  <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color: net>=0?'var(--g)':'var(--r)', textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
+                    {net>=0?'+':''}{net}€
                   </div>
                 </div>
               )
