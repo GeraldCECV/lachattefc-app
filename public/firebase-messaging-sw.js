@@ -12,5 +12,22 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Firebase gère l'affichage des notifications automatiquement
-// via le champ webpush.notification du message
+messaging.onBackgroundMessage((payload) => {
+  // Intercepter le message pour éviter le double affichage
+  // Firebase afficherait automatiquement via notification field — on le bypass
+  const title = payload.notification?.title || payload.data?.title || 'La Chatte FC';
+  const body = payload.notification?.body || payload.data?.body || '';
+  return self.registration.showNotification(title, {
+    body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    vibrate: [200, 100, 200],
+    data: { url: payload.data?.url || 'https://lachattefc-app.vercel.app' },
+  });
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || 'https://lachattefc-app.vercel.app';
+  event.waitUntil(clients.openWindow(url));
+});
