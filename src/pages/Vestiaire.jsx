@@ -82,12 +82,17 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                 else if (Math.sign(ph-pa) === Math.sign(rh-ra)) pts += 1
               }
             }
-            const gain = pts > 0 ? pts * 2 : 0
-            const net = gain - 5
-            return { ...j, ptsJ: pts, gainJ: gain, netJ: net }
-          }).sort((a,b) => b.netJ - a.netJ).slice(0,5)
+            return { ...j, ptsJ: pts }
+          }).sort((a,b) => b.ptsJ - a.ptsJ)
 
-          setTopClassement(classement)
+          const BAREME = [24, 18, 14, 11, 8, 5, 0]
+          const classementAvecGains = classement.map((j, idx) => ({
+            ...j,
+            gainJ: BAREME[idx] || 0,
+            netJ: (BAREME[idx] || 0) - 5,
+          })).slice(0,5)
+
+          setTopClassement(classementAvecGains)
         })
         if (profil) {
           const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
@@ -242,8 +247,8 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                     </div>
                     <div style={{ fontSize:11, color:'var(--tx3)' }}>{j.ptsJ || 0} pts</div>
                   </div>
-                  <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color: (j.netJ||0)>=0?'var(--g)':'var(--r)' }}>
-                    {(j.netJ||0)>=0?'+':''}{j.netJ||0}€
+                  <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color: (j.gainJ||0)>0?'var(--g)':'var(--tx3)' }}>
+                    {(j.gainJ||0)>0?'+':''}{j.gainJ||0}€
                   </div>
                 </div>
               )
