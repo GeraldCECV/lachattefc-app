@@ -38,61 +38,19 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           const jData = { id:d.id, ...d.data() }
           setJournee(jData)
 
-          // Classement live de la journée
-          const pronosSnap = await getDocs(collection(db,'journees',d.id,'pronos'))
-          const missilesSnap = await getDocs(collection(db,'journees',d.id,'missiles'))
+          // Classement live depuis pointsJoueurs (même source que Classement)
           const joueursSnap = await getDocs(collection(db,'joueurs'))
-
-          const pronos = {}
-          pronosSnap.docs.forEach(p => { pronos[p.id] = p.data() })
-          const missiles = missilesSnap.docs.map(m => ({ id:m.id, ...m.data() }))
           const joueurs = joueursSnap.docs.map(j => ({ id:j.id, ...j.data() }))
-          const resultats = jData.resultats || {}
-          const penalites = jData.penalites || {}
-          const matchesL1 = jData.matchesL1 || []
-
-          const classement = joueurs.map(j => {
-            const p = pronos[j.id]
-            let pts = penalites[j.id] || 0
-            if (p && jData.statut === 'resultats') {
-              // L1
-              matchesL1.forEach((m, i) => {
-                const key = `l1_${i}`
-                const res = resultats[key]
-                if (!res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY')) return
-                const missile = missiles.find(ms => ms.cible === j.id && ms.matchKey === key && ms.applique)
-                const prono = missile ? missile.pronoImpose : p.matchesL1?.[i]
-                const issue = parseInt(res.h) > parseInt(res.a) ? '1' : parseInt(res.h) < parseInt(res.a) ? '2' : 'N'
-                const dcAnnulee = !!missile
-                if (!dcAnnulee && p.dcMatch === key && p.dcChoices?.includes(issue)) {
-                  pts += 1
-                } else if (prono === issue) {
-                  const total = Object.values(pronos).filter(pp => pp.matchesL1?.[i] === issue).length
-                  let p2 = total / joueurs.length <= 0.25 ? 2 : 1
-                  if (p.jackpotMatch === key) p2 *= 2
-                  pts += p2
-                }
-              })
-              // Scorer
-              const scS = resultats['scorer']
-              if (scS && scS.status === 'FINISHED') {
-                const [ph, pa] = (p.matchScorer || '').split('-').map(Number)
-                const rh = parseInt(scS.h), ra = parseInt(scS.a)
-                if (ph === rh && pa === ra) pts += 3
-                else if (Math.sign(ph-pa) === Math.sign(rh-ra)) pts += 1
-              }
-            }
-            return { ...j, ptsJ: pts }
-          }).sort((a,b) => b.ptsJ - a.ptsJ)
-
+          const pts = jData.pointsJoueurs || {}
           const BAREME = [24, 18, 14, 11, 8, 5, 0]
-          const classementAvecGains = classement.map((j, idx) => ({
-            ...j,
-            gainJ: BAREME[idx] || 0,
-            netJ: (BAREME[idx] || 0) - 5,
-          })).slice(0,5)
 
-          setTopClassement(classementAvecGains)
+          const classement = joueurs
+            .map(j => ({ ...j, ptsJ: pts[j.id] || 0 }))
+            .sort((a,b) => b.ptsJ - a.ptsJ)
+            .map((j, idx) => ({ ...j, gainJ: BAREME[idx] || 0 }))
+            .slice(0,5)
+
+          setTopClassement(classement)
         })
         if (profil) {
           const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
