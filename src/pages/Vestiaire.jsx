@@ -43,7 +43,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           const joueurs = joueursSnap.docs.map(j => ({ id:j.id, ...j.data() }))
           const pts = jData.pointsJoueurs || {}
           const penalites = jData.penalites || {}
-          const BAREME = [24, 18, 14, 11, 8, 5, 0]
+          const BAREME = [24, 16, 12, 9, 7, 5, 4, 3, 0]
 
           // Intégrer les pénalités dans les points
           const ptsAvecPenalites = {}
