@@ -33,8 +33,61 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
       const snap = { docs: openDocs.length > 0 ? [openDocs[0]] : allSnap.docs.slice(-1), empty: allSnap.empty }
       if (!snap.empty) {
         const jDoc = snap.docs[0]
-        unsubJ = onSnapshot(doc(db,'journees',jDoc.id), d => {
-          if (d.exists()) setJournee({ id:d.id, ...d.data() })
+        unsubJ = onSnapshot(doc(db,'journees',jDoc.id), async d => {
+          if (!d.exists()) return
+          const jData = { id:d.id, ...d.data() }
+          setJournee(jData)
+
+          // Classement live de la journée
+          const pronosSnap = await getDocs(collection(db,'journees',d.id,'pronos'))
+          const missilesSnap = await getDocs(collection(db,'journees',d.id,'missiles'))
+          const joueursSnap = await getDocs(collection(db,'joueurs'))
+
+          const pronos = {}
+          pronosSnap.docs.forEach(p => { pronos[p.id] = p.data() })
+          const missiles = missilesSnap.docs.map(m => ({ id:m.id, ...m.data() }))
+          const joueurs = joueursSnap.docs.map(j => ({ id:j.id, ...j.data() }))
+          const resultats = jData.resultats || {}
+          const penalites = jData.penalites || {}
+          const matchesL1 = jData.matchesL1 || []
+
+          const classement = joueurs.map(j => {
+            const p = pronos[j.id]
+            let pts = penalites[j.id] || 0
+            if (p && jData.statut === 'resultats') {
+              // L1
+              matchesL1.forEach((m, i) => {
+                const key = `l1_${i}`
+                const res = resultats[key]
+                if (!res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY')) return
+                const missile = missiles.find(ms => ms.cible === j.id && ms.matchKey === key && ms.applique)
+                const prono = missile ? missile.pronoImpose : p.matchesL1?.[i]
+                const issue = parseInt(res.h) > parseInt(res.a) ? '1' : parseInt(res.h) < parseInt(res.a) ? '2' : 'N'
+                const dcAnnulee = !!missile
+                if (!dcAnnulee && p.dcMatch === key && p.dcChoices?.includes(issue)) {
+                  pts += 1
+                } else if (prono === issue) {
+                  const total = Object.values(pronos).filter(pp => pp.matchesL1?.[i] === issue).length
+                  let p2 = total / joueurs.length <= 0.25 ? 2 : 1
+                  if (p.jackpotMatch === key) p2 *= 2
+                  pts += p2
+                }
+              })
+              // Scorer
+              const scS = resultats['scorer']
+              if (scS && scS.status === 'FINISHED') {
+                const [ph, pa] = (p.matchScorer || '').split('-').map(Number)
+                const rh = parseInt(scS.h), ra = parseInt(scS.a)
+                if (ph === rh && pa === ra) pts += 3
+                else if (Math.sign(ph-pa) === Math.sign(rh-ra)) pts += 1
+              }
+            }
+            const gain = pts > 0 ? pts * 2 : 0
+            const net = gain - 5
+            return { ...j, ptsJ: pts, gainJ: gain, netJ: net }
+          }).sort((a,b) => b.netJ - a.netJ).slice(0,5)
+
+          setTopClassement(classement)
         })
         if (profil) {
           const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
@@ -42,12 +95,6 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           if (monDoc) setMonProno(monDoc.data())
         }
       }
-      const jSnap = await getDocs(collection(db,'joueurs'))
-      setTopClassement(jSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{
-        const netA = (a.gainsTotal||0) - (a.journeesJouees||0)*5
-        const netB = (b.gainsTotal||0) - (b.journeesJouees||0)*5
-        return netB - netA
-      }).slice(0,5))
       setLoading(false)
     }
     load()
@@ -176,12 +223,11 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           )}
 
           {/* Classement */}
-          <div className="section-lbl">🏆 Classement général</div>
+          <div className="section-lbl">⚡ Classement J{journee?.numero} • Live</div>
           <div style={{ margin:'0 16px 12px' }} className="card">
             {topClassement.map((j,idx) => {
               const [bg,color] = COLORS[idx]||['rgba(155,226,45,.1)','var(--g)']
               const isMe = j.id === profil?.id
-              const net = (j.gainsTotal||0) - (j.journeesJouees||0)*5
               return (
                 <div key={j.id} className="match-row" style={isMe?{background:'rgba(155,226,45,.06)',borderRadius:10}:{}}>
                   <div style={{ width:26, textAlign:'center', fontSize:idx<3?18:13, fontWeight:900, color:idx<3?color:'var(--tx3)', flexShrink:0 }}>
@@ -194,9 +240,10 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                     <div className="match-name" style={{ color:isMe?'var(--g)':'var(--tx)', fontSize:13 }}>
                       {j.nom?.split(' ')[0]} {isMe?<span style={{fontSize:10,color:'var(--tx3)'}}>（toi）</span>:''}
                     </div>
+                    <div style={{ fontSize:11, color:'var(--tx3)' }}>{j.ptsJ || 0} pts</div>
                   </div>
-                  <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color: net>=0?'var(--g)':'var(--r)', textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
-                    {net>=0?'+':''}{net}€
+                  <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color: (j.netJ||0)>=0?'var(--g)':'var(--r)' }}>
+                    {(j.netJ||0)>=0?'+':''}{j.netJ||0}€
                   </div>
                 </div>
               )
