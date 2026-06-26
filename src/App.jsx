@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc, onSnapshot } from 'firebase/firestore'
 import { auth, db } from './firebase/config'
+import { useNotifications } from './hooks/useNotifications'
 import Login from './pages/Login'
 import AppShell from './components/AppShell'
 
@@ -12,6 +13,7 @@ export const useUser = () => useContext(UserContext)
 export default function App() {
   const [user, setUser] = useState(null)
   const [profil, setProfil] = useState(null)
+  useNotifications(user?.uid) // Active onMessage partout dans l'app
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
