@@ -45,20 +45,30 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           const penalites = jData.penalites || {}
           const BAREME = [24, 16, 12, 9, 7, 5, 4, 3, 0]
 
-          // Intégrer les pénalités dans les points
           const ptsAvecPenalites = {}
           joueurs.forEach(j => {
             ptsAvecPenalites[j.id] = (pts[j.id] || 0) + (penalites[j.id] || 0)
           })
           const hasSomePoints = Object.values(pts).some(p => p > 0)
 
-          const classement = joueurs
+          const sorted = joueurs
             .map(j => ({ ...j, ptsJ: ptsAvecPenalites[j.id] || 0 }))
             .sort((a,b) => b.ptsJ - a.ptsJ)
-            .map((j, idx) => ({ ...j, gainJ: hasSomePoints ? (BAREME[idx] || 0) : 0 }))
-            .slice(0,5)
 
-          setTopClassement(classement)
+          // Partage des gains en cas d'égalité
+          let ei = 0
+          while (ei < sorted.length) {
+            const epts = sorted[ei].ptsJ
+            let fin = ei
+            while (fin < sorted.length && sorted[fin].ptsJ === epts) fin++
+            let gainPartage = 0
+            for (let r = ei; r < fin; r++) gainPartage += BAREME[r] || 0
+            const gainParJoueur = hasSomePoints ? Math.round(gainPartage / (fin - ei)) : 0
+            for (let k = ei; k < fin; k++) sorted[k] = { ...sorted[k], gainJ: gainParJoueur }
+            ei = fin
+          }
+
+          setTopClassement(sorted.slice(0,5))
         })
         if (profil) {
           const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
