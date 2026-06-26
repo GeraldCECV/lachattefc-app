@@ -12,15 +12,5 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  const title = payload.data?.title || payload.notification?.title || 'La Chatte FC';
-  const body = payload.data?.body || payload.notification?.body || '';
-  const icon = payload.data?.icon || '/icon-192.png';
-  self.registration.showNotification(title, {
-    body,
-    icon,
-    badge: '/icon-192.png',
-    vibrate: [200, 100, 200],
-    data: { url: payload.data?.url || '/' },
-  });
-});
+// Firebase gère l'affichage des notifications automatiquement
+// via le champ webpush.notification du message
