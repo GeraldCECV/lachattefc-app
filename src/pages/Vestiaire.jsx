@@ -20,6 +20,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
 
   useEffect(() => {
     let unsubJ = null
+    setMonProno(null)
     const load = async () => {
       // Charger la première journée ouverte ou en cours
       const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
