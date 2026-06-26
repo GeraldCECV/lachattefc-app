@@ -42,11 +42,18 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           const joueursSnap = await getDocs(collection(db,'joueurs'))
           const joueurs = joueursSnap.docs.map(j => ({ id:j.id, ...j.data() }))
           const pts = jData.pointsJoueurs || {}
+          const penalites = jData.penalites || {}
           const BAREME = [24, 18, 14, 11, 8, 5, 0]
-          const totalPts = Object.values(pts).reduce((s, p) => s + p, 0)
+
+          // Intégrer les pénalités dans les points
+          const ptsAvecPenalites = {}
+          joueurs.forEach(j => {
+            ptsAvecPenalites[j.id] = (pts[j.id] || 0) + (penalites[j.id] || 0)
+          })
+          const totalPts = Object.values(ptsAvecPenalites).reduce((s, p) => s + p, 0)
 
           const classement = joueurs
-            .map(j => ({ ...j, ptsJ: pts[j.id] || 0 }))
+            .map(j => ({ ...j, ptsJ: ptsAvecPenalites[j.id] || 0 }))
             .sort((a,b) => b.ptsJ - a.ptsJ)
             .map((j, idx) => ({ ...j, gainJ: totalPts > 0 ? (BAREME[idx] || 0) : 0 }))
             .slice(0,5)
