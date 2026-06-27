@@ -123,7 +123,17 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
               `${prenom}, les gains t'attendent 💸`,
               `${prenom}, la Ligue 1 n'a qu'à bien se tenir ⚡`,
             ]
-            return msgs[Math.floor(Math.random() * msgs.length)]
+            const key = 'lachattefc_welcome_msg'
+            const prevKey = 'lachattefc_welcome_msg_prev'
+            let msg = sessionStorage.getItem(key)
+            if (!msg) {
+              const prev = sessionStorage.getItem(prevKey)
+              const available = msgs.filter(m => m !== prev)
+              msg = available[Math.floor(Math.random() * available.length)]
+              sessionStorage.setItem(prevKey, msg)
+              sessionStorage.setItem(key, msg)
+            }
+            return msg
           })()}</div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
