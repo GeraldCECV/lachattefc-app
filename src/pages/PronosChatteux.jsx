@@ -99,10 +99,11 @@ export default function PronosChatteux() {
   const scorer = journee.matchScorer
   const matchesL1 = (journee.matchesL1 || []).filter(m => m?.dom)
   const euro = journee.matchEuro?.dom ? journee.matchEuro : null
+  const isCDM = journee.type === 'cdm'
 
   const cols = [
     scorer?.dom ? { key:'scorer', label:'⚽', dom: scorer.dom, ext: scorer.ext, isScorer: true } : null,
-    ...matchesL1.map((m, i) => ({ key:`l1_${i}`, label:`#${i+1}`, dom: m.dom, ext: m.ext })),
+    ...matchesL1.map((m, i) => ({ key: isCDM ? `cdm_${i}` : `l1_${i}`, label:`#${i+1}`, dom: m.dom, ext: m.ext })),
     euro ? { key:'euro', label:'🌍', dom: euro.dom, ext: euro.ext, isEuro: true } : null,
   ].filter(Boolean)
 
@@ -112,11 +113,12 @@ export default function PronosChatteux() {
 
   // Nom du match pour affichage missile
   const getMatchName = (key) => {
-    if (key === 'scorer') return scorer ? `${scorer.dom} — ${scorer.ext}` : key
-    if (key === 'euro') return euro ? `${euro.dom} — ${euro.ext}` : key
-    const idx = parseInt(key.replace('l1_',''))
+    if (key === 'scorer') return scorer ? `${translateTeam(scorer.dom)} — ${translateTeam(scorer.ext)}` : key
+    if (key === 'euro') return euro ? `${translateTeam(euro.dom)} — ${translateTeam(euro.ext)}` : key
+    const prefix = key.startsWith('cdm_') ? 'cdm_' : 'l1_'
+    const idx = parseInt(key.replace(prefix,''))
     const m = matchesL1[idx]
-    return m ? `${m.dom} — ${m.ext}` : key
+    return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
   }
 
   const getVal = (uid, key) => {
@@ -126,8 +128,10 @@ export default function PronosChatteux() {
     if (missile) return { val: missile.pronoImpose, isMissile: true }
     if (key === 'scorer') return p.matchScorer ? { val: p.matchScorer } : null
     if (key === 'euro') return p.matchEuro ? { val: p.matchEuro } : null
-    const idx = parseInt(key.replace('l1_',''))
-    return p.matchesL1?.[idx] ? { val: p.matchesL1[idx] } : null
+    const prefix = key.startsWith('cdm_') ? 'cdm_' : 'l1_'
+    const idx = parseInt(key.replace(prefix,''))
+    const arr = key.startsWith('cdm_') ? p.matchesCDM : p.matchesL1
+    return arr?.[idx] ? { val: arr[idx] } : null
   }
 
   const hasBonus = (uid, key) => {
