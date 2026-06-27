@@ -97,9 +97,11 @@ export default function PronosChatteux() {
 
   // Build match columns
   const scorer = journee.matchScorer
-  const matchesL1 = (journee.matchesL1 || []).filter(m => m?.dom)
-  const euro = journee.matchEuro?.dom ? journee.matchEuro : null
   const isCDM = journee.type === 'cdm'
+  const matchesL1 = isCDM 
+    ? (journee.matchesCDM || []).filter(m => m?.dom)
+    : (journee.matchesL1 || []).filter(m => m?.dom)
+  const euro = journee.matchEuro?.dom ? journee.matchEuro : null
 
   const cols = [
     scorer?.dom ? { key:'scorer', label:'⚽', dom: scorer.dom, ext: scorer.ext, isScorer: true } : null,
