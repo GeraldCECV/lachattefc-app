@@ -93,7 +93,7 @@ export default function Reglement() {
         <p style={{ marginBottom:12, fontSize:12, color:'var(--tx3)' }}>Les bonus ne peuvent pas être posés sur le match à scorer. Possible de cumuler les 3 types sur la même journée, mais pas deux fois le même type.</p>
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           {[
-            { ico:'🎯', title:'Missile', qty:'×5 / saison', color:'var(--r)', dim:'var(--r-dim)', b:'var(--r-b)', desc:"Le plus puissant — prévaut sur tous les autres bonus. Change le prono d'un adversaire que tu détermines, sur le match de ton choix." },
+            { ico:'🚀', title:'Missile', qty:'×6 / saison · 2 salves', color:'var(--r)', dim:'var(--r-dim)', b:'var(--r-b)', desc:"Choisis un adversaire, un match et impose-lui ton pronostic. Son prono est remplacé par le tien. Ses bonus (Jackpot, Double Chance) restent actifs. · Salve 1 : J1→J17 · Salve 2 : J18→J33 (rechargé à la trêve)" },
             { ico:'🎰', title:'Jackpot', qty:'×3 / saison', color:'var(--a)', dim:'var(--a-dim)', b:'var(--a-b)', desc:"Double tes points sur le match de ton choix." },
             { ico:'2️⃣', title:'Double Chance', qty:'×4 / saison', color:'var(--p)', dim:'var(--p-dim)', b:'var(--p-b)', desc:"Joue 2 résultats sur 1 match (1/N, 1/2 ou N/2). Si l'un est bon → 1pt." },
           ].map(b => (
