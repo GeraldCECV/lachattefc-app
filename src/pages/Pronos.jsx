@@ -82,7 +82,7 @@ export default function Pronos() {
         const data = d.data()
         if (data.statut === 'resultats') return false
         const dl = data.deadline ? new Date(data.deadline.seconds * 1000) : null
-        return !dl || dl > now || data.statut === 'ouverte'
+        return data.statut !== 'fermee' && (!dl || dl > now)
       })
       if (openDocs.length === 0) { setLoading(false); return }
       snap = { docs: [openDocs[0]], empty: false }
