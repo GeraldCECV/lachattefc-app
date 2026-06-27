@@ -82,10 +82,10 @@ export default function PronosChatteux() {
   const deadlinePassed = journee.deadline ? new Date(journee.deadline.seconds * 1000) < new Date() : false
   if (journee.statut === 'ouverte' && !deadlinePassed) return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:32, textAlign:'center' }}>
-      <div style={{ fontSize:48, marginBottom:16 }}>🔒</div>
-      <div style={{ fontFamily:'var(--D)', fontSize:28, letterSpacing:'.04em', marginBottom:8 }}>Pronos secrets</div>
+      <div style={{ fontSize:48, marginBottom:16 }}>🐱</div>
+      <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.04em', marginBottom:12 }}>Espèce de chat de la casse...</div>
       <div style={{ fontSize:13, color:'var(--tx3)', lineHeight:1.7, maxWidth:280, margin:'0 auto' }}>
-        Les pronos des autres chatteux seront visibles après la deadline de J{journee?.numero}.
+        Tu vas attendre la deadline comme tout le monde pour voir les pronos de tes amis chatteux.
       </div>
       {journee?.deadline && (
         <div style={{ marginTop:16, padding:'10px 16px', background:'rgba(155,226,45,.06)', border:'1px solid var(--g-b)', borderRadius:'var(--Rs)', fontSize:13, color:'var(--g)', fontWeight:700, display:'inline-block' }}>
