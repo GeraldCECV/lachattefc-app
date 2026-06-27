@@ -86,7 +86,6 @@ export default function Pronos() {
         return data.statut !== 'fermee' && (!dl || dl > now)
       })
       if (openDocs.length === 0) { setLoading(false); return }
-      console.log('📋 openDocs:', openDocs.map(d => ({ id: d.id, statut: d.data().statut, type: d.data().type, matchesCDM: d.data().matchesCDM?.length })))
       snap = { docs: [openDocs[0]], empty: false }
       if (snap.empty) { setLoading(false); return }
       const jDoc = snap.docs[0]
@@ -625,7 +624,7 @@ export default function Pronos() {
       )}
 
       {/* ── MATCHS ── */}
-      <div className="section-lbl" style={{padding:'8px 20px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {matchesL1.length} matchs 1N2</div>
+      <div className="section-lbl" style={{padding:'8px 20px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {(journee.matchesL1||[]).length} matchs 1N2</div>
       {(journee.matchesL1||[]).map((m, i) => {
         if (!m?.dom) return null
         const key = `l1_${i}`
