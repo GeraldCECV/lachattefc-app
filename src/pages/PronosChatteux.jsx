@@ -196,7 +196,7 @@ export default function PronosChatteux() {
 
       {/* Tableau scrollable */}
       <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch', paddingBottom:8 }}>
-        <table style={{ borderCollapse:'separate', borderSpacing:0, minWidth: 80 + cols.length * 52 }}>
+        <table style={{ borderCollapse:'separate', borderSpacing:0, minWidth: 160 + cols.length * 56 }}>
           {/* Header matchs */}
           <thead>
             <tr>
