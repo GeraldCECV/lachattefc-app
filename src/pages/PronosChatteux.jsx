@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
@@ -6,53 +6,60 @@ import TeamLogo from '../components/TeamLogo'
 
 export default function PronosChatteux() {
   const { profil } = useUser()
+  const [journeesList, setJourneesList] = useState([]) // journées disponibles
+  const [selectedJId, setSelectedJId] = useState(null) // journée sélectionnée
   const [journee, setJournee] = useState(null)
   const [joueurs, setJoueurs] = useState([])
   const [pronos, setPronos] = useState({})
   const [missiles, setMissiles] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // Charger la liste des journées disponibles au montage
   useEffect(() => {
-    let unsub = null
     const load = async () => {
       try {
         const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
-        const fermee = allSnap.docs.filter(d => d.data().statut === 'fermee').pop()
-        const lastResultats = allSnap.docs.filter(d => d.data().statut === 'resultats').pop()
-        const ouverte = allSnap.docs.filter(d => d.data().statut === 'ouverte').pop()
-        const jDoc = fermee || lastResultats || ouverte
-        if (!jDoc) { setLoading(false); return }
+        const disponibles = allSnap.docs.filter(d => ['fermee','resultats'].includes(d.data().statut))
+        // Inclure aussi la journée ouverte si deadline passée
+        const ouverte = allSnap.docs.find(d => d.data().statut === 'ouverte')
+        const liste = disponibles.map(d => ({ id:d.id, ...d.data() }))
 
         const joueursSnap = await getDocs(collection(db,'joueurs'))
-        const joueursData = joueursSnap.docs.map(d => ({ id:d.id, ...d.data() }))
-          .sort((a,b) => (a.nom||'').localeCompare(b.nom||''))
-        setJoueurs(joueursData)
+        setJoueurs(joueursSnap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (a.nom||'').localeCompare(b.nom||'')))
 
-        if (jDoc.data().statut === 'fermee' || jDoc.data().statut === 'resultats') {
-          const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
-          const pronosData = {}
-          pronosSnap.docs.forEach(d => { pronosData[d.id] = d.data() })
-          setPronos(pronosData)
-
-          const missilesSnap = await getDocs(collection(db,'journees',jDoc.id,'missiles'))
-          setMissiles(missilesSnap.docs.map(d => ({ id:d.id, ...d.data() })))
-        }
-
-        // onSnapshot sur le document journée pour les scores live
-        unsub = onSnapshot(doc(db,'journees',jDoc.id), d => {
-          if (!d.exists()) return
-          setJournee({ id:d.id, ...d.data() })
-        })
-
+        setJourneesList(liste)
+        // Sélectionner la plus récente par défaut
+        if (liste.length > 0) setSelectedJId(liste[liste.length - 1].id)
         setLoading(false)
       } catch(e) {
-        console.error('PronosChatteux load error:', e)
+        console.error(e)
         setLoading(false)
       }
     }
     load()
-    return () => { if (unsub) unsub() }
   }, [])
+
+  // Charger pronos/missiles quand la journée sélectionnée change
+  useEffect(() => {
+    if (!selectedJId) return
+    let unsub = null
+    const load = async () => {
+      const pronosSnap = await getDocs(collection(db,'journees',selectedJId,'pronos'))
+      const pronosData = {}
+      pronosSnap.docs.forEach(d => { pronosData[d.id] = d.data() })
+      setPronos(pronosData)
+
+      const missilesSnap = await getDocs(collection(db,'journees',selectedJId,'missiles'))
+      setMissiles(missilesSnap.docs.map(d => ({ id:d.id, ...d.data() })))
+
+      unsub = onSnapshot(doc(db,'journees',selectedJId), d => {
+        if (!d.exists()) return
+        setJournee({ id:d.id, ...d.data() })
+      })
+    }
+    load()
+    return () => { if (unsub) unsub() }
+  }, [selectedJId])
 
   if (loading) return (
     <div style={{ display:'flex', justifyContent:'center', padding:60 }}>
@@ -162,9 +169,19 @@ export default function PronosChatteux() {
           <div className="page-title" style={{ fontSize:26 }}>Pronos J{journee.numero}</div>
           <div style={{ fontSize:12, color:'var(--tx3)', marginTop:2 }}>{Object.keys(pronos).length} / {joueurs.length} joueurs</div>
         </div>
-        <span className={`pill ${journee.statut==='resultats'?'pill-g':'pill-a'}`}>
-          {journee.statut==='resultats'?'🏁 Résultats':'🔒 Fermée'}
-        </span>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          {journeesList.length > 1 && (
+            <select value={selectedJId} onChange={e => setSelectedJId(e.target.value)}
+              style={{ padding:'6px 10px', borderRadius:'var(--Rs)', border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--tx)', fontSize:13, fontWeight:900, cursor:'pointer' }}>
+              {journeesList.map(j => (
+                <option key={j.id} value={j.id}>J{j.numero}</option>
+              ))}
+            </select>
+          )}
+          <span className={`pill ${journee.statut==='resultats'?'pill-g':'pill-a'}`}>
+            {journee.statut==='resultats'?'🏁 Résultats':'🔒 Fermée'}
+          </span>
+        </div>
       </div>
 
       {/* Tableau scrollable */}
