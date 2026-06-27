@@ -112,7 +112,19 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
       <div style={{ padding:'16px 20px 12px', display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
         <div>
           <div className="page-title">Vestiaire</div>
-          <div className="page-sub">Salut {prenom} 👋</div>
+          <div className="page-sub">{(() => {
+            const msgs = [
+              `Salut ${prenom} 👋`,
+              `Prêt à tout rafler ${prenom} ? 💰`,
+              `${prenom}, les matchs t'attendent ⚽`,
+              `Alors ${prenom}, on sent le champion ? 🏆`,
+              `${prenom}, montre-leur de quoi t'es capable 🔥`,
+              `${prenom}, t'es le meilleur pronostiqueur de la Chatte ? 🐱`,
+              `${prenom}, les gains t'attendent 💸`,
+              `${prenom}, la Ligue 1 n'a qu'à bien se tenir ⚡`,
+            ]
+            return msgs[Math.floor(Math.random() * msgs.length)]
+          })()}</div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <div style={{ textAlign:'right' }}>
