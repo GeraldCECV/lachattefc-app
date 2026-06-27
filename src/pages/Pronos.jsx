@@ -475,7 +475,7 @@ export default function Pronos() {
                     </button>
                   ))}
                 </div>
-                <button className="btn btn-primary" style={{width:'100%',height:48}} onClick={()=>missileData.cible&&setMissileStep(2)} disabled={!missileData.cible}>
+                <button className="btn btn-primary" style={{width:'100%',height:48}} onClick={()=>missileData.cible&&(setMissileStep(2),setMissileMsg(''))} disabled={!missileData.cible}>
                   Continuer →
                 </button>
               </>
@@ -502,7 +502,7 @@ export default function Pronos() {
                 </div>
                 <div style={{display:'flex',gap:8}}>
                   <button className="btn btn-secondary" onClick={()=>setMissileStep(1)}>← Retour</button>
-                  <button className="btn btn-primary" style={{flex:1}} onClick={()=>missileData.matchKey&&setMissileStep(3)} disabled={!missileData.matchKey}>
+                  <button className="btn btn-primary" style={{flex:1}} onClick={()=>missileData.matchKey&&(setMissileStep(3),setMissileMsg(''))} disabled={!missileData.matchKey}>
                     Continuer →
                   </button>
                 </div>
