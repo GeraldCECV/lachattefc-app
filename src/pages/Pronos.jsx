@@ -58,7 +58,7 @@ export default function Pronos() {
   const journeeAVenir = journee?.statut === 'a-venir'
 
   // Bonus state
-  const [bonusStock, setBonusStock] = useState({ missile:5, jackpot:3, doubleChance:4 })
+  const [bonusStock, setBonusStock] = useState({ missile:3, jackpot:3, doubleChance:4 })
   const [activeBonus, setActiveBonus] = useState(null) // { type:'jackpot'|'dc'|'missile', matchKey: null }
   const [jackpotMatch, setJackpotMatch] = useState(null) // 'scorer'|'l1_0'|...|'euro'
   const [dcMatch, setDcMatch] = useState(null) // 'l1_0' etc
@@ -109,7 +109,7 @@ export default function Pronos() {
         }
         // Charger bonus
         const joueurDoc = await getDoc(doc(db,'joueurs',user.uid))
-        if (joueurDoc.exists()) setBonusStock(joueurDoc.data().bonus || { missile:5, jackpot:3, doubleChance:4 })
+        if (joueurDoc.exists()) setBonusStock(joueurDoc.data().bonus || { missile:3, jackpot:3, doubleChance:4 })
         // Charger joueurs pour missile
         const jSnap = await getDocs(collection(db,'joueurs'))
         setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user.uid))

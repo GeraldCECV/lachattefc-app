@@ -23,14 +23,14 @@ export const JOUEURS = [
 
 // Bonus de départ par saison (selon le règlement)
 export const BONUS_DEPART = {
-  missile: 5,
+  missile: 3,
   jackpot: 3,
   doubleChance: 4,
 };
 
 // Barème des gains par journée (règlement Article 8) — 16 joueurs, pot 80€
 export const GAINS_JOURNEE = {
-  1: 24, 2: 18, 3: 14, 4: 11, 5: 8, 6: 5
+  1: 24, 2: 16, 3: 12, 4: 9, 5: 7, 6: 5, 7: 4, 8: 3
 };
 export const GAIN_TOTAL_J = 80;
 

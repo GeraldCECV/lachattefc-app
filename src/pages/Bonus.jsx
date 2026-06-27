@@ -15,7 +15,7 @@ export default function Bonus() {
     const load = async () => {
       if (user) {
         const snap = await getDoc(doc(db,'joueurs',user.uid))
-        if (snap.exists()) setBonus(snap.data().bonus || { missile:5, jackpot:3, doubleChance:4 })
+        if (snap.exists()) setBonus(snap.data().bonus || { missile:3, jackpot:3, doubleChance:4 })
       }
       const jSnap = await getDocs(collection(db,'joueurs'))
       setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user?.uid))
