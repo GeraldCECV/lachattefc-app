@@ -88,7 +88,11 @@ export default function Pronos() {
       snap = { docs: [openDocs[0]], empty: false }
       if (snap.empty) { setLoading(false); return }
       const jDoc = snap.docs[0]
-      const j = { id:jDoc.id, ...jDoc.data() }
+      const jRaw = { id:jDoc.id, ...jDoc.data() }
+      // Normaliser CDM : mapper matchesCDM → matchesL1 pour compatibilité
+      const j = jRaw.type === 'cdm'
+        ? { ...jRaw, matchesL1: (jRaw.matchesCDM || []).map(m => ({ ...m, type: 'cdm' })), matchScorer: null, matchEuro: null }
+        : jRaw
       setJournee(j)
       if (j.deadline) setDeadlinePassed(new Date() > new Date(j.deadline.seconds*1000))
 
@@ -169,7 +173,13 @@ export default function Pronos() {
         .map(d => ({ id:d.id, ...d.data() }))
         .filter(m => m.cible === user.uid && !m.applique)
 
-      const pronosFinaux = {
+      const isCDM = journee.type === 'cdm'
+      const pronosFinaux = isCDM ? {
+        ...pronos,
+        matchesCDM: [...(pronos.matchesL1 || Array(journee.matchesCDM?.length || 8).fill(null))],
+        matchScorer: null,
+        matchEuro: null,
+      } : {
         ...pronos,
         matchScorer: `${scorerH}-${scorerA}`,
         matchesL1: [...(pronos.matchesL1 || Array(8).fill(null))],
@@ -325,7 +335,7 @@ export default function Pronos() {
         <div style={{margin:'12px 16px 0',padding:'10px 14px',background:'rgba(155,226,45,.06)',border:'1px solid var(--g-b)',borderRadius:'var(--Rs)',fontSize:12,color:'var(--g)',fontWeight:700}}>
           ⚽ Multiplex — tous les matchs débutent en même temps. Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt
         </div>
-        <div className="section-lbl" style={{padding:'14px 20px 8px'}}>🇫🇷 Ligue 1 — {matchesL1.length} matchs à scorer</div>
+        <div className="section-lbl" style={{padding:'14px 20px 8px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {matchesL1.length} matchs à scorer</div>
         {matchesL1.map((m, i) => (
           <div key={i} style={{margin:'0 16px 8px',background:'rgba(155,226,45,.04)',border:'1px solid var(--g-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
@@ -595,24 +605,25 @@ export default function Pronos() {
         </div>
       )}
 
-      {/* ── SCORER ── */}
-      <div className="section-lbl" style={{padding:'16px 20px 8px'}}>⚽ Match à scorer — Ligue 1</div>
-      <div style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau</div>
-        <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
-          {journee.matchScorer?.dom||'?'} — {journee.matchScorer?.ext||'?'}
-          <span style={{marginLeft:8,fontSize:11,color:'var(--tx3)'}}>{journee.matchScorer?.jour} {journee.matchScorer?.heure}</span>
+      {/* ── SCORER — masqué pour CDM ── */}
+      {journee.type !== 'cdm' && journee.matchScorer?.dom && (
+        <div style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px'}}>
+          <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau</div>
+          <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
+            {journee.matchScorer?.dom||'?'} — {journee.matchScorer?.ext||'?'}
+            <span style={{marginLeft:8,fontSize:11,color:'var(--tx3)'}}>{journee.matchScorer?.jour} {journee.matchScorer?.heure}</span>
+          </div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+            <Stepper val={scorerH} onChange={setScorerH} />
+            <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
+            <Stepper val={scorerA} onChange={setScorerA} />
+          </div>
+          <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:10}}>Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt</div>
         </div>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
-          <Stepper val={scorerH} onChange={setScorerH} />
-          <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
-          <Stepper val={scorerA} onChange={setScorerA} />
-        </div>
-        <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:10}}>Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt</div>
-      </div>
+      )}
 
-      {/* ── L1 MATCHS ── */}
-      <div className="section-lbl" style={{padding:'8px 20px'}}>🇫🇷 Ligue 1 — 8 matchs 1N2</div>
+      {/* ── MATCHS ── */}
+      <div className="section-lbl" style={{padding:'8px 20px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {matchesL1.length} matchs 1N2</div>
       {(journee.matchesL1||[]).map((m, i) => {
         if (!m?.dom) return null
         const key = `l1_${i}`
