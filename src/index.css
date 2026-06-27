@@ -92,17 +92,13 @@ input, select, textarea { font-family: var(--F); }
 .screen-content {
   flex: 1;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   position: relative;
   z-index: 1;
   padding-top: env(safe-area-inset-top);
   padding-bottom: calc(80px + env(safe-area-inset-bottom));
   min-height: 0;
-}
-
-.screen-content.allow-horizontal {
-  overflow-x: auto;
 }
 
 /* PAGE */

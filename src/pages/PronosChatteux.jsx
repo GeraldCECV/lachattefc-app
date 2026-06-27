@@ -195,8 +195,9 @@ export default function PronosChatteux() {
       </div>
 
       {/* Tableau scrollable */}
-      <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch', paddingBottom:8 }}>
-        <table style={{ borderCollapse:'separate', borderSpacing:0, minWidth: 160 + cols.length * 56 }}>
+      <div style={{ overflowX:'scroll', overflowY:'visible', WebkitOverflowScrolling:'touch', paddingBottom:8, width:'100%' }}>
+        <div style={{ display:'inline-block', minWidth: 160 + cols.length * 56 }}>
+        <table style={{ borderCollapse:'separate', borderSpacing:0, width:'100%' }}>
           {/* Header matchs */}
           <thead>
             <tr>
@@ -377,6 +378,7 @@ export default function PronosChatteux() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )
