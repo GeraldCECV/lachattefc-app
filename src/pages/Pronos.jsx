@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, setDoc, getDoc, updateDoc, query, orderBy, serverTimestamp, addDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, addDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
+import { translateTeam } from '../utils/teamName'
 
 // ── Helpers ──
 const RESULT_COLORS = {
@@ -58,7 +59,7 @@ export default function Pronos() {
   const journeeAVenir = journee?.statut === 'a-venir'
 
   // Bonus state
-  const [bonusStock, setBonusStock] = useState({ missile:5, jackpot:3, doubleChance:4 })
+  const [bonusStock, setBonusStock] = useState({ missile:3, jackpot:3, doubleChance:4 })
   const [activeBonus, setActiveBonus] = useState(null) // { type:'jackpot'|'dc'|'missile', matchKey: null }
   const [jackpotMatch, setJackpotMatch] = useState(null) // 'scorer'|'l1_0'|...|'euro'
   const [dcMatch, setDcMatch] = useState(null) // 'l1_0' etc
@@ -82,13 +83,17 @@ export default function Pronos() {
         const data = d.data()
         if (data.statut === 'resultats') return false
         const dl = data.deadline ? new Date(data.deadline.seconds * 1000) : null
-        return !dl || dl > now || data.statut === 'ouverte'
+        return data.statut !== 'fermee' && (!dl || dl > now)
       })
       if (openDocs.length === 0) { setLoading(false); return }
       snap = { docs: [openDocs[0]], empty: false }
       if (snap.empty) { setLoading(false); return }
       const jDoc = snap.docs[0]
-      const j = { id:jDoc.id, ...jDoc.data() }
+      const jRaw = { id:jDoc.id, ...jDoc.data() }
+      // Normaliser CDM : mapper matchesCDM → matchesL1 pour compatibilité
+      const j = jRaw.type === 'cdm'
+        ? { ...jRaw, matchesL1: (jRaw.matchesCDM || []).map(m => ({ ...m, type: 'cdm' })), matchScorer: null, matchEuro: null }
+        : jRaw
       setJournee(j)
       if (j.deadline) setDeadlinePassed(new Date() > new Date(j.deadline.seconds*1000))
 
@@ -109,7 +114,7 @@ export default function Pronos() {
         }
         // Charger bonus
         const joueurDoc = await getDoc(doc(db,'joueurs',user.uid))
-        if (joueurDoc.exists()) setBonusStock(joueurDoc.data().bonus || { missile:5, jackpot:3, doubleChance:4 })
+        if (joueurDoc.exists()) setBonusStock(joueurDoc.data().bonus || { missile:3, jackpot:3, doubleChance:4 })
         // Charger joueurs pour missile
         const jSnap = await getDocs(collection(db,'joueurs'))
         setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user.uid))
@@ -137,11 +142,17 @@ export default function Pronos() {
 
   const countFilled = () => {
     let n = 0
+    if (journee?.type === 'cdm') {
+      ;(pronos.matchesL1||[]).forEach(p => { if (p) n++ })
+      return n
+    }
     if (pronos.matchScorer || (scorerH !== null)) n++
     if (pronos.matchEuro) n++
     ;(pronos.matchesL1||[]).forEach(p => { if (p) n++ })
     return n
   }
+
+  const total = journee?.type === 'cdm' ? (journee.matchesCDM?.length || journee.matchesL1?.length || 6) : 10
 
   const handleSubmit = async () => {
     if (!user || !journee) return
@@ -169,7 +180,13 @@ export default function Pronos() {
         .map(d => ({ id:d.id, ...d.data() }))
         .filter(m => m.cible === user.uid && !m.applique)
 
-      const pronosFinaux = {
+      const isCDM = journee.type === 'cdm'
+      const pronosFinaux = isCDM ? {
+        ...pronos,
+        matchesCDM: [...(pronos.matchesL1 || Array(journee.matchesCDM?.length || 8).fill(null))],
+        matchScorer: null,
+        matchEuro: null,
+      } : {
         ...pronos,
         matchScorer: `${scorerH}-${scorerA}`,
         matchesL1: [...(pronos.matchesL1 || Array(8).fill(null))],
@@ -269,7 +286,6 @@ export default function Pronos() {
     } catch(e) { setMissileMsg('Erreur : '+e.message) }
   }
 
-  const total = 10
   const filled = countFilled()
   const pct = Math.round(filled/total*100)
 
@@ -279,7 +295,7 @@ export default function Pronos() {
     if (key === 'euro') return `🌍 ${journee.matchEuro?.dom||'?'} — ${journee.matchEuro?.ext||'?'}`
     const i = parseInt(key.replace('l1_',''))
     const m = journee.matchesL1?.[i]
-    return m ? `${m.dom} — ${m.ext}` : key
+    return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
   }
 
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:60}}><div className="spinner" style={{width:24,height:24}}></div></div>
@@ -325,14 +341,14 @@ export default function Pronos() {
         <div style={{margin:'12px 16px 0',padding:'10px 14px',background:'rgba(155,226,45,.06)',border:'1px solid var(--g-b)',borderRadius:'var(--Rs)',fontSize:12,color:'var(--g)',fontWeight:700}}>
           ⚽ Multiplex — tous les matchs débutent en même temps. Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt
         </div>
-        <div className="section-lbl" style={{padding:'14px 20px 8px'}}>🇫🇷 Ligue 1 — {matchesL1.length} matchs à scorer</div>
+        <div className="section-lbl" style={{padding:'14px 20px 8px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {matchesL1.length} matchs à scorer</div>
         {matchesL1.map((m, i) => (
           <div key={i} style={{margin:'0 16px 8px',background:'rgba(155,226,45,.04)',border:'1px solid var(--g-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
               <TeamLogo name={m.dom} size={22} />
-              <span style={{fontSize:14,fontWeight:700}}>{m.dom}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.dom)}</span>
               <span style={{color:'var(--tx3)'}}>—</span>
-              <span style={{fontSize:14,fontWeight:700}}>{m.ext}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.ext)}</span>
               <TeamLogo name={m.ext} size={22} />
               <span style={{fontSize:11,color:'var(--tx3)',marginLeft:'auto'}}>{m.jour} {m.heure}</span>
             </div>
@@ -387,9 +403,9 @@ export default function Pronos() {
           <div key={i} style={{margin:'0 16px 8px',background:'rgba(251,191,36,.04)',border:'1px solid var(--a-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
               <TeamLogo name={m.dom} size={22} />
-              <span style={{fontSize:14,fontWeight:700}}>{m.dom}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.dom)}</span>
               <span style={{color:'var(--tx3)'}}>—</span>
-              <span style={{fontSize:14,fontWeight:700}}>{m.ext}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.ext)}</span>
               <TeamLogo name={m.ext} size={22} />
               <span style={{fontSize:11,color:'var(--tx3)',marginLeft:'auto'}}>{m.jour} {m.heure}</span>
             </div>
@@ -470,7 +486,7 @@ export default function Pronos() {
               <>
                 <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
                   {[
-                    ...(journee.matchesL1||[]).map((m,i)=>m?.dom?{key:`l1_${i}`,label:`${m.dom} — ${m.ext}`}:null).filter(Boolean),
+                    ...(journee.matchesL1||[]).map((m,i)=>m?.dom?{key:`l1_${i}`,label:`${translateTeam(m.dom)} — ${translateTeam(m.ext)}`}:null).filter(Boolean),
                     journee.matchEuro?.dom ? {key:'euro',label:`🌍 ${journee.matchEuro.dom} — ${journee.matchEuro.ext}`} : null,
                   ].filter(Boolean).map(m => (
                     <button key={m.key} onClick={()=>setMissileData(p=>({...p,matchKey:m.key}))} style={{
@@ -595,24 +611,25 @@ export default function Pronos() {
         </div>
       )}
 
-      {/* ── SCORER ── */}
-      <div className="section-lbl" style={{padding:'16px 20px 8px'}}>⚽ Match à scorer — Ligue 1</div>
-      <div style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau</div>
-        <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
-          {journee.matchScorer?.dom||'?'} — {journee.matchScorer?.ext||'?'}
-          <span style={{marginLeft:8,fontSize:11,color:'var(--tx3)'}}>{journee.matchScorer?.jour} {journee.matchScorer?.heure}</span>
+      {/* ── SCORER — masqué pour CDM ── */}
+      {journee.type !== 'cdm' && journee.matchScorer?.dom && (
+        <div style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px'}}>
+          <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau</div>
+          <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
+            {journee.matchScorer?.dom||'?'} — {journee.matchScorer?.ext||'?'}
+            <span style={{marginLeft:8,fontSize:11,color:'var(--tx3)'}}>{journee.matchScorer?.jour} {journee.matchScorer?.heure}</span>
+          </div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+            <Stepper val={scorerH} onChange={setScorerH} />
+            <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
+            <Stepper val={scorerA} onChange={setScorerA} />
+          </div>
+          <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:10}}>Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt</div>
         </div>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
-          <Stepper val={scorerH} onChange={setScorerH} />
-          <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
-          <Stepper val={scorerA} onChange={setScorerA} />
-        </div>
-        <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:10}}>Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt</div>
-      </div>
+      )}
 
-      {/* ── L1 MATCHS ── */}
-      <div className="section-lbl" style={{padding:'8px 20px'}}>🇫🇷 Ligue 1 — 8 matchs 1N2</div>
+      {/* ── MATCHS ── */}
+      <div className="section-lbl" style={{padding:'8px 20px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {(journee.matchesL1||[]).length} matchs 1N2</div>
       {(journee.matchesL1||[]).map((m, i) => {
         if (!m?.dom) return null
         const key = `l1_${i}`
@@ -632,7 +649,7 @@ export default function Pronos() {
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <TeamLogo name={m.dom} size={22} />
                 <div>
-                  <div style={{fontSize:14,fontWeight:600}}>{m.dom} — {m.ext}</div>
+                  <div style={{fontSize:14,fontWeight:600}}>{translateTeam(m.dom)} — {translateTeam(m.ext)}</div>
                   <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{m.jour} {m.heure}</div>
                 </div>
                 <TeamLogo name={m.ext} size={22} />
@@ -740,7 +757,7 @@ export default function Pronos() {
                 Confirmer l'envoi ?
               </div>
               <div style={{fontSize:13,color:'var(--tx2)',marginBottom:16,lineHeight:1.6}}>
-                {filled}/10 matchs renseignés
+                {filled}/{total} matchs renseignés
                 {jackpotMatch && <div style={{color:'var(--a)',fontWeight:700,marginTop:4}}>🎰 Jackpot activé</div>}
                 {dcMatch && dcChoices.length===2 && <div style={{color:'var(--p)',fontWeight:700}}>2️⃣ Double Chance activé</div>}
                 {missileUsed && <div style={{color:'var(--r)',fontWeight:700}}>🚀 Missile lancé</div>}
@@ -755,10 +772,10 @@ export default function Pronos() {
           </div>
         )}
 
-        <button className="btn btn-primary" onClick={()=>setShowConfirm(true)} disabled={saving||filled<10}>
+        <button className="btn btn-primary" onClick={()=>setShowConfirm(true)} disabled={saving||filled<total}>
           {saving
             ? <><div className="spinner" style={{width:18,height:18,borderTopColor:'#000'}}></div> Envoi...</>
-            : existingProno ? '🔄 Mettre à jour' : `📤 Envoyer mes pronos (${filled}/10)`
+            : existingProno ? '🔄 Mettre à jour' : `📤 Envoyer mes pronos (${filled}/${total})`
           }
         </button>
         {filled < 10 && <div style={{textAlign:'center',fontSize:12,color:'var(--tx3)',marginTop:8}}>Renseigne les {10-filled} matchs restants</div>}
