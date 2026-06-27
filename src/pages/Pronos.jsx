@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, addDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc, getDoc, updateDoc, query, orderBy, serverTimestamp, addDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
@@ -58,7 +58,7 @@ export default function Pronos() {
   const journeeAVenir = journee?.statut === 'a-venir'
 
   // Bonus state
-  const [bonusStock, setBonusStock] = useState({ missile:3, jackpot:3, doubleChance:4 })
+  const [bonusStock, setBonusStock] = useState({ missile:5, jackpot:3, doubleChance:4 })
   const [activeBonus, setActiveBonus] = useState(null) // { type:'jackpot'|'dc'|'missile', matchKey: null }
   const [jackpotMatch, setJackpotMatch] = useState(null) // 'scorer'|'l1_0'|...|'euro'
   const [dcMatch, setDcMatch] = useState(null) // 'l1_0' etc
@@ -82,7 +82,7 @@ export default function Pronos() {
         const data = d.data()
         if (data.statut === 'resultats') return false
         const dl = data.deadline ? new Date(data.deadline.seconds * 1000) : null
-        return data.statut !== 'fermee' && (!dl || dl > now)
+        return !dl || dl > now || data.statut === 'ouverte'
       })
       if (openDocs.length === 0) { setLoading(false); return }
       snap = { docs: [openDocs[0]], empty: false }
@@ -109,7 +109,7 @@ export default function Pronos() {
         }
         // Charger bonus
         const joueurDoc = await getDoc(doc(db,'joueurs',user.uid))
-        if (joueurDoc.exists()) setBonusStock(joueurDoc.data().bonus || { missile:3, jackpot:3, doubleChance:4 })
+        if (joueurDoc.exists()) setBonusStock(joueurDoc.data().bonus || { missile:5, jackpot:3, doubleChance:4 })
         // Charger joueurs pour missile
         const jSnap = await getDocs(collection(db,'joueurs'))
         setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user.uid))
