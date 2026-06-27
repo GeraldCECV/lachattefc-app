@@ -102,6 +102,7 @@ export default function Classement() {
           {net!==undefined && false && <div style={{ fontSize:11, color:net>=0?'var(--g)':'var(--r)', fontWeight:900, marginTop:1 }}>{net>=0?'+':''}{net}€ net</div>}
         </div>
         <div style={{ textAlign:'right' }}>
+          <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em', marginBottom:2 }}>Plus-value</div>
           <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color:net>=0?'var(--g)':'var(--r)', lineHeight:1, textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
             {net>=0?'+':''}{net}€
           </div>
