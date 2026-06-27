@@ -142,17 +142,11 @@ export default function Pronos() {
 
   const countFilled = () => {
     let n = 0
-    if (journee?.type === 'cdm') {
-      ;(pronos.matchesL1||[]).forEach(p => { if (p) n++ })
-      return n
-    }
     if (pronos.matchScorer || (scorerH !== null)) n++
     if (pronos.matchEuro) n++
     ;(pronos.matchesL1||[]).forEach(p => { if (p) n++ })
     return n
   }
-
-  const total = journee?.type === 'cdm' ? (journee.matchesCDM?.length || journee.matchesL1?.length || 6) : 10
 
   const handleSubmit = async () => {
     if (!user || !journee) return
@@ -286,6 +280,7 @@ export default function Pronos() {
     } catch(e) { setMissileMsg('Erreur : '+e.message) }
   }
 
+  const total = 10
   const filled = countFilled()
   const pct = Math.round(filled/total*100)
 
@@ -629,7 +624,7 @@ export default function Pronos() {
       )}
 
       {/* ── MATCHS ── */}
-      <div className="section-lbl" style={{padding:'8px 20px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {(journee.matchesL1||[]).length} matchs 1N2</div>
+      <div className="section-lbl" style={{padding:'8px 20px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {matchesL1.length} matchs 1N2</div>
       {(journee.matchesL1||[]).map((m, i) => {
         if (!m?.dom) return null
         const key = `l1_${i}`
@@ -649,7 +644,7 @@ export default function Pronos() {
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <TeamLogo name={m.dom} size={22} />
                 <div>
-                  <div style={{fontSize:14,fontWeight:600}}>{translateTeam(m.dom)} — {translateTeam(m.ext)}</div>
+                  <div style={{fontSize:14,fontWeight:600}}>{m.dom} — {m.ext}</div>
                   <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{m.jour} {m.heure}</div>
                 </div>
                 <TeamLogo name={m.ext} size={22} />
@@ -757,7 +752,7 @@ export default function Pronos() {
                 Confirmer l'envoi ?
               </div>
               <div style={{fontSize:13,color:'var(--tx2)',marginBottom:16,lineHeight:1.6}}>
-                {filled}/{total} matchs renseignés
+                {filled}/10 matchs renseignés
                 {jackpotMatch && <div style={{color:'var(--a)',fontWeight:700,marginTop:4}}>🎰 Jackpot activé</div>}
                 {dcMatch && dcChoices.length===2 && <div style={{color:'var(--p)',fontWeight:700}}>2️⃣ Double Chance activé</div>}
                 {missileUsed && <div style={{color:'var(--r)',fontWeight:700}}>🚀 Missile lancé</div>}
@@ -772,10 +767,10 @@ export default function Pronos() {
           </div>
         )}
 
-        <button className="btn btn-primary" onClick={()=>setShowConfirm(true)} disabled={saving||filled<total}>
+        <button className="btn btn-primary" onClick={()=>setShowConfirm(true)} disabled={saving||filled<10}>
           {saving
             ? <><div className="spinner" style={{width:18,height:18,borderTopColor:'#000'}}></div> Envoi...</>
-            : existingProno ? '🔄 Mettre à jour' : `📤 Envoyer mes pronos (${filled}/${total})`
+            : existingProno ? '🔄 Mettre à jour' : `📤 Envoyer mes pronos (${filled}/10)`
           }
         </button>
         {filled < 10 && <div style={{textAlign:'center',fontSize:12,color:'var(--tx3)',marginTop:8}}>Renseigne les {10-filled} matchs restants</div>}
