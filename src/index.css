@@ -351,7 +351,8 @@ input, select, textarea { font-family: var(--F); }
   padding-bottom: max(env(safe-area-inset-bottom), 16px);
   flex-shrink: 0;
   z-index: 100;
-  position: relative;
+  position: sticky;
+  bottom: 0;
 }
 
 .tab-bar::after {
