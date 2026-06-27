@@ -19,9 +19,15 @@ export default function PronosChatteux() {
     const load = async () => {
       try {
         const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
-        const disponibles = allSnap.docs.filter(d => ['fermee','resultats'].includes(d.data().statut))
-        // Inclure aussi la journée ouverte si deadline passée
-        const ouverte = allSnap.docs.find(d => d.data().statut === 'ouverte')
+        const now = new Date()
+        const disponibles = allSnap.docs.filter(d => {
+          const data = d.data()
+          if (['fermee','resultats'].includes(data.statut)) return true
+          if (data.statut === 'ouverte' && data.deadline) {
+            return new Date(data.deadline.seconds * 1000) < now
+          }
+          return false
+        })
         const liste = disponibles.map(d => ({ id:d.id, ...d.data() }))
 
         const joueursSnap = await getDocs(collection(db,'joueurs'))
