@@ -326,12 +326,12 @@ export default function PronosChatteux() {
                       <div style={{ display:'flex', flexDirection:'column', gap:2, alignItems:'center' }}>
                         {pronos[j.id]?.jackpotMatch && (
                           <div style={{ fontSize:10, color:'var(--tx2)' }}>
-                            <span style={{ fontSize:12 }}>🎰</span> {getMatchName(pronos[j.id].jackpotMatch).split('—')[0].trim()}
+                            <span style={{ fontSize:12 }}>🎰</span> {getMatchName(pronos[j.id].jackpotMatch)}
                           </div>
                         )}
                         {pronos[j.id]?.dcMatch && (
                           <div style={{ fontSize:10, color:'var(--tx2)' }}>
-                            <span style={{ fontSize:12 }}>2️⃣</span> {getMatchName(pronos[j.id].dcMatch).split('—')[0].trim()}
+                            <span style={{ fontSize:12 }}>2️⃣</span> {getMatchName(pronos[j.id].dcMatch)}
                           </div>
                         )}
                         {!pronos[j.id]?.jackpotMatch && !pronos[j.id]?.dcMatch && (
@@ -351,7 +351,7 @@ export default function PronosChatteux() {
                           ↗ <strong>{joueursById[missileLance.cible]?.nom?.split(' ')[0] || '?'}</strong>
                         </div>
                         <div style={{ color:'var(--tx3)', fontSize:9 }}>
-                          {getMatchName(missileLance.matchKey).split('—')[0].trim()} → <strong style={{ color:'var(--tx2)' }}>{missileLance.pronoImpose}</strong>
+                          {getMatchName(missileLance.matchKey)} → <strong style={{ color:'var(--tx2)' }}>{missileLance.pronoImpose}</strong>
                         </div>
                         {missileLance.applique
                           ? <div style={{ color:'var(--g)', fontSize:9, fontWeight:700 }}>✓ appliqué</div>
@@ -364,7 +364,7 @@ export default function PronosChatteux() {
                           ↙ <strong>{joueursById[missileRecu.lanceur]?.nom?.split(' ')[0] || '?'}</strong>
                         </div>
                         <div style={{ color:'var(--tx3)', fontSize:9 }}>
-                          {getMatchName(missileRecu.matchKey).split('—')[0].trim()} → <strong style={{ color:'var(--r)' }}>{missileRecu.pronoImpose}</strong>
+                          {getMatchName(missileRecu.matchKey)} → <strong style={{ color:'var(--r)' }}>{missileRecu.pronoImpose}</strong>
                         </div>
                         {missileRecu.applique
                           ? <div style={{ color:'var(--g)', fontSize:9, fontWeight:700 }}>✓ appliqué</div>
