@@ -195,8 +195,9 @@ export default function Pronos() {
       // Appliquer les missiles reçus
       for (const missile of missilesSurMoi) {
         const { matchKey, pronoImpose } = missile
-        if (matchKey.startsWith('l1_')) {
-          const i = parseInt(matchKey.replace('l1_', ''))
+        if (matchKey.startsWith('l1_') || matchKey.startsWith('cdm_')) {
+          const prefix = matchKey.startsWith('cdm_') ? 'cdm_' : 'l1_'
+          const i = parseInt(matchKey.replace(prefix, ''))
           pronosFinaux.matchesL1[i] = pronoImpose
         } else if (matchKey === 'euro') {
           pronosFinaux.matchEuro = pronoImpose
@@ -486,7 +487,7 @@ export default function Pronos() {
               <>
                 <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
                   {[
-                    ...(journee.matchesL1||[]).map((m,i)=>m?.dom?{key:`l1_${i}`,label:`${translateTeam(m.dom)} — ${translateTeam(m.ext)}`}:null).filter(Boolean),
+                    ...(journee.matchesL1||[]).map((m,i)=>m?.dom?{key: journee.type==='cdm'?`cdm_${i}`:`l1_${i}`,label:`${translateTeam(m.dom)} — ${translateTeam(m.ext)}`}:null).filter(Boolean),
                     journee.matchEuro?.dom ? {key:'euro',label:`🌍 ${journee.matchEuro.dom} — ${journee.matchEuro.ext}`} : null,
                   ].filter(Boolean).map(m => (
                     <button key={m.key} onClick={()=>setMissileData(p=>({...p,matchKey:m.key}))} style={{
