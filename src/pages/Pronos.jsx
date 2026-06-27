@@ -657,7 +657,7 @@ export default function Pronos() {
               <div style={{display:'flex',gap:6,alignItems:'center'}}>
                 {isJP && <span className="pill pill-a">🎰 Jackpot</span>}
                 {isDC && <span className="pill pill-p">2️⃣ DC</span>}
-                {isSelectingBonus && !isJP && !isDC && (
+                {isSelectingBonus && !(activeBonus.type==='jackpot' && isJP) && !(activeBonus.type==='dc' && isDC) && (
                   <button onClick={()=>{
                     if (activeBonus.type==='jackpot') {
                       setJackpotMatch(key)
