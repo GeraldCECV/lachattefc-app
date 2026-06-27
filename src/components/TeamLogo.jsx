@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { translateTeam } from '../utils/teamName'
 
 // Logos locaux (public/logos/) + fallback Wikipedia pour les clubs européens
 const LOCAL_LOGOS = {
@@ -92,7 +91,6 @@ const LOCAL_LOGOS = {
   'bosnia herzegovina': '/logos/cdm-bosnia-and-herzegovina.png',
   'brazil': '/logos/cdm-brazil.png',
   'cape verde': '/logos/cdm-cabo-verde.png',
-  'cape verde islands': '/logos/cdm-cabo-verde.png',
   'canada': '/logos/cdm-canada.png',
   'colombia': '/logos/cdm-colombia.png',
   'congo dr': '/logos/cdm-congo-dr.png',
@@ -104,38 +102,40 @@ const LOCAL_LOGOS = {
   'netherlands': '/logos/cdm-dutch.png',
   'ecuador': '/logos/cdm-ecuador.png',
   'egypt': '/logos/cdm-egypt.png',
-  'england': '/logos/cdm-england.png',
-  'france': '/logos/cdm-france.png',
-  'germany': '/logos/cdm-germany.png',
-  'ghana': '/logos/cdm-ghana.png',
-  'haiti': '/logos/cdm-haiti.png',
-  'iran': '/logos/cdm-iran.png',
-  'iraq': '/logos/cdm-iraq.png',
-  'japan': '/logos/cdm-japan.png',
-  'jordan': '/logos/cdm-jordan.png',
-  'mexico': '/logos/cdm-mexico.png',
-  'morocco': '/logos/cdm-morocco.png',
-  'new zealand': '/logos/cdm-new-zealand.png',
-  'norway': '/logos/cdm-norway.png',
-  'panama': '/logos/cdm-panama.png',
-  'paraguay': '/logos/cdm-paraguay.png',
-  'portugal': '/logos/cdm-portugal.png',
-  'qatar': '/logos/cdm-qatar.png',
-  'saudi arabia': '/logos/cdm-saudi-arabia.png',
-  'scotland': '/logos/cdm-scotland.png',
-  'senegal': '/logos/cdm-senegal.png',
+  'switzerland': '/logos/cdm-switzerland.png',
   'south africa': '/logos/cdm-south-africa.png',
   'korea republic': '/logos/cdm-south-korea.png',
-  'south korea': '/logos/cdm-south-korea.png',
-  'spain': '/logos/cdm-spain.png',
-  'sweden': '/logos/cdm-sweden.png',
-  'switzerland': '/logos/cdm-switzerland.png',
-  'tunisia': '/logos/cdm-tunisia.png',
-  'turkey': '/logos/cdm-turkey.png',
-  'uruguay': '/logos/cdm-uruguay.png',
   'usa': '/logos/cdm-usa.png',
   'united states': '/logos/cdm-usa.png',
+  'paraguay': '/logos/cdm-paraguay.png',
+  'qatar': '/logos/cdm-qatar.png',
+  'germany': '/logos/cdm-germany.png',
+  'japan': '/logos/cdm-japan.png',
+  'sweden': '/logos/cdm-sweden.png',
+  'spain': '/logos/cdm-spain.png',
+  'belgium': '/logos/cdm-belgium.png',
+  'iran': '/logos/cdm-iran.png',
+  'new zealand': '/logos/cdm-new-zealand.png',
+  'france': '/logos/cdm-france.png',
+  'senegal': '/logos/cdm-senegal.png',
+  'iraq': '/logos/cdm-iraq.png',
+  'norway': '/logos/cdm-norway.png',
+  'argentina': '/logos/cdm-argentina.png',
+  'austria': '/logos/cdm-austria.png',
+  'portugal': '/logos/cdm-portugal.png',
+  'england': '/logos/cdm-england.png',
+  'ghana': '/logos/cdm-ghana.png',
+  'panama': '/logos/cdm-panama.png',
+  'saudi arabia': '/logos/cdm-saudi-arabia.png',
+  'uruguay': '/logos/cdm-uruguay.png',
+  'haiti': '/logos/cdm-haiti.png',
+  'scotland': '/logos/cdm-scotland.png',
+  'turkey': '/logos/cdm-turkey.png',
+  'mexico': '/logos/cdm-mexico.png',
+  'morocco': '/logos/cdm-morocco.png',
   'uzbekistan': '/logos/cdm-uzbekistan.png',
+  'colombia': '/logos/cdm-colombia.png',
+  'jordan': '/logos/cdm-jordan.png',
 }
 
 function normalize(name) {
@@ -154,11 +154,10 @@ function getLogo(name) {
 
 export default function TeamLogo({ name, size = 28 }) {
   const [error, setError] = useState(false)
-  const displayName = translateTeam(name)
   const logo = getLogo(name)
 
   if (!logo || error) {
-    const initials = displayName?.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase() || '?'
+    const initials = name?.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase() || '?'
     return (
       <div style={{
         width: size, height: size, borderRadius: 6,
