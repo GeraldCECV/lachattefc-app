@@ -80,7 +80,8 @@ export default function PronosChatteux() {
     </div>
   )
 
-  if (journee.statut === 'ouverte') return (
+  const deadlinePassed = journee.deadline ? new Date(journee.deadline.seconds * 1000) < new Date() : false
+  if (journee.statut === 'ouverte' && !deadlinePassed) return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:32, textAlign:'center' }}>
       <div style={{ fontSize:48, marginBottom:16 }}>🔒</div>
       <div style={{ fontFamily:'var(--D)', fontSize:28, letterSpacing:'.04em', marginBottom:8 }}>Pronos secrets</div>
