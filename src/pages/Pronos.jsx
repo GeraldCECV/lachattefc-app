@@ -86,6 +86,7 @@ export default function Pronos() {
         return data.statut !== 'fermee' && (!dl || dl > now)
       })
       if (openDocs.length === 0) { setLoading(false); return }
+      console.log('📋 openDocs:', openDocs.map(d => ({ id: d.id, statut: d.data().statut, type: d.data().type, matchesCDM: d.data().matchesCDM?.length })))
       snap = { docs: [openDocs[0]], empty: false }
       if (snap.empty) { setLoading(false); return }
       const jDoc = snap.docs[0]
