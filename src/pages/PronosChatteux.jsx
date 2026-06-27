@@ -24,9 +24,7 @@ export default function PronosChatteux() {
         const disponibles = allSnap.docs.filter(d => {
           const data = d.data()
           if (['fermee','resultats'].includes(data.statut)) return true
-          if (data.statut === 'ouverte' && data.deadline) {
-            return new Date(data.deadline.seconds * 1000) < now
-          }
+          if (data.statut === 'ouverte') return true // inclure toutes les ouvertes
           return false
         })
         const liste = disponibles.map(d => ({ id:d.id, ...d.data() }))
