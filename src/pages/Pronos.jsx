@@ -3,6 +3,7 @@ import { collection, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc, query, 
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
+import { translateTeam } from '../utils/teamName'
 
 // ── Helpers ──
 const RESULT_COLORS = {
@@ -289,7 +290,7 @@ export default function Pronos() {
     if (key === 'euro') return `🌍 ${journee.matchEuro?.dom||'?'} — ${journee.matchEuro?.ext||'?'}`
     const i = parseInt(key.replace('l1_',''))
     const m = journee.matchesL1?.[i]
-    return m ? `${m.dom} — ${m.ext}` : key
+    return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
   }
 
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:60}}><div className="spinner" style={{width:24,height:24}}></div></div>
@@ -340,9 +341,9 @@ export default function Pronos() {
           <div key={i} style={{margin:'0 16px 8px',background:'rgba(155,226,45,.04)',border:'1px solid var(--g-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
               <TeamLogo name={m.dom} size={22} />
-              <span style={{fontSize:14,fontWeight:700}}>{m.dom}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.dom)}</span>
               <span style={{color:'var(--tx3)'}}>—</span>
-              <span style={{fontSize:14,fontWeight:700}}>{m.ext}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.ext)}</span>
               <TeamLogo name={m.ext} size={22} />
               <span style={{fontSize:11,color:'var(--tx3)',marginLeft:'auto'}}>{m.jour} {m.heure}</span>
             </div>
@@ -397,9 +398,9 @@ export default function Pronos() {
           <div key={i} style={{margin:'0 16px 8px',background:'rgba(251,191,36,.04)',border:'1px solid var(--a-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
               <TeamLogo name={m.dom} size={22} />
-              <span style={{fontSize:14,fontWeight:700}}>{m.dom}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.dom)}</span>
               <span style={{color:'var(--tx3)'}}>—</span>
-              <span style={{fontSize:14,fontWeight:700}}>{m.ext}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.ext)}</span>
               <TeamLogo name={m.ext} size={22} />
               <span style={{fontSize:11,color:'var(--tx3)',marginLeft:'auto'}}>{m.jour} {m.heure}</span>
             </div>
@@ -480,7 +481,7 @@ export default function Pronos() {
               <>
                 <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
                   {[
-                    ...(journee.matchesL1||[]).map((m,i)=>m?.dom?{key:`l1_${i}`,label:`${m.dom} — ${m.ext}`}:null).filter(Boolean),
+                    ...(journee.matchesL1||[]).map((m,i)=>m?.dom?{key:`l1_${i}`,label:`${translateTeam(m.dom)} — ${translateTeam(m.ext)}`}:null).filter(Boolean),
                     journee.matchEuro?.dom ? {key:'euro',label:`🌍 ${journee.matchEuro.dom} — ${journee.matchEuro.ext}`} : null,
                   ].filter(Boolean).map(m => (
                     <button key={m.key} onClick={()=>setMissileData(p=>({...p,matchKey:m.key}))} style={{

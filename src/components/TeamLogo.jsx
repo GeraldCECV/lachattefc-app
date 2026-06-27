@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { translateTeam } from '../utils/teamName'
 
 // Logos locaux (public/logos/) + fallback Wikipedia pour les clubs européens
 const LOCAL_LOGOS = {
@@ -153,10 +154,11 @@ function getLogo(name) {
 
 export default function TeamLogo({ name, size = 28 }) {
   const [error, setError] = useState(false)
+  const displayName = translateTeam(name)
   const logo = getLogo(name)
 
   if (!logo || error) {
-    const initials = name?.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase() || '?'
+    const initials = displayName?.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase() || '?'
     return (
       <div style={{
         width: size, height: size, borderRadius: 6,

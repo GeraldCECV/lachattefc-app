@@ -1,3 +1,4 @@
+import { translateTeam } from '../utils/teamName'
 import { useState, useEffect, useCallback } from 'react'
 import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
