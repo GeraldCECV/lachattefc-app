@@ -6,7 +6,7 @@ import { getMessaging } from 'firebase/messaging'
 import app from '../firebase/config'
 
 export function useNotifications(userId) {
-  const [permission, setPermission] = useState(Notification.permission)
+  const [permission, setPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'default')
   const [token, setToken] = useState(null)
 
   // Enregistrer onMessage dès que l'app est chargée et que la permission est accordée
