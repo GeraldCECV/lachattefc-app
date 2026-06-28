@@ -191,8 +191,8 @@ export default function PronosChatteux() {
       <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'0 12px' }}>
         {matchBlocks.map(match => {
           const res = journee.resultats?.[match.key]
-          const hasScore = res && (res.status === 'FINISHED' || res.status === 'IN_PLAY')
-          const isLive = res?.status === 'IN_PLAY'
+          const hasScore = res && (res.status === 'FINISHED' || res.status === 'IN_PLAY' || res.status === 'PAUSED') && res.h !== null && res.a !== null
+          const isLive = res?.status === 'IN_PLAY' || res?.status === 'PAUSED'
 
           return (
             <div key={match.key} style={{
