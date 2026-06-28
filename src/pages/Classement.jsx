@@ -63,6 +63,7 @@ export default function Classement() {
 
   useEffect(() => {
     if (tab !== 'historique') return
+    setHistoriqueList([])
     setLoadingHistorique(true)
     const loadHist = async () => {
       const snap = await getDocs(query(collection(db,'journees'), orderBy('numero','desc')))
@@ -315,4 +316,5 @@ export default function Classement() {
     </div>
   )
 }
+
 
