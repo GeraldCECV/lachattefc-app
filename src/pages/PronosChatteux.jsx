@@ -288,16 +288,45 @@ export default function PronosChatteux() {
                       </div>
 
                       {/* Prono + bonus + missile */}
-                      <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-                        {bonus && (
-                          <div style={{ fontSize:14, lineHeight:1 }} title={bonus.label}>{bonus.icon}</div>
-                        )}
-                        {missile && (
-                          <div style={{ fontSize:11, color:'var(--r)', fontWeight:700 }} title="Missile reçu">🚀</div>
-                        )}
-                        {missileLance && !missile && (
-                          <div style={{ fontSize:11, color:'var(--a)', fontWeight:700 }} title="Missile lancé">↗🚀</div>
-                        )}
+                      <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+                        {/* Pastilles bonus/missile */}
+                        <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                          {bonus && (
+                            <div style={{
+                              display:'flex', alignItems:'center', gap:3,
+                              padding:'2px 6px', borderRadius:20,
+                              background: bonus.icon === '🎰' ? 'rgba(255,200,0,.12)' : 'rgba(96,165,250,.12)',
+                              border: `1px solid ${bonus.icon === '🎰' ? 'rgba(255,200,0,.3)' : 'rgba(96,165,250,.3)'}`,
+                              fontSize:10, fontWeight:700,
+                              color: bonus.icon === '🎰' ? '#FFD700' : 'var(--b)',
+                            }}>
+                              {bonus.icon} {bonus.label}
+                            </div>
+                          )}
+                          {missile && (
+                            <div style={{
+                              display:'flex', alignItems:'center', gap:3,
+                              padding:'2px 6px', borderRadius:20,
+                              background:'rgba(248,68,68,.12)',
+                              border:'1px solid rgba(248,68,68,.3)',
+                              fontSize:10, fontWeight:700, color:'#FF4444',
+                            }}>
+                              🚀 {joueurs.find(u => u.id === missile.lanceur)?.nom?.split(' ')[0] || '?'}
+                            </div>
+                          )}
+                          {missileLance && (
+                            <div style={{
+                              display:'flex', alignItems:'center', gap:3,
+                              padding:'2px 6px', borderRadius:20,
+                              background:'rgba(251,146,60,.12)',
+                              border:'1px solid rgba(251,146,60,.3)',
+                              fontSize:10, fontWeight:700, color:'var(--o)',
+                            }}>
+                              ↗🚀 {joueurs.find(u => u.id === missileLance.cible)?.nom?.split(' ')[0] || '?'}
+                            </div>
+                          )}
+                        </div>
+                        {/* Prono */}
                         {prono ? (
                           <div style={{
                             fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
