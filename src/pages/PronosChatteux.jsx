@@ -233,10 +233,20 @@ export default function PronosChatteux() {
                     padding:'4px 10px', borderRadius:'var(--Rs)',
                     background: isLive ? 'rgba(155,226,45,.08)' : 'rgba(255,255,255,.05)',
                     border: `1px solid ${isLive ? 'var(--g-b)' : 'var(--bd)'}`,
-                    display:'flex', alignItems:'center', gap:4,
+                    display:'flex', flexDirection:'column', alignItems:'center', gap:2,
                   }}>
-                    {isLive && <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--g)', display:'inline-block', marginRight:2 }} />}
-                    {res.h} - {res.a}
+                    <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                      {isLive && <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--g)', display:'inline-block' }} />}
+                      {res.h} - {res.a}
+                    </div>
+                    {isLive && res.elapsed !== undefined && res.elapsed !== null && (
+                      <div style={{ fontSize:11, color:'var(--g)', fontWeight:700, lineHeight:1 }}>
+                        {res.status === 'PAUSED' ? 'Mi-temps' : `${res.elapsed}'`}
+                      </div>
+                    )}
+                    {res.status === 'FINISHED' && (
+                      <div style={{ fontSize:10, color:'var(--tx3)', fontWeight:700, lineHeight:1 }}>Terminé</div>
+                    )}
                   </div>
                 ) : (
                   <div style={{ fontSize:11, color:'var(--tx3)', padding:'4px 8px', border:'1px solid var(--bd)', borderRadius:'var(--Rs)' }}>
