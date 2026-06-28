@@ -577,7 +577,7 @@ export default function Pronos() {
       </div>
 
       {/* Bonus strip */}
-      <div style={{margin:'12px 16px 0',display:'flex',gap:8,flexWrap:'wrap'}}>
+      {!journee.scorerOnly && <div style={{margin:'12px 16px 0',display:'flex',gap:8,flexWrap:'wrap'}}>
         {/* Missile */}
         {bonusStock.missile > 0 && !deadlinePassed && (
           <button onClick={()=>setShowMissileModal(true)} style={{
@@ -612,10 +612,10 @@ export default function Pronos() {
             2️⃣ DC ×{bonusStock.doubleChance} {activeBonus?.type==='dc'?'— Sélectionne un match':''}
           </button>
         )}
-      </div>
+      </div>}
 
       {/* Bonus actifs recap */}
-      {(jackpotMatch || dcMatch) && (
+      {!journee.scorerOnly && (jackpotMatch || dcMatch) && (
         <div style={{margin:'8px 16px 0',padding:'10px 14px',background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:'var(--Rs)',fontSize:12}}>
           {jackpotMatch && <div style={{color:'var(--a)',fontWeight:700}}>🎰 Jackpot → {matchLabel(jackpotMatch)}</div>}
           {dcMatch && dcChoices.length===2 && <div style={{color:'var(--p)',fontWeight:700,marginTop:jackpotMatch?4:0}}>2️⃣ Double Chance → {matchLabel(dcMatch)} · {dcChoices.join(' ou ')}</div>}
@@ -640,7 +640,7 @@ export default function Pronos() {
       )}
 
       {/* ── MATCHS ── */}
-      <div className="section-lbl" style={{padding:'8px 20px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {(journee.matchesL1||[]).length} matchs 1N2</div>
+      <div className="section-lbl" style={{padding:'8px 20px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {(journee.matchesL1||[]).length} matchs {journee.scorerOnly ? 'scorer' : '1N2'}</div>
       {(journee.matchesL1||[]).map((m, i) => {
         if (!m?.dom) return null
         const key = `l1_${i}`
@@ -648,6 +648,62 @@ export default function Pronos() {
         const isJP = jackpotMatch === key
         const isDC = dcMatch === key
         const isSelectingBonus = activeBonus?.type === 'jackpot' || activeBonus?.type === 'dc'
+
+        // Mode scorer uniquement
+        if (journee.scorerOnly) {
+          const [domScore, extScore] = (sel || '-').split('-')
+          return (
+            <div key={i} style={{
+              margin:'0 16px 8px',
+              background: sel ? 'rgba(155,226,45,.04)' : 'var(--bg2)',
+              border:`1px solid ${sel ? 'var(--g-b)' : 'var(--bd)'}`,
+              borderRadius:'var(--R)', padding:'13px 14px',
+            }}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <TeamLogo name={m.dom} size={22} />
+                  <div>
+                    <div style={{fontSize:14,fontWeight:600}}>{translateTeam(m.dom)} — {translateTeam(m.ext)}</div>
+                    <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{m.jour} {m.heure}</div>
+                  </div>
+                  <TeamLogo name={m.ext} size={22} />
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:10,justifyContent:'center'}}>
+                <input
+                  type="number" min="0" max="20" placeholder="0"
+                  value={domScore && domScore !== '-' ? domScore : ''}
+                  onChange={e => {
+                    const v = e.target.value
+                    const ext = extScore && extScore !== '-' ? extScore : ''
+                    setL1(i, v !== '' && ext !== '' ? `${v}-${ext}` : null)
+                  }}
+                  style={{
+                    width:52, height:44, textAlign:'center', fontSize:22, fontWeight:900,
+                    background:'var(--bg3)', border:'1px solid var(--bd)', borderRadius:'var(--Rs)',
+                    color:'var(--tx)', fontFamily:'var(--D)',
+                  }}
+                />
+                <span style={{fontSize:22,fontWeight:900,color:'var(--tx3)'}}>-</span>
+                <input
+                  type="number" min="0" max="20" placeholder="0"
+                  value={extScore && extScore !== '-' ? extScore : ''}
+                  onChange={e => {
+                    const v = e.target.value
+                    const dom = domScore && domScore !== '-' ? domScore : ''
+                    setL1(i, v !== '' && dom !== '' ? `${dom}-${v}` : null)
+                  }}
+                  style={{
+                    width:52, height:44, textAlign:'center', fontSize:22, fontWeight:900,
+                    background:'var(--bg3)', border:'1px solid var(--bd)', borderRadius:'var(--Rs)',
+                    color:'var(--tx)', fontFamily:'var(--D)',
+                  }}
+                />
+              </div>
+              <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:8}}>Score exact = 3pts · Bonne issue = 1pt</div>
+            </div>
+          )
+        }
 
         return (
           <div key={i} style={{
