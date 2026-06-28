@@ -13,6 +13,27 @@
     <title>La Chatte FC</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      // Force reload when new Service Worker is available
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          window.location.reload();
+        });
+        navigator.serviceWorker.getRegistration().then(reg => {
+          if (!reg) return;
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New version available — force reload
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          });
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
