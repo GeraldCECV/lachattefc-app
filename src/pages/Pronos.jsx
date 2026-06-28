@@ -650,6 +650,7 @@ export default function Pronos() {
         const isSelectingBonus = activeBonus?.type === 'jackpot' || activeBonus?.type === 'dc'
 
         // Mode scorer uniquement
+        console.log('scorerOnly:', journee.scorerOnly, 'type:', typeof journee.scorerOnly)
         if (journee.scorerOnly) {
           const [domScore, extScore] = (sel || '-').split('-')
           return (
