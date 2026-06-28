@@ -143,7 +143,14 @@ export default function Pronos() {
   const countFilled = () => {
     let n = 0
     if (journee?.type === 'cdm') {
-      ;(pronos.matchesL1||[]).forEach(p => { if (p) n++ })
+      ;(pronos.matchesL1||[]).forEach(p => {
+        if (journee.scorerOnly) {
+          // Score valide : deux parties séparées par - avec au moins un chiffre chacune
+          if (p && /^\d+-\d+$/.test(p)) n++
+        } else {
+          if (p) n++
+        }
+      })
       return n
     }
     if (pronos.matchScorer || (scorerH !== null)) n++
@@ -651,7 +658,9 @@ export default function Pronos() {
 
         // Mode scorer uniquement
         if (journee.scorerOnly) {
-          const [domScore, extScore] = (sel || '-').split('-')
+          const parts = (sel || '').split('-')
+          const domScore = parts[0] || ''
+          const extScore = parts[1] || ''
           return (
             <div key={i} style={{
               margin:'0 16px 8px',
@@ -671,12 +680,11 @@ export default function Pronos() {
               </div>
               <div style={{display:'flex',alignItems:'center',gap:10,justifyContent:'center'}}>
                 <input
-                  type="number" min="0" max="20" placeholder="0"
-                  value={domScore && domScore !== '-' ? domScore : ''}
+                  inputMode="numeric" pattern="[0-9]*" placeholder="0"
+                  value={domScore}
                   onChange={e => {
-                    const v = e.target.value
-                    const ext = extScore && extScore !== '-' ? extScore : ''
-                    setL1(i, v !== '' && ext !== '' ? `${v}-${ext}` : null)
+                    const v = e.target.value.replace(/[^0-9]/g,'').slice(0,2)
+                    setL1(i, `${v}-${extScore}`)
                   }}
                   style={{
                     width:52, height:44, textAlign:'center', fontSize:22, fontWeight:900,
@@ -686,12 +694,11 @@ export default function Pronos() {
                 />
                 <span style={{fontSize:22,fontWeight:900,color:'var(--tx3)'}}>-</span>
                 <input
-                  type="number" min="0" max="20" placeholder="0"
-                  value={extScore && extScore !== '-' ? extScore : ''}
+                  inputMode="numeric" pattern="[0-9]*" placeholder="0"
+                  value={extScore}
                   onChange={e => {
-                    const v = e.target.value
-                    const dom = domScore && domScore !== '-' ? domScore : ''
-                    setL1(i, v !== '' && dom !== '' ? `${dom}-${v}` : null)
+                    const v = e.target.value.replace(/[^0-9]/g,'').slice(0,2)
+                    setL1(i, `${domScore}-${v}`)
                   }}
                   style={{
                     width:52, height:44, textAlign:'center', fontSize:22, fontWeight:900,
