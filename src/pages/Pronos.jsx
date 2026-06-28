@@ -232,9 +232,19 @@ export default function Pronos() {
         bonusUpdate['bonus.jackpot'] = Math.max(0, stockServeur.jackpot - 1)
         setBonusStock(prev => ({ ...prev, jackpot: Math.max(0, prev.jackpot - 1) }))
       }
+      // Rembourser jackpot si désactivé lors d'un update
+      if (!jackpotValide && existingProno?.jackpotMatch) {
+        bonusUpdate['bonus.jackpot'] = Math.min(stockServeur.jackpot + 1, 3)
+        setBonusStock(prev => ({ ...prev, jackpot: Math.min(prev.jackpot + 1, 3) }))
+      }
       if (dcValide && !existingProno?.dcMatch) {
         bonusUpdate['bonus.doubleChance'] = Math.max(0, stockServeur.doubleChance - 1)
         setBonusStock(prev => ({ ...prev, doubleChance: Math.max(0, prev.doubleChance - 1) }))
+      }
+      // Rembourser DC si désactivée lors d'un update
+      if (!dcValide && existingProno?.dcMatch) {
+        bonusUpdate['bonus.doubleChance'] = Math.min(stockServeur.doubleChance + 1, 4)
+        setBonusStock(prev => ({ ...prev, doubleChance: Math.min(prev.doubleChance + 1, 4) }))
       }
       // Débiter le missile si utilisé cette session
       if (missileUsed) {
@@ -800,3 +810,4 @@ function deadlineFmt(j) {
   const dl = new Date(j.deadline.seconds*1000)
   return `Fermeture ${dl.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`
 }
+
