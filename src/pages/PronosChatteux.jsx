@@ -207,19 +207,28 @@ export default function PronosChatteux() {
                 Joueur
               </th>
               <th style={{ position:'sticky', left:90, zIndex:2, background:'#07100C', padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', fontSize:9, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', minWidth:40 }}>PTS</th>
-              {cols.map(col => (
-                <th key={col.key} style={{ padding:'4px 2px', textAlign:'center', borderBottom:'1px solid var(--bd)', background: col.isScorer ? 'rgba(96,165,250,.06)' : col.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(0,0,0,.2)', minWidth:50 }}>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
-                    <div style={{ display:'flex', gap:1 }}>
-                      <TeamLogo name={col.dom} size={14} />
-                      <TeamLogo name={col.ext} size={14} />
+              {cols.map(col => {
+                const res = journee.resultats?.[col.key]
+                const hasScore = res && (res.status === 'FINISHED' || res.status === 'IN_PLAY')
+                return (
+                  <th key={col.key} style={{ padding:'4px 2px', textAlign:'center', borderBottom:'1px solid var(--bd)', background: col.isScorer ? 'rgba(96,165,250,.06)' : col.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(0,0,0,.2)', minWidth:50 }}>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
+                      <div style={{ display:'flex', gap:1 }}>
+                        <TeamLogo name={col.dom} size={14} />
+                        <TeamLogo name={col.ext} size={14} />
+                      </div>
+                      <div style={{ fontSize:9, color: col.isScorer ? 'var(--b)' : col.isEuro ? 'var(--o)' : 'var(--tx3)', fontWeight:900 }}>
+                        {col.label}
+                      </div>
+                      {hasScore && (
+                        <div style={{ fontSize:11, fontFamily:'var(--D)', fontWeight:900, lineHeight:1, color: res.status === 'IN_PLAY' ? 'var(--g)' : 'var(--tx)', letterSpacing:'.02em' }}>
+                          {res.h}-{res.a}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize:9, color: col.isScorer ? 'var(--b)' : col.isEuro ? 'var(--o)' : 'var(--tx3)', fontWeight:900 }}>
-                      {col.label}
-                    </div>
-                  </div>
-                </th>
-              ))}
+                  </th>
+                )
+              })}
               <th style={{ padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', background:'rgba(0,0,0,.2)', fontSize:9, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', minWidth:60 }}>Bonus</th>
               <th style={{ padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', background:'rgba(248,113,113,.04)', fontSize:9, fontWeight:900, color:'var(--r)', textTransform:'uppercase', minWidth:140 }}>🚀 Missile</th>
             </tr>
