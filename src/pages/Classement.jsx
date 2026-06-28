@@ -32,7 +32,11 @@ export default function Classement() {
       const map = {}
       snap.docs.forEach((d,i) => { map[d.id] = { id:d.id, idx:i, ...d.data() } })
       setJoueursMap(map)
-      setClassG(Object.values(map).sort((a,b)=>(b.pointsTotal||0)-(a.pointsTotal||0)).map((j,i)=>({...j,rank:i+1})))
+      setClassG(Object.values(map).sort((a,b)=>{
+        const netA = (a.gainsTotal||0) - (a.journeesJouees||0)*5
+        const netB = (b.gainsTotal||0) - (b.journeesJouees||0)*5
+        return netB - netA
+      }).map((j,i)=>({...j,rank:i+1})))
 
       const allJ = await getDocs(query(collection(db,'journees'),orderBy('numero','asc')))
       const openJ = allJ.docs.find(d => ['ouverte','fermee'].includes(d.data().statut))
