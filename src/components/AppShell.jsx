@@ -23,7 +23,7 @@ function TabIcon({ name, size = 22 }) {
 
 const TABS = [
   { id: 'vestiaire',  ico: 'vestiaire',  lbl: 'Vestiaire' },
-  { id: 'pronos',     ico: 'pronos',     lbl: 'Mes pronos' },
+  { id: 'pronos',     ico: 'pronos',     lbl: 'Fais tes pronos' },
   { id: 'chatteux',   ico: 'chatteux',   lbl: 'Les Pronos' },
   { id: 'classement', ico: 'classement', lbl: 'Classement' },
   { id: 'bonus',      ico: 'bonus',      lbl: 'Bonus' },
@@ -97,3 +97,4 @@ export default function AppShell() {
     </div>
   )
 }
+
