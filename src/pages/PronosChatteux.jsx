@@ -288,9 +288,9 @@ export default function PronosChatteux() {
                       </div>
 
                       {/* Prono + bonus + missile */}
-                      <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
-                        {/* Pastilles bonus/missile */}
-                        <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                        {/* Pastilles bonus/missile à gauche */}
+                        <div style={{ display:'flex', flexDirection:'column', gap:3, alignItems:'flex-end' }}>
                           {bonus && (
                             <div style={{
                               display:'flex', alignItems:'center', gap:3,
