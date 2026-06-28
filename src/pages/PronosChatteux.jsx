@@ -343,8 +343,8 @@ export default function PronosChatteux() {
                             minWidth:42, textAlign:'center',
                             padding:'4px 8px', borderRadius:'var(--Rs)',
                             color: correct === 'exact' ? '#FFD700' : correct === 'correct' || correct === 'issue' ? '#9BE22D' : correct === 'wrong' ? '#FF4444' : prono.isMissile ? '#FF4444' : match.isScorer ? 'var(--b)' : 'var(--tx)',
-                            background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.18)' : correct === 'wrong' ? 'rgba(255,68,68,.18)' : 'rgba(255,255,255,.04)',
-                            border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.6)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.5)' : correct === 'wrong' ? 'rgba(255,68,68,.5)' : 'rgba(255,255,255,.06)'}`,
+                            background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'correct' ? 'rgba(155,226,45,.18)' : correct === 'issue' ? 'rgba(251,146,60,.18)' : correct === 'wrong' ? 'rgba(255,68,68,.18)' : 'rgba(255,255,255,.04)',
+                            border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.6)' : correct === 'correct' ? 'rgba(155,226,45,.5)' : correct === 'issue' ? 'rgba(251,146,60,.5)' : correct === 'wrong' ? 'rgba(255,68,68,.5)' : 'rgba(255,255,255,.06)'}`,
                           }}>
                             {prono.val}
                           </div>
