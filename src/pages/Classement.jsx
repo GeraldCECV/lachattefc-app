@@ -52,7 +52,7 @@ export default function Classement() {
           const pts = data.pointsJoueurs||{}
           const gains = data.gainsJoueurs||{}
           const penalites = data.penalites||{}
-          setClassJ(Object.values(map).map(j=>({...j,ptsJ:(pts[j.id]||0)+(penalites[j.id]||0),gainJ:gains[j.id]||0})).sort((a,b)=>b.ptsJ-a.ptsJ).map((j,i)=>({...j,rank:i+1})))
+          setClassJ(Object.values(map).filter(j=>pts[j.id]!==undefined).map(j=>({...j,ptsJ:(pts[j.id]||0)+(penalites[j.id]||0),gainJ:gains[j.id]||0})).sort((a,b)=>b.ptsJ-a.ptsJ).map((j,i)=>({...j,rank:i+1})))
         })
         }}
       setLoading(false)

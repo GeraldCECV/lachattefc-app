@@ -53,6 +53,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           const hasSomePoints = Object.values(pts).some(p => p > 0)
 
           const sorted = joueurs
+            .filter(j => pts[j.id] !== undefined) // seulement joueurs avec pronos
             .map(j => ({ ...j, ptsJ: ptsAvecPenalites[j.id] || 0 }))
             .sort((a,b) => b.ptsJ - a.ptsJ)
 
