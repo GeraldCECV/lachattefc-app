@@ -38,8 +38,10 @@ export default defineConfig({
         runtimeCaching: [],
         skipWaiting: true,
         clientsClaim: true,
+        cleanupOutdatedCaches: true,
       },
       injectRegister: 'auto',
+      selfDestroying: false,
     })
   ],
 })
