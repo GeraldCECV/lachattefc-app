@@ -1,5 +1,5 @@
 import { translateTeam } from '../utils/teamName'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
@@ -7,33 +7,26 @@ import TeamLogo from '../components/TeamLogo'
 
 export default function PronosChatteux() {
   const { profil } = useUser()
-  const [journeesList, setJourneesList] = useState([]) // journées disponibles
-  const [selectedJId, setSelectedJId] = useState(null) // journée sélectionnée
+  const [journeesList, setJourneesList] = useState([])
+  const [selectedJId, setSelectedJId] = useState(null)
   const [journee, setJournee] = useState(null)
   const [joueurs, setJoueurs] = useState([])
   const [pronos, setPronos] = useState({})
   const [missiles, setMissiles] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Charger la liste des journées disponibles au montage
   useEffect(() => {
     const load = async () => {
       try {
         const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
-        const now = new Date()
         const disponibles = allSnap.docs.filter(d => {
           const data = d.data()
-          if (['fermee','resultats'].includes(data.statut)) return true
-          if (data.statut === 'ouverte') return true // inclure toutes les ouvertes
-          return false
+          return ['fermee','resultats','ouverte'].includes(data.statut)
         })
         const liste = disponibles.map(d => ({ id:d.id, ...d.data() }))
-
         const joueursSnap = await getDocs(collection(db,'joueurs'))
         setJoueurs(joueursSnap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (a.nom||'').localeCompare(b.nom||'')))
-
         setJourneesList(liste)
-        // Sélectionner la plus récente par défaut
         if (liste.length > 0) setSelectedJId(liste[liste.length - 1].id)
         setLoading(false)
       } catch(e) {
@@ -44,7 +37,6 @@ export default function PronosChatteux() {
     load()
   }, [])
 
-  // Charger pronos/missiles quand la journée sélectionnée change
   useEffect(() => {
     if (!selectedJId) return
     let unsub = null
@@ -53,10 +45,8 @@ export default function PronosChatteux() {
       const pronosData = {}
       pronosSnap.docs.forEach(d => { pronosData[d.id] = d.data() })
       setPronos(pronosData)
-
       const missilesSnap = await getDocs(collection(db,'journees',selectedJId,'missiles'))
       setMissiles(missilesSnap.docs.map(d => ({ id:d.id, ...d.data() })))
-
       unsub = onSnapshot(doc(db,'journees',selectedJId), d => {
         if (!d.exists()) return
         setJournee({ id:d.id, ...d.data() })
@@ -95,88 +85,89 @@ export default function PronosChatteux() {
     </div>
   )
 
-  // Build match columns
-  const scorer = journee.matchScorer
   const isCDM = journee.type === 'cdm'
-  const matchesL1 = isCDM 
+  const scorer = journee.matchScorer
+  const matchesMain = isCDM
     ? (journee.matchesCDM || []).filter(m => m?.dom)
     : (journee.matchesL1 || []).filter(m => m?.dom)
   const euro = journee.matchEuro?.dom ? journee.matchEuro : null
 
-  const cols = [
-    scorer?.dom ? { key:'scorer', label:'⚽', dom: scorer.dom, ext: scorer.ext, isScorer: true } : null,
-    ...matchesL1.map((m, i) => ({ key: isCDM ? `cdm_${i}` : `l1_${i}`, label:`#${i+1}`, dom: m.dom, ext: m.ext })),
-    euro ? { key:'euro', label:'🌍', dom: euro.dom, ext: euro.ext, isEuro: true } : null,
+  // Construire la liste des matchs à afficher
+  const matchBlocks = [
+    scorer?.dom ? { key:'scorer', dom: scorer.dom, ext: scorer.ext, isScorer: true, label: '⚽ Match Scorer' } : null,
+    ...matchesMain.map((m, i) => ({ key: isCDM ? `cdm_${i}` : `l1_${i}`, dom: m.dom, ext: m.ext, label: `Match ${i+1}` })),
+    euro ? { key:'euro', dom: euro.dom, ext: euro.ext, isEuro: true, label: '🌍 Match Euro' } : null,
   ].filter(Boolean)
 
-  // Map joueurs par id pour lookup rapide
-  const joueursById = {}
-  joueurs.forEach(j => { joueursById[j.id] = j })
-
-  // Nom du match pour affichage missile
-  const getMatchName = (key) => {
-    if (key === 'scorer') return scorer ? `${translateTeam(scorer.dom)} — ${translateTeam(scorer.ext)}` : key
-    if (key === 'euro') return euro ? `${translateTeam(euro.dom)} — ${translateTeam(euro.ext)}` : key
-    const prefix = key.startsWith('cdm_') ? 'cdm_' : 'l1_'
-    const idx = parseInt(key.replace(prefix,''))
-    const m = matchesL1[idx]
-    return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
-  }
-
-  const getVal = (uid, key) => {
+  const getProno = (uid, key) => {
     const p = pronos[uid]
     if (!p) return null
     const missile = missiles.find(m => m.cible === uid && m.matchKey === key && m.applique)
     if (missile) return { val: missile.pronoImpose, isMissile: true }
     if (key === 'scorer') return p.matchScorer ? { val: p.matchScorer } : null
     if (key === 'euro') return p.matchEuro ? { val: p.matchEuro } : null
-    const prefix = key.startsWith('cdm_') ? 'cdm_' : 'l1_'
-    const idx = parseInt(key.replace(prefix,''))
-    const arr = key.startsWith('cdm_') ? p.matchesCDM : p.matchesL1
+    const idx = parseInt(key.replace(isCDM ? 'cdm_' : 'l1_', ''))
+    const arr = isCDM ? p.matchesCDM : p.matchesL1
     return arr?.[idx] ? { val: arr[idx] } : null
   }
 
-  const hasBonus = (uid, key) => {
-    const p = pronos[uid]
-    if (!p) return null
-    if (p.jackpotMatch === key) return '🎰'
-    if (p.dcMatch === key) return '2️⃣'
-    return null
+  const getCorrect = (uid, key, isScorer) => {
+    const prono = getProno(uid, key)
+    const res = journee.resultats?.[key]
+    if (!prono || !res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY')) return null
+    const rh = parseInt(res.h), ra = parseInt(res.a)
+    if (isScorer) {
+      const [ph, pa] = (prono.val || '').split('-').map(Number)
+      if (ph === rh && pa === ra) return 'exact'
+      return Math.sign(ph - pa) === Math.sign(rh - ra) ? 'issue' : 'wrong'
+    }
+    const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
+    return prono.val === issue ? 'correct' : 'wrong'
   }
 
-  const calcPoints = (uid) => {
+  const getPtsMatch = (uid, key, isScorer) => {
     if (journee.statut !== 'resultats') return null
+    const prono = getProno(uid, key)
+    const res = journee.resultats?.[key]
+    if (!prono || !res || res.status !== 'FINISHED') return null
+    const rh = parseInt(res.h), ra = parseInt(res.a)
     const p = pronos[uid]
-    if (!p) return null
-    let pts = 0
-    cols.forEach(col => {
-      const prono = getVal(uid, col.key)
-      const res = journee.resultats?.[col.key]
-      if (!prono || !res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY')) return
-      const rh = parseInt(res.h), ra = parseInt(res.a)
-      if (col.isScorer) {
-        const [ph, pa] = (prono.val || '').split('-').map(Number)
-        if (ph === rh && pa === ra) pts += 3
-        else if (Math.sign(ph - pa) === Math.sign(rh - ra)) pts += 1
-      } else {
-        const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
-        if (prono.val === issue) {
-          const total = Object.keys(pronos).filter(u => getVal(u, col.key)?.val === issue).length
-          const allTotal = Object.keys(pronos).length
-          const ratio = allTotal > 0 ? total / allTotal : 1
-          let p2 = ratio <= 0.25 ? 2 : 1
-          if (p?.jackpotMatch === col.key) p2 *= 2
-          pts += p2
-        }
-      }
-    })
+    if (isScorer) {
+      const [ph, pa] = (prono.val || '').split('-').map(Number)
+      if (ph === rh && pa === ra) return 3
+      return Math.sign(ph - pa) === Math.sign(rh - ra) ? 1 : 0
+    }
+    const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
+    if (prono.val !== issue) return 0
+    const bonCount = Object.keys(pronos).filter(u => getProno(u, key)?.val === issue).length
+    const allTotal = Object.keys(pronos).length
+    const ratio = allTotal > 0 ? bonCount / allTotal : 1
+    let pts = ratio <= 0.25 ? 2 : 1
+    if (p?.jackpotMatch === key) pts *= 2
     return pts
   }
 
+  const getBonusLabel = (uid, key) => {
+    const p = pronos[uid]
+    if (!p) return null
+    if (p.jackpotMatch === key) return { icon: '🎰', label: 'Jackpot' }
+    if (p.dcMatch === key) return { icon: '2️⃣', label: 'DC' }
+    return null
+  }
+
+  // Trier joueurs : ceux qui ont proné en premier, ABS en bas
+  const joueursTriés = [...joueurs].sort((a, b) => {
+    const aHas = !!pronos[a.id]
+    const bHas = !!pronos[b.id]
+    if (aHas && !bHas) return -1
+    if (!aHas && bHas) return 1
+    return 0
+  })
+
   return (
-    <div style={{ padding:'16px 0 24px' }}>
+    <div style={{ padding:'16px 0 32px' }}>
       {/* Header */}
-      <div style={{ padding:'0 16px 12px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+      <div style={{ padding:'0 16px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <div>
           <div className="page-title" style={{ fontSize:26 }}>Pronos J{journee.numero}</div>
           <div style={{ fontSize:12, color:'var(--tx3)', marginTop:2 }}>{Object.keys(pronos).length} / {joueurs.length} joueurs</div>
@@ -196,200 +187,153 @@ export default function PronosChatteux() {
         </div>
       </div>
 
-      {/* Tableau scrollable */}
-      <div style={{ overflowX:'scroll', overflowY:'visible', WebkitOverflowScrolling:'touch', paddingBottom:8, width:'100%' }}>
-        <div style={{ display:'inline-block', minWidth: 160 + cols.length * 56 }}>
-        <table style={{ borderCollapse:'separate', borderSpacing:0, width:'100%' }}>
-          {/* Header matchs */}
-          <thead>
-            <tr>
-              <th style={{ position:'sticky', left:0, zIndex:2, background:'#07100C', padding:'8px 12px', textAlign:'left', fontSize:11, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', borderBottom:'1px solid var(--bd)', minWidth:90 }}>
-                Joueur
-              </th>
-              <th style={{ position:'sticky', left:90, zIndex:2, background:'#07100C', padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', fontSize:9, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', minWidth:40 }}>PTS</th>
-              {cols.map(col => {
-                const res = journee.resultats?.[col.key]
-                const hasScore = res && (res.status === 'FINISHED' || res.status === 'IN_PLAY')
-                return (
-                  <th key={col.key} style={{ padding:'4px 2px', textAlign:'center', borderBottom:'1px solid var(--bd)', background: col.isScorer ? 'rgba(96,165,250,.06)' : col.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(0,0,0,.2)', minWidth:50 }}>
-                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
-                      <div style={{ display:'flex', gap:1 }}>
-                        <TeamLogo name={col.dom} size={14} />
-                        <TeamLogo name={col.ext} size={14} />
-                      </div>
-                      <div style={{ fontSize:9, color: col.isScorer ? 'var(--b)' : col.isEuro ? 'var(--o)' : 'var(--tx3)', fontWeight:900 }}>
-                        {col.label}
-                      </div>
-                      {hasScore && (
-                        <div style={{ fontSize:11, fontFamily:'var(--D)', fontWeight:900, lineHeight:1, color: res.status === 'IN_PLAY' ? 'var(--g)' : 'var(--tx)', letterSpacing:'.02em' }}>
-                          {res.h}-{res.a}
-                        </div>
-                      )}
-                    </div>
-                  </th>
-                )
-              })}
-              <th style={{ padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', background:'rgba(0,0,0,.2)', fontSize:9, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', minWidth:60 }}>Bonus</th>
-              <th style={{ padding:'4px 6px', textAlign:'center', borderBottom:'1px solid var(--bd)', background:'rgba(248,113,113,.04)', fontSize:9, fontWeight:900, color:'var(--r)', textTransform:'uppercase', minWidth:140 }}>🚀 Missile</th>
-            </tr>
-          </thead>
+      {/* Blocs par match */}
+      <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'0 12px' }}>
+        {matchBlocks.map(match => {
+          const res = journee.resultats?.[match.key]
+          const hasScore = res && (res.status === 'FINISHED' || res.status === 'IN_PLAY')
+          const isLive = res?.status === 'IN_PLAY'
 
-          {/* Lignes joueurs */}
-          <tbody>
-            {joueurs.map(j => {
-              const isMe = j.id === profil?.id
-              const hasProno = !!pronos[j.id]
-              const missileLance = missiles.find(m => m.lanceur === j.id)
-              const missileRecu = missiles.find(m => m.cible === j.id)
-              const pts = calcPoints(j.id)
+          return (
+            <div key={match.key} style={{
+              borderRadius:'var(--R)',
+              border: `1px solid ${match.isScorer ? 'rgba(96,165,250,.15)' : match.isEuro ? 'rgba(251,146,60,.15)' : 'var(--bd)'}`,
+              overflow:'hidden',
+              background:'var(--bg2)',
+            }}>
+              {/* Header match */}
+              <div style={{
+                padding:'10px 14px',
+                background: match.isScorer ? 'rgba(96,165,250,.06)' : match.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(255,255,255,.03)',
+                borderBottom:'1px solid var(--bd)',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+              }}>
+                {/* Équipes */}
+                <div style={{ display:'flex', alignItems:'center', gap:10, flex:1 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <TeamLogo name={match.dom} size={22} />
+                    <span style={{ fontSize:12, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.03em' }}>
+                      {translateTeam(match.dom)}
+                    </span>
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--tx3)', fontWeight:700 }}>vs</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <TeamLogo name={match.ext} size={22} />
+                    <span style={{ fontSize:12, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.03em' }}>
+                      {translateTeam(match.ext)}
+                    </span>
+                  </div>
+                </div>
 
-              return (
-                <tr key={j.id}>
-                  {/* Nom joueur sticky */}
-                  <td style={{
-                    position:'sticky', left:0, zIndex:1,
-                    background: isMe ? 'rgba(155,226,45,.08)' : '#07100C',
-                    padding:'6px 10px', borderBottom:'1px solid rgba(255,255,255,.05)',
-                    minWidth:90,
+                {/* Score */}
+                {hasScore ? (
+                  <div style={{
+                    fontFamily:'var(--D)', fontSize:20, fontWeight:900, letterSpacing:'.04em',
+                    color: isLive ? 'var(--g)' : 'var(--tx)',
+                    padding:'4px 10px', borderRadius:'var(--Rs)',
+                    background: isLive ? 'rgba(155,226,45,.08)' : 'rgba(255,255,255,.05)',
+                    border: `1px solid ${isLive ? 'var(--g-b)' : 'var(--bd)'}`,
+                    display:'flex', alignItems:'center', gap:4,
                   }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <div className="av" style={{ width:24, height:24, fontSize:9, flexShrink:0, background: isMe?'var(--g-dim)':'rgba(255,255,255,.06)', color: isMe?'var(--g)':'var(--tx3)' }}>
-                        {j.initiales}
-                      </div>
-                      <div>
-                        <div style={{ fontSize:11, fontWeight:900, color: isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap' }}>
-                          {j.nom?.split(' ')[0]}
+                    {isLive && <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--g)', display:'inline-block', marginRight:2 }} />}
+                    {res.h} - {res.a}
+                  </div>
+                ) : (
+                  <div style={{ fontSize:11, color:'var(--tx3)', padding:'4px 8px', border:'1px solid var(--bd)', borderRadius:'var(--Rs)' }}>
+                    À venir
+                  </div>
+                )}
+              </div>
+
+              {/* Lignes joueurs */}
+              <div>
+                {joueursTriés.map((j, idx) => {
+                  const isMe = j.id === profil?.id
+                  const prono = getProno(j.id, match.key)
+                  const correct = getCorrect(j.id, match.key, match.isScorer)
+                  const pts = getPtsMatch(j.id, match.key, match.isScorer)
+                  const bonus = getBonusLabel(j.id, match.key)
+                  const missile = missiles.find(m => m.cible === j.id && m.matchKey === match.key)
+                  const missileLance = missiles.find(m => m.lanceur === j.id && m.matchKey === match.key)
+                  const hasProno = !!pronos[j.id]
+
+                  // Couleur bg ligne
+                  const bgLine = isMe
+                    ? 'rgba(155,226,45,.05)'
+                    : idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.01)'
+
+                  return (
+                    <div key={j.id} style={{
+                      display:'flex', alignItems:'center',
+                      padding:'7px 14px',
+                      borderBottom:'1px solid rgba(255,255,255,.03)',
+                      background: bgLine,
+                      gap:8,
+                    }}>
+                      {/* Avatar + nom */}
+                      <div style={{ display:'flex', alignItems:'center', gap:7, flex:1, minWidth:0 }}>
+                        <div className="av" style={{
+                          width:26, height:26, fontSize:9, flexShrink:0,
+                          background: isMe ? 'var(--g-dim)' : 'rgba(255,255,255,.06)',
+                          color: isMe ? 'var(--g)' : 'var(--tx3)',
+                        }}>
+                          {j.initiales}
                         </div>
-                        {!hasProno && <div style={{ fontSize:9, color:'var(--r)', fontWeight:900 }}>ABS</div>}
+                        <div style={{ minWidth:0 }}>
+                          <div style={{ fontSize:12, fontWeight:900, color: isMe ? 'var(--g)' : 'var(--tx)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                            {j.nom?.split(' ')[0]}
+                          </div>
+                          {!hasProno && <div style={{ fontSize:9, color:'var(--r)', fontWeight:900, lineHeight:1 }}>ABS</div>}
+                        </div>
                       </div>
-                    </div>
-                  </td>
 
-                  {/* Colonne PTS sticky */}
-                  <td style={{
-                    position:'sticky', left:90, zIndex:1,
-                    background: isMe ? 'rgba(155,226,45,.08)' : '#07100C',
-                    padding:'4px 6px', borderBottom:'1px solid rgba(255,255,255,.05)',
-                    textAlign:'center', verticalAlign:'middle', minWidth:40,
-                  }}>
-                    {pts !== null ? (
-                      <div style={{ fontFamily:'var(--D)', fontSize:16, fontWeight:900, color: pts >= 8 ? '#FFD700' : pts >= 4 ? 'var(--g)' : 'var(--tx)', lineHeight:1 }}>
-                        {pts}
-                      </div>
-                    ) : (
-                      <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
-                    )}
-                  </td>
-
-                  {/* Cellules pronos */}
-                  {cols.map(col => {
-                    const prono = getVal(j.id, col.key)
-                    const bonus = hasBonus(j.id, col.key)
-                    const resultScore = journee.resultats?.[col.key]
-
-                    let correct = null
-                    if (resultScore && prono && (resultScore.status === 'FINISHED' || resultScore.status === 'IN_PLAY')) {
-                      const rh = resultScore.h, ra = resultScore.a
-                      if (col.isScorer) {
-                        const [ph, pa] = (prono.val || '').split('-').map(Number)
-                        correct = ph === rh && pa === ra ? 'exact' : (Math.sign(ph-pa) === Math.sign(rh-ra) ? 'issue' : 'wrong')
-                      } else {
-                        const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
-                        correct = prono.val === issue ? 'correct' : 'wrong'
-                      }
-                    }
-
-                    return (
-                      <td key={col.key} style={{
-                        textAlign:'center', padding:'4px 2px',
-                        borderBottom:'1px solid rgba(255,255,255,.05)',
-                        background: prono?.isMissile ? 'rgba(248,113,113,.06)' : col.isScorer ? 'rgba(96,165,250,.03)' : col.isEuro ? 'rgba(251,146,60,.03)' : 'transparent',
-                      }}>
+                      {/* Prono + bonus + missile */}
+                      <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                        {bonus && (
+                          <div style={{ fontSize:14, lineHeight:1 }} title={bonus.label}>{bonus.icon}</div>
+                        )}
+                        {missile && (
+                          <div style={{ fontSize:11, color:'var(--r)', fontWeight:700 }} title="Missile reçu">🚀</div>
+                        )}
+                        {missileLance && !missile && (
+                          <div style={{ fontSize:11, color:'var(--a)', fontWeight:700 }} title="Missile lancé">↗🚀</div>
+                        )}
                         {prono ? (
                           <div style={{
-                            display:'inline-flex', flexDirection:'column', alignItems:'center',
-                            padding:'3px 5px', borderRadius:6, minWidth:38,
-                            background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.08)' : correct === 'wrong' ? 'rgba(248,113,113,.08)' : 'rgba(255,255,255,.04)',
-                            border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.5)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.15)' : correct === 'wrong' ? 'var(--r-b)' : 'rgba(255,255,255,.06)'}`,
+                            fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
+                            minWidth:42, textAlign:'center',
+                            padding:'4px 8px', borderRadius:'var(--Rs)',
+                            color: correct === 'exact' ? '#FFD700' : correct === 'correct' || correct === 'issue' ? 'var(--g)' : correct === 'wrong' ? 'var(--r)' : prono.isMissile ? 'var(--r)' : match.isScorer ? 'var(--b)' : 'var(--tx)',
+                            background: correct === 'exact' ? 'rgba(255,200,0,.12)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.08)' : correct === 'wrong' ? 'rgba(248,113,113,.08)' : 'rgba(255,255,255,.04)',
+                            border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.4)' : correct === 'correct' || correct === 'issue' ? 'rgba(155,226,45,.15)' : correct === 'wrong' ? 'var(--r-b)' : 'rgba(255,255,255,.06)'}`,
                           }}>
-                            <div style={{
-                              fontFamily:'var(--D)', fontSize:16, letterSpacing:'.04em',
-                              color: correct === 'exact' ? '#FFD700' : prono.isMissile ? 'var(--r)' : col.isScorer ? 'var(--b)' : 'var(--tx)',
-                              lineHeight:1,
-                            }}>
-                              {prono.val}
-                            </div>
-                            {bonus && <div style={{ fontSize:9, lineHeight:1 }}>{bonus}</div>}
-                            {prono.isMissile && <div style={{ fontSize:9, color:'var(--r)', lineHeight:1 }}>🚀</div>}
+                            {prono.val}
+                          </div>
+                        ) : (
+                          <div style={{ minWidth:42, textAlign:'center', color:'var(--bd2)', fontSize:16 }}>—</div>
+                        )}
+                      </div>
+
+                      {/* Points */}
+                      <div style={{ width:32, textAlign:'right', flexShrink:0 }}>
+                        {pts !== null ? (
+                          <div style={{
+                            fontFamily:'var(--D)', fontSize:15, fontWeight:900,
+                            color: pts === 0 ? 'var(--tx3)' : pts >= 3 ? '#FFD700' : 'var(--g)',
+                          }}>
+                            +{pts}
                           </div>
                         ) : (
                           <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
                         )}
-                      </td>
-                    )
-                  })}
-
-                  {/* Colonne BONUS */}
-                  <td style={{ textAlign:'center', padding:'4px 6px', borderBottom:'1px solid rgba(255,255,255,.05)', verticalAlign:'middle' }}>
-                    {hasProno ? (
-                      <div style={{ display:'flex', flexDirection:'column', gap:2, alignItems:'center' }}>
-                        {pronos[j.id]?.jackpotMatch && (
-                          <div style={{ fontSize:10, color:'var(--tx2)' }}>
-                            <span style={{ fontSize:12 }}>🎰</span> {getMatchName(pronos[j.id].jackpotMatch)}
-                          </div>
-                        )}
-                        {pronos[j.id]?.dcMatch && (
-                          <div style={{ fontSize:10, color:'var(--tx2)' }}>
-                            <span style={{ fontSize:12 }}>2️⃣</span> {getMatchName(pronos[j.id].dcMatch)}
-                          </div>
-                        )}
-                        {!pronos[j.id]?.jackpotMatch && !pronos[j.id]?.dcMatch && (
-                          <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
-                        )}
                       </div>
-                    ) : (
-                      <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
-                    )}
-                  </td>
-
-                  {/* Colonne MISSILE */}
-                  <td style={{ textAlign:'center', padding:'4px 8px', borderBottom:'1px solid rgba(255,255,255,.05)', verticalAlign:'middle', background:'rgba(248,113,113,.02)' }}>
-                    {missileLance ? (
-                      <div style={{ fontSize:10, lineHeight:1.5 }}>
-                        <div style={{ color:'var(--r)', fontWeight:700, whiteSpace:'nowrap' }}>
-                          ↗ <strong>{joueursById[missileLance.cible]?.nom?.split(' ')[0] || '?'}</strong>
-                        </div>
-                        <div style={{ color:'var(--tx3)', fontSize:9 }}>
-                          {getMatchName(missileLance.matchKey)} → <strong style={{ color:'var(--tx2)' }}>{missileLance.pronoImpose}</strong>
-                        </div>
-                        {missileLance.applique
-                          ? <div style={{ color:'var(--g)', fontSize:9, fontWeight:700 }}>✓ appliqué</div>
-                          : <div style={{ color:'var(--a)', fontSize:9 }}>⏳ en attente</div>
-                        }
-                      </div>
-                    ) : missileRecu ? (
-                      <div style={{ fontSize:10, lineHeight:1.5 }}>
-                        <div style={{ color:'var(--a)', fontWeight:700, whiteSpace:'nowrap' }}>
-                          ↙ <strong>{joueursById[missileRecu.lanceur]?.nom?.split(' ')[0] || '?'}</strong>
-                        </div>
-                        <div style={{ color:'var(--tx3)', fontSize:9 }}>
-                          {getMatchName(missileRecu.matchKey)} → <strong style={{ color:'var(--r)' }}>{missileRecu.pronoImpose}</strong>
-                        </div>
-                        {missileRecu.applique
-                          ? <div style={{ color:'var(--g)', fontSize:9, fontWeight:700 }}>✓ appliqué</div>
-                          : <div style={{ color:'var(--a)', fontSize:9 }}>⏳ en attente</div>
-                        }
-                      </div>
-                    ) : (
-                      <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-        </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
