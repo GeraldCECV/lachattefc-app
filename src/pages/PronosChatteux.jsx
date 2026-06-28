@@ -114,9 +114,9 @@ export default function PronosChatteux() {
   const getCorrect = (uid, key, isScorer) => {
     const prono = getProno(uid, key)
     const res = journee.resultats?.[key]
-    if (!prono || !res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY')) return null
+    if (!prono || !res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY' && res.status !== 'PAUSED')) return null
     const rh = parseInt(res.h), ra = parseInt(res.a)
-    if (isScorer) {
+    if (isScorer || journee.scorerOnly) {
       const [ph, pa] = (prono.val || '').split('-').map(Number)
       if (ph === rh && pa === ra) return 'exact'
       return Math.sign(ph - pa) === Math.sign(rh - ra) ? 'issue' : 'wrong'
