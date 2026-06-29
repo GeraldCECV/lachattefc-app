@@ -130,12 +130,13 @@ export default function PronosChatteux() {
     if (journee.statut !== 'resultats' && journee.statut !== 'fermee') return null
     const prono = getProno(uid, key)
     const res = journee.resultats?.[key]
-    if (!prono || !res || res.status !== 'FINISHED') return null
+    if (!prono || !res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY' && res.status !== 'PAUSED')) return null
     const rh = parseInt(res.h), ra = parseInt(res.a)
     const p = pronos[uid]
-    if (isScorer) {
+    if (isScorer || journee.scorerOnly || matchBlocks.find(b => b.key === key)?.isMatchScorer) {
       const [ph, pa] = (prono.val || '').split('-').map(Number)
       if (ph === rh && pa === ra) return 3
+      if ((ph - pa) === (rh - ra)) return 2
       return Math.sign(ph - pa) === Math.sign(rh - ra) ? 1 : 0
     }
     const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
