@@ -312,6 +312,11 @@ export default function Pronos() {
     if (!journee) return key
     if (key === 'scorer') return `⚽ ${journee.matchScorer?.dom||'?'} — ${journee.matchScorer?.ext||'?'}`
     if (key === 'euro') return `🌍 ${journee.matchEuro?.dom||'?'} — ${journee.matchEuro?.ext||'?'}`
+    if (key.startsWith('cdm_')) {
+      const i = parseInt(key.replace('cdm_',''))
+      const m = journee.matchesCDM?.[i]
+      return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
+    }
     const i = parseInt(key.replace('l1_',''))
     const m = journee.matchesL1?.[i]
     return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
