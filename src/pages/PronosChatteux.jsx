@@ -258,11 +258,15 @@ export default function PronosChatteux() {
                       </div>
                     )}
                     {res.status === 'FINISHED' && (
-                      <div style={{ fontSize:10, color:'var(--tx3)', fontWeight:700, lineHeight:1 }}>Terminé</div>
+                      <div style={{ fontSize:10, fontWeight:900, letterSpacing:'.06em', color:'var(--tx3)', lineHeight:1 }}>Terminé</div>
                     )}
                   </div>
                 ) : (
-                  <div style={{ fontSize:11, color:'var(--tx3)', padding:'4px 8px', border:'1px solid var(--bd)', borderRadius:'var(--Rs)' }}>
+                  <div style={{
+                    padding:'3px 10px', borderRadius:20, fontSize:10, fontWeight:900, letterSpacing:'.06em',
+                    background:'rgba(255,255,255,.05)', border:'1px solid var(--bd)',
+                    color:'var(--tx3)',
+                  }}>
                     À venir
                   </div>
                 )}
