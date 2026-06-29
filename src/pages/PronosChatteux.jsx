@@ -242,7 +242,7 @@ export default function PronosChatteux() {
                 {hasScore ? (
                   <div style={{
                     fontFamily:'var(--D)', fontSize:20, fontWeight:900, letterSpacing:'.04em',
-                    color: isLive ? 'var(--g)' : 'var(--tx)',
+                    color: isLive ? 'var(--tx)' : 'var(--tx)',
                     padding:'4px 10px', borderRadius:'var(--Rs)',
                     background: isLive ? 'rgba(155,226,45,.08)' : 'rgba(255,255,255,.05)',
                     border: `1px solid ${isLive ? 'var(--g-b)' : 'var(--bd)'}`,
