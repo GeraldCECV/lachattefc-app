@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, addDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
 import { translateTeam } from '../utils/teamName'
@@ -265,6 +266,32 @@ export default function Pronos() {
       setExistingProno(data)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
+
+      // Envoyer email de confirmation
+      try {
+        const joueurSnap2 = await getDoc(doc(db,'joueurs',user.uid))
+        const joueurData = joueurSnap2.data()
+        if (joueurData?.email) {
+          const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
+          await fn({
+            journeeId: journee.id,
+            journeeNumero: journee.numero,
+            joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
+            joueurEmail: joueurData.email,
+            pronos: [...(pronos.matchesL1 || [])],
+            matchesCDM: journee.type === 'cdm' ? (journee.matchesCDM || []) : null,
+            matchesL1: journee.type !== 'cdm' ? (journee.matchesL1 || []) : null,
+            matchScorer: journee.matchScorer || null,
+            matchEuro: journee.matchEuro || null,
+            scorerOnly: journee.scorerOnly || false,
+            jackpotMatch: jackpotMatch || null,
+            dcMatch: dcMatch || null,
+            dcChoices: dcChoices || [],
+          })
+        }
+      } catch(emailErr) {
+        console.warn('Email non envoyé:', emailErr.message)
+      }
     } catch(e) { alert('Erreur : '+e.message) }
     setSaving(false)
   }
