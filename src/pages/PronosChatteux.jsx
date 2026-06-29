@@ -330,7 +330,7 @@ export default function PronosChatteux() {
                               {bonus.icon} {bonus.label}
                             </div>
                           )}
-                          {missile && (
+                          {missile ? (
                             <div style={{
                               display:'flex', alignItems:'center', gap:3,
                               padding:'2px 6px', borderRadius:20,
@@ -340,8 +340,7 @@ export default function PronosChatteux() {
                             }}>
                               🚀 {joueurs.find(u => u.id === missile.lanceur)?.nom?.split(' ')[0] || '?'}
                             </div>
-                          )}
-                          {missileLance && (
+                          ) : missileLance ? (
                             <div style={{
                               display:'flex', alignItems:'center', gap:3,
                               padding:'2px 6px', borderRadius:20,
@@ -349,9 +348,9 @@ export default function PronosChatteux() {
                               border:'1px solid rgba(251,146,60,.3)',
                               fontSize:10, fontWeight:700, color:'var(--o)',
                             }}>
-                              ↗🚀 {joueurs.find(u => u.id === missileLance.cible)?.nom?.split(' ')[0] || '?'}
+                              ↗ {joueurs.find(u => u.id === missileLance.cible)?.nom?.split(' ')[0] || '?'}
                             </div>
-                          )}
+                          ) : null}
                         </div>
                         {/* Prono */}
                         {prono ? (
