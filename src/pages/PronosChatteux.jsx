@@ -95,7 +95,7 @@ export default function PronosChatteux() {
   // Construire la liste des matchs à afficher
   const matchBlocks = [
     scorer?.dom ? { key:'scorer', dom: scorer.dom, ext: scorer.ext, isScorer: true, label: '⚽ Match Scorer' } : null,
-    ...matchesMain.map((m, i) => ({ key: isCDM ? `cdm_${i}` : `l1_${i}`, dom: m.dom, ext: m.ext, label: `Match ${i+1}` })),
+    ...matchesMain.map((m, i) => ({ key: isCDM ? `cdm_${i}` : `l1_${i}`, dom: m.dom, ext: m.ext, label: `Match ${i+1}`, isMatchScorer: m.scorer === true })),
     euro ? { key:'euro', dom: euro.dom, ext: euro.ext, isEuro: true, label: '🌍 Match Euro' } : null,
   ].filter(Boolean)
 
@@ -116,7 +116,7 @@ export default function PronosChatteux() {
     const res = journee.resultats?.[key]
     if (!prono || !res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY' && res.status !== 'PAUSED')) return null
     const rh = parseInt(res.h), ra = parseInt(res.a)
-    if (isScorer || journee.scorerOnly) {
+    if (isScorer || journee.scorerOnly || matchBlocks.find(b => b.key === key)?.isMatchScorer) {
       const [ph, pa] = (prono.val || '').split('-').map(Number)
       if (ph === rh && pa === ra) return 'exact'
       if ((ph - pa) === (rh - ra)) return 'ecart'
