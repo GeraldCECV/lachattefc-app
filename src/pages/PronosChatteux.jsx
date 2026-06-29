@@ -119,6 +119,7 @@ export default function PronosChatteux() {
     if (isScorer || journee.scorerOnly) {
       const [ph, pa] = (prono.val || '').split('-').map(Number)
       if (ph === rh && pa === ra) return 'exact'
+      if ((ph - pa) === (rh - ra)) return 'ecart'
       return Math.sign(ph - pa) === Math.sign(rh - ra) ? 'issue' : 'wrong'
     }
     const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
@@ -342,9 +343,9 @@ export default function PronosChatteux() {
                             fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
                             minWidth:42, textAlign:'center',
                             padding:'4px 8px', borderRadius:'var(--Rs)',
-                            color: correct === 'exact' ? '#FFD700' : correct === 'correct' || correct === 'issue' ? '#9BE22D' : correct === 'wrong' ? '#FF4444' : prono.isMissile ? '#FF4444' : match.isScorer ? 'var(--b)' : 'var(--tx)',
-                            background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'correct' ? 'rgba(155,226,45,.18)' : correct === 'issue' ? 'rgba(251,146,60,.18)' : correct === 'wrong' ? 'rgba(255,68,68,.18)' : 'rgba(255,255,255,.04)',
-                            border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.6)' : correct === 'correct' ? 'rgba(155,226,45,.5)' : correct === 'issue' ? 'rgba(251,146,60,.5)' : correct === 'wrong' ? 'rgba(255,68,68,.5)' : 'rgba(255,255,255,.06)'}`,
+                            color: correct === 'exact' ? '#FFD700' : correct === 'ecart' ? '#9BE22D' : correct === 'correct' ? '#9BE22D' : correct === 'issue' ? '#FB923C' : correct === 'wrong' ? '#FF4444' : prono.isMissile ? '#FF4444' : match.isScorer ? 'var(--b)' : 'var(--tx)',
+                            background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.18)' : correct === 'issue' ? 'rgba(251,146,60,.18)' : correct === 'wrong' ? 'rgba(255,68,68,.18)' : 'rgba(255,255,255,.04)',
+                            border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.6)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.5)' : correct === 'issue' ? 'rgba(251,146,60,.5)' : correct === 'wrong' ? 'rgba(255,68,68,.5)' : 'rgba(255,255,255,.06)'}`,
                           }}>
                             {prono.val}
                           </div>
