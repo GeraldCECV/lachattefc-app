@@ -651,7 +651,7 @@ export default function Pronos() {
       <div className="section-lbl" style={{padding:'8px 20px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {(journee.matchesL1||[]).length} matchs {journee.scorerOnly ? 'scorer' : '1N2'}</div>
       {(journee.matchesL1||[]).map((m, i) => {
         if (!m?.dom) return null
-        const key = `l1_${i}`
+        const key = journee.type === 'cdm' ? `cdm_${i}` : `l1_${i}`
         const sel = pronos.matchesL1?.[i]
         const isJP = jackpotMatch === key
         const isDC = dcMatch === key
