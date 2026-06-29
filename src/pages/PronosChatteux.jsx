@@ -127,7 +127,7 @@ export default function PronosChatteux() {
   }
 
   const getPtsMatch = (uid, key, isScorer) => {
-    if (journee.statut !== 'resultats') return null
+    if (journee.statut !== 'resultats' && journee.statut !== 'fermee') return null
     const prono = getProno(uid, key)
     const res = journee.resultats?.[key]
     if (!prono || !res || res.status !== 'FINISHED') return null
