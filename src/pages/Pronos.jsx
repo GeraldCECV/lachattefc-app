@@ -143,9 +143,10 @@ export default function Pronos() {
   const countFilled = () => {
     let n = 0
     if (journee?.type === 'cdm') {
-      ;(pronos.matchesL1||[]).forEach(p => {
-        if (journee.scorerOnly) {
-          // Score valide : deux parties séparées par - avec au moins un chiffre chacune
+      ;(pronos.matchesL1||[]).forEach((p, i) => {
+        const m = journee.matchesL1?.[i]
+        const isMatchScorer = journee.scorerOnly || m?.scorer
+        if (isMatchScorer) {
           if (p && /^\d+-\d+$/.test(p)) n++
         } else {
           if (p) n++
@@ -657,7 +658,7 @@ export default function Pronos() {
         const isSelectingBonus = activeBonus?.type === 'jackpot' || activeBonus?.type === 'dc'
 
         // Mode scorer uniquement
-        if (journee.scorerOnly) {
+        if (journee.scorerOnly || m.scorer) {
           const parts = (sel || '').split('-')
           const domScore = parts[0] || ''
           const extScore = parts[1] || ''
