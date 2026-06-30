@@ -208,32 +208,32 @@ export default function PronosChatteux() {
                 padding:'10px 14px',
                 background: match.isScorer ? 'rgba(96,165,250,.06)' : match.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(255,255,255,.03)',
                 borderBottom:'1px solid var(--bd)',
-                display:'flex', alignItems:'center', justifyContent:'space-between',
+                display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:8,
               }}>
                 {/* Équipes */}
-                <div style={{ display:'flex', alignItems:'center', gap:10, flex:1 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <TeamLogo name={match.dom} size={22} />
-                    <span style={{ fontSize:12, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.03em' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6, flex:'1 1 auto', minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
+                    <TeamLogo name={match.dom} size={20} />
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                       {translateTeam(match.dom)}
                     </span>
                   </div>
-                  <div style={{ fontSize:11, color:'var(--tx3)', fontWeight:700 }}>vs</div>
-                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <TeamLogo name={match.ext} size={22} />
-                    <span style={{ fontSize:12, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.03em' }}>
+                  <div style={{ fontSize:10, color:'var(--tx3)', fontWeight:700, flexShrink:0 }}>vs</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
+                    <TeamLogo name={match.ext} size={20} />
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                       {translateTeam(match.ext)}
                     </span>
                   </div>
                   {isLive && (
                     <div style={{
-                      display:'flex', alignItems:'center', gap:4,
-                      padding:'2px 7px', borderRadius:20,
+                      display:'flex', alignItems:'center', gap:3, flexShrink:0,
+                      padding:'2px 6px', borderRadius:20,
                       background:'rgba(248,68,68,.15)', border:'1px solid rgba(248,68,68,.4)',
-                      fontSize:10, fontWeight:900, color:'#FF4444', letterSpacing:'.08em',
+                      fontSize:9, fontWeight:900, color:'#FF4444', letterSpacing:'.06em',
                       animation:'pulse 1.5s infinite',
                     }}>
-                      <span style={{ width:5, height:5, borderRadius:'50%', background:'#FF4444', display:'inline-block' }} />
+                      <span style={{ width:4, height:4, borderRadius:'50%', background:'#FF4444', display:'inline-block' }} />
                       LIVE
                     </div>
                   )}
@@ -242,15 +242,15 @@ export default function PronosChatteux() {
                 {/* Score */}
                 {hasScore ? (
                   <div style={{
-                    fontFamily:'var(--D)', fontSize:20, fontWeight:900, letterSpacing:'.04em',
+                    fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
                     color: isLive ? 'var(--tx)' : 'var(--tx)',
-                    padding:'4px 10px', borderRadius:'var(--Rs)',
+                    padding:'4px 9px', borderRadius:'var(--Rs)', flexShrink:0,
                     background: isLive ? 'rgba(155,226,45,.08)' : 'rgba(255,255,255,.05)',
                     border: `1px solid ${isLive ? 'var(--g-b)' : 'var(--bd)'}`,
                     display:'flex', flexDirection:'column', alignItems:'center', gap:2,
                   }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                      {isLive && <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--g)', display:'inline-block' }} />}
+                    <div style={{ display:'flex', alignItems:'center', gap:4, whiteSpace:'nowrap' }}>
+                      {isLive && <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--g)', display:'inline-block', flexShrink:0 }} />}
                       {res.h} - {res.a}
                     </div>
                     {isLive && res.elapsed !== undefined && res.elapsed !== null && (
@@ -394,4 +394,5 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
