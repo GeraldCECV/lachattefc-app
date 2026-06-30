@@ -123,7 +123,7 @@ export default function Classement() {
           <div className="page-title">Classement</div>
           <div className="page-sub">Saison 26/27</div>
         </div>
-        {lastUpdate && (
+        {journee && ['ouverte','fermee'].includes(journee.statut) && Object.values(journee.resultats||{}).some(r => r?.status === 'IN_PLAY' || r?.status === 'PAUSED') && (
           <div className="live">
             <div className="live-dot"></div>
             Live
@@ -316,6 +316,7 @@ export default function Classement() {
     </div>
   )
 }
+
 
 
 
