@@ -886,6 +886,11 @@ export default function Pronos() {
           }
         </button>
         {filled < 10 && <div style={{textAlign:'center',fontSize:12,color:'var(--tx3)',marginTop:8}}>Renseigne les {10-filled} matchs restants</div>}
+
+        {/* DEBUG TEMPORAIRE - à retirer après diagnostic */}
+        <div style={{marginTop:16,padding:12,background:'#1a0000',border:'1px solid #500',borderRadius:8,fontSize:10,color:'#f88',fontFamily:'monospace',whiteSpace:'pre-wrap'}}>
+          {`DEBUG filled=${filled} total=${total}\nmatchesL1=${JSON.stringify(pronos.matchesL1)}\nmissileUsed=${missileUsed} bonusStock=${JSON.stringify(bonusStock)}\nscorerFlags=${JSON.stringify((journee?.matchesL1||[]).map(m=>m?.scorer))}`}
+        </div>
       </div>
     </div>
   )
