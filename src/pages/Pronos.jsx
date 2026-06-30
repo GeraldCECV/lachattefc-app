@@ -147,17 +147,23 @@ export default function Pronos() {
       ;(pronos.matchesL1||[]).forEach((p, i) => {
         const m = journee.matchesL1?.[i]
         const isMatchScorer = journee.scorerOnly || m?.scorer
+        const key = journee.type === 'cdm' ? `cdm_${i}` : `l1_${i}`
+        const isDcOnThisMatch = dcMatch === key && dcChoices.length === 2
         if (isMatchScorer) {
           if (p && /^\d+-\d+$/.test(p)) n++
         } else {
-          if (p) n++
+          if (p || isDcOnThisMatch) n++
         }
       })
       return n
     }
     if (pronos.matchScorer || (scorerH !== null)) n++
     if (pronos.matchEuro) n++
-    ;(pronos.matchesL1||[]).forEach(p => { if (p) n++ })
+    ;(pronos.matchesL1||[]).forEach((p, i) => {
+      const key = `l1_${i}`
+      const isDcOnThisMatch = dcMatch === key && dcChoices.length === 2
+      if (p || isDcOnThisMatch) n++
+    })
     return n
   }
 
