@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useUser } from '../App'
-import Vestiaire from '../pages/Vestiaire'
 import Pronos from '../pages/Pronos'
 import PronosChatteux from '../pages/PronosChatteux'
 import Classement from '../pages/Classement'
@@ -33,11 +32,10 @@ const TABS = [
 
 export default function AppShell() {
   const [tab, setTab] = useState('pronos')
-  const [showProfil, setShowProfil] = useState(false)
   const { profil } = useUser()
 
   const pages = {
-    vestiaire:  <Vestiaire onNavigate={setTab} onProfil={() => setShowProfil(true)} profil={profil} />,
+    vestiaire:  <Profil />,
     pronos:     <Pronos />,
     chatteux:   <PronosChatteux />,
     classement: <Classement />,
@@ -47,38 +45,6 @@ export default function AppShell() {
 
   return (
     <div className="app-shell">
-
-      {/* Profil modal */}
-      {showProfil && (
-        <div style={{
-          position:'fixed', inset:0, zIndex:500,
-          background:'linear-gradient(180deg, rgba(7,16,12,.99), rgba(5,10,8,.99))',
-          overflowY:'auto', overflowX:'hidden',
-          WebkitOverflowScrolling:'touch',
-          paddingTop:'env(safe-area-inset-top)',
-          paddingBottom:'calc(env(safe-area-inset-bottom) + 20px)',
-        }}>
-          <div style={{
-            position:'fixed', top:'env(safe-area-inset-top)', right:0, left:0,
-            display:'flex', justifyContent:'space-between', alignItems:'center',
-            padding:'12px 20px',
-            background:'rgba(7,16,12,.98)',
-            borderBottom:'1px solid var(--bd)',
-            zIndex:600,
-          }}>
-            <div className="page-title" style={{ fontSize:26 }}>Profil</div>
-            <button onClick={() => setShowProfil(false)} style={{
-              background:'var(--r-dim)', border:'1px solid var(--r-b)',
-              borderRadius:10, padding:'9px 18px',
-              color:'#FCA5A5', cursor:'pointer',
-              fontSize:13, fontWeight:900,
-              textTransform:'uppercase', letterSpacing:'.04em',
-            }}>✕ Fermer</button>
-          </div>
-          <div style={{ height:58 }} />
-          <Profil />
-        </div>
-      )}
 
       <div className="screen-content">
         {pages[tab]}
