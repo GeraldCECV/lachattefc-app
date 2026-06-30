@@ -70,17 +70,17 @@ export default function Profil() {
                 `${prenom}, les gains t'attendent 💸`,
                 `${prenom}, la Ligue 1 n'a qu'à bien se tenir ⚡`,
               ]
-              const key = 'lachattefc_welcome_msg'
-              const prevKey = 'lachattefc_welcome_msg_prev'
-              let msg = sessionStorage.getItem(key)
-              if (!msg) {
+              const key = 'lachattefc_welcome_msg_idx'
+              const prevKey = 'lachattefc_welcome_msg_prev_idx'
+              let idx = sessionStorage.getItem(key)
+              if (idx === null) {
                 const prev = sessionStorage.getItem(prevKey)
-                const available = msgs.filter(m => m !== prev)
-                msg = available[Math.floor(Math.random() * available.length)]
-                sessionStorage.setItem(prevKey, msg)
-                sessionStorage.setItem(key, msg)
+                const available = msgs.map((_, i) => i).filter(i => String(i) !== prev)
+                idx = available[Math.floor(Math.random() * available.length)]
+                sessionStorage.setItem(prevKey, String(idx))
+                sessionStorage.setItem(key, String(idx))
               }
-              return msg
+              return msgs[parseInt(idx)]
             })()}</div>
           </div>
 
@@ -207,4 +207,5 @@ export default function Profil() {
     </div>
   )
 }
+
 
