@@ -164,13 +164,6 @@ export default function Classement() {
       if (unsubMissiles) unsubMissiles()
     }
   }, [])
-        })
-      }
-      setLoading(false)
-    }
-    load()
-    return () => { if (unsub) unsub() }
-  }, [])
 
   useEffect(() => {
     if (tab !== 'historique') return
@@ -427,6 +420,7 @@ export default function Classement() {
     </div>
   )
 }
+
 
 
 
