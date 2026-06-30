@@ -11,7 +11,7 @@ import Profil from '../pages/Profil'
 function TabIcon({ name, size = 22 }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }
   const paths = {
-    vestiaire:   <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
+    vestiaire:   <><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></>,
     pronos:      <><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/><path d="M9 12h6"/><path d="M9 16h4"/></>,
     chatteux:    <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
     classement:  <><polyline points="18 20 18 10"/><polyline points="12 20 12 4"/><polyline points="6 20 6 14"/></>,
@@ -23,7 +23,7 @@ function TabIcon({ name, size = 22 }) {
 }
 
 const TABS = [
-  { id: 'vestiaire',  ico: 'vestiaire',  lbl: 'Vestiaire' },
+  { id: 'vestiaire',  ico: 'vestiaire',  lbl: 'Profil' },
   { id: 'pronos',     ico: 'pronos',     lbl: 'Fais tes pronos' },
   { id: 'chatteux',   ico: 'live',       lbl: 'Live' },
   { id: 'classement', ico: 'classement', lbl: 'Classement' },
