@@ -272,6 +272,15 @@ export default function Pronos() {
         const joueurSnap2 = await getDoc(doc(db,'joueurs',user.uid))
         const joueurData = joueurSnap2.data()
         if (joueurData?.email) {
+          // Récupérer les missiles lancés par ce joueur sur cette journée
+          const missilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
+          const mesMissiles = missilesSnap.docs
+            .map(d => d.data())
+            .filter(m => m.lanceur === user.uid)
+            .map(m => {
+              const cibleJoueur = joueurs.find(j => j.id === m.cible)
+              return { cibleNom: cibleJoueur?.nom?.split(' ')[0] || 'un joueur', matchKey: m.matchKey, pronoImpose: m.pronoImpose }
+            })
           const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
           await fn({
             journeeId: journee.id,
@@ -287,6 +296,7 @@ export default function Pronos() {
             jackpotMatch: jackpotMatch || null,
             dcMatch: dcMatch || null,
             dcChoices: dcChoices || [],
+            missiles: mesMissiles,
           })
         }
       } catch(emailErr) {
