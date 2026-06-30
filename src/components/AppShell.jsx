@@ -17,6 +17,7 @@ function TabIcon({ name, size = 22 }) {
     classement:  <><polyline points="18 20 18 10"/><polyline points="12 20 12 4"/><polyline points="6 20 6 14"/></>,
     bonus:       <><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></>,
     reglement:   <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>,
+    live:        <><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/></>,
   }
   return <svg {...common}>{paths[name]}</svg>
 }
@@ -24,7 +25,7 @@ function TabIcon({ name, size = 22 }) {
 const TABS = [
   { id: 'vestiaire',  ico: 'vestiaire',  lbl: 'Vestiaire' },
   { id: 'pronos',     ico: 'pronos',     lbl: 'Fais tes pronos' },
-  { id: 'chatteux',   ico: 'chatteux',   lbl: 'Les Pronos' },
+  { id: 'chatteux',   ico: 'live',       lbl: 'Live' },
   { id: 'classement', ico: 'classement', lbl: 'Classement' },
   { id: 'bonus',      ico: 'bonus',      lbl: 'Bonus' },
   { id: 'reglement',  ico: 'reglement',  lbl: 'Règles' },
@@ -97,4 +98,5 @@ export default function AppShell() {
     </div>
   )
 }
+
 
