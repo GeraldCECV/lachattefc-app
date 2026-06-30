@@ -56,6 +56,34 @@ export default function Profil() {
         </div>
       ) : (
         <>
+          {/* Message de bienvenue */}
+          <div style={{ padding:'16px 16px 0' }}>
+            <div className="page-sub">{(() => {
+              const prenom = profil?.nom?.split(' ')[0] || profil?.initiales || ''
+              const msgs = [
+                `Salut ${prenom} 👋`,
+                `Prêt à tout rafler ${prenom} ? 💰`,
+                `${prenom}, les matchs t'attendent ⚽`,
+                `Alors ${prenom}, on sent le champion ? 🏆`,
+                `${prenom}, montre-leur de quoi t'es capable 🔥`,
+                `${prenom}, t'es le meilleur pronostiqueur de la Chatte ? 🐱`,
+                `${prenom}, les gains t'attendent 💸`,
+                `${prenom}, la Ligue 1 n'a qu'à bien se tenir ⚡`,
+              ]
+              const key = 'lachattefc_welcome_msg'
+              const prevKey = 'lachattefc_welcome_msg_prev'
+              let msg = sessionStorage.getItem(key)
+              if (!msg) {
+                const prev = sessionStorage.getItem(prevKey)
+                const available = msgs.filter(m => m !== prev)
+                msg = available[Math.floor(Math.random() * available.length)]
+                sessionStorage.setItem(prevKey, msg)
+                sessionStorage.setItem(key, msg)
+              }
+              return msg
+            })()}</div>
+          </div>
+
           {/* Carte profil */}
           <div style={{ margin:'14px 16px', background:'linear-gradient(135deg, rgba(17,31,23,.96), rgba(5,12,8,.98))', border:'1px solid var(--g-b)', borderRadius:'var(--R)', padding:20, boxShadow:'var(--shadow)', position:'relative', overflow:'hidden' }}>
             <div style={{ position:'absolute', top:0, right:0, width:120, height:120, background:'radial-gradient(circle at top right, rgba(155,226,45,.12), transparent)', pointerEvents:'none' }}/>
@@ -179,3 +207,4 @@ export default function Profil() {
     </div>
   )
 }
+
