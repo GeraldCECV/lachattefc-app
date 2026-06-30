@@ -103,7 +103,7 @@ export default function Profil() {
           <div style={{ margin:'0 16px 14px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
             {[
               { val:stats?.pointsTotal||0, lbl:'Points saison', color:'var(--g)' },
-              { val:`${stats?.gainsTotal||0}€`, lbl:'Gains bruts', color:'var(--a)' },
+              { val:`${Math.round(((stats?.gainsTotal||0) - (stats?.journeesJouees||0)*5)*100)/100}€`, lbl:'Gains nets', color: ((stats?.gainsTotal||0) - (stats?.journeesJouees||0)*5) >= 0 ? 'var(--g)' : 'var(--r)' },
               { val:stats?.journeesJouees||0, lbl:'Journées jouées', color:'var(--b)' },
               { val:stats?.absences||0, lbl:'Absences', color:(stats?.absences||0)>0?'var(--r)':'var(--tx3)' },
             ].map(s => (
