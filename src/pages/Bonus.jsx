@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, doc, getDoc, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
+import { translateTeam } from '../utils/teamName'
 
 export default function Bonus() {
   const { profil, user } = useUser()
@@ -29,6 +30,18 @@ export default function Bonus() {
 
         // Charger pronos et missiles en parallèle
         const hist = []
+        const matchLabelFor = (j, key) => {
+          if (key === 'scorer') return j.matchScorer?.dom ? `${translateTeam(j.matchScorer.dom)} — ${translateTeam(j.matchScorer.ext)}` : 'Scorer'
+          if (key === 'euro') return j.matchEuro?.dom ? `${translateTeam(j.matchEuro.dom)} — ${translateTeam(j.matchEuro.ext)}` : 'Euro'
+          if (key.startsWith('cdm_')) {
+            const i = parseInt(key.replace('cdm_',''))
+            const m = j.matchesCDM?.[i]
+            return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
+          }
+          const i = parseInt(key.replace('l1_',''))
+          const m = j.matchesL1?.[i]
+          return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
+        }
         await Promise.all(journeesActives.map(async jDoc => {
           const j = jDoc.data()
           const [pronoDoc, missilesSnap] = await Promise.all([
@@ -37,13 +50,13 @@ export default function Bonus() {
           ])
           if (pronoDoc.exists()) {
             const p = pronoDoc.data()
-            if (p.jackpotMatch) hist.push({ journee: j.numero, type:'jackpot', match: p.jackpotMatch })
-            if (p.dcMatch) hist.push({ journee: j.numero, type:'dc', match: p.dcMatch, choix: p.dcChoices })
+            if (p.jackpotMatch) hist.push({ journee: j.numero, type:'jackpot', match: matchLabelFor(j, p.jackpotMatch) })
+            if (p.dcMatch) hist.push({ journee: j.numero, type:'dc', match: matchLabelFor(j, p.dcMatch), choix: p.dcChoices })
           }
           missilesSnap.docs.forEach(d => {
             const m = d.data()
             if (m.lanceur === user.uid) {
-              hist.push({ journee: j.numero, type:'missile', match: m.matchKey, pronoImpose: m.pronoImpose, applique: m.applique })
+              hist.push({ journee: j.numero, type:'missile', match: matchLabelFor(j, m.matchKey), pronoImpose: m.pronoImpose, applique: m.applique })
             }
           })
         }))
@@ -138,7 +151,7 @@ export default function Bonus() {
                           <span style={{ fontSize:11, color:'var(--tx3)', fontWeight:700 }}>J{h.journee}</span>
                         </div>
                         <div style={{ fontSize:12, color:'var(--tx2)', marginTop:3, lineHeight:1.5 }}>
-                          📍 {h.match?.replace('l1_','#').replace('scorer','Scorer').replace('euro','Euro')}
+                          📍 {h.match}
                           {isMS && h.pronoImpose && <span> → <strong style={{color}}>{h.pronoImpose}</strong></span>}
                           {isDC && h.choix && <span> → <strong style={{color}}>{h.choix.join(' ou ')}</strong></span>}
                         </div>
@@ -159,3 +172,4 @@ export default function Bonus() {
     </div>
   )
 }
+
