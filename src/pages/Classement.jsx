@@ -42,10 +42,88 @@ export default function Classement() {
   const [lastUpdate, setLastUpdate] = useState(null)
 
   useEffect(() => {
-    let unsub = null
+    let unsubJournee = null, unsubPronos = null, unsubMissiles = null
+    let map = {}
+    let journeeData = null
+    let pronosMap = {}
+    let missiles = []
+
+    const recalc = () => {
+      if (!journeeData) return
+      const data = journeeData
+      const isCDM = data.type === 'cdm'
+      const matches = isCDM ? (data.matchesCDM || []) : (data.matchesL1 || [])
+      const resultats = data.resultats || {}
+      const penalites = data.penalites || {}
+      const pointsParJoueur = {}
+      Object.keys(map).forEach(uid => { pointsParJoueur[uid] = penalites[uid] || 0 })
+
+      const pronosAvecMissiles = JSON.parse(JSON.stringify(pronosMap))
+      missiles.forEach(m => {
+        if (!m.applique) return
+        const arrKey = isCDM ? 'matchesCDM' : 'matchesL1'
+        const prefix = isCDM ? 'cdm_' : 'l1_'
+        if (m.matchKey?.startsWith(prefix) && pronosAvecMissiles[m.cible]) {
+          const i = parseInt(m.matchKey.replace(prefix,''))
+          if (!pronosAvecMissiles[m.cible][arrKey]) pronosAvecMissiles[m.cible][arrKey] = []
+          pronosAvecMissiles[m.cible][arrKey][i] = m.pronoImpose
+        }
+      })
+
+      Object.keys(pronosMap).forEach(uid => {
+        const p = pronosAvecMissiles[uid]
+        matches.forEach((m, i) => {
+          const key = isCDM ? `cdm_${i}` : `l1_${i}`
+          const res = resultats[key]
+          if (!res || (res.status!=='FINISHED'&&res.status!=='IN_PLAY'&&res.status!=='PAUSED') || res.h===null) return
+          const rh = parseInt(res.h), ra = parseInt(res.a)
+          const arrKey = isCDM ? 'matchesCDM' : 'matchesL1'
+          const prono = p?.[arrKey]?.[i]
+          if (!prono) return
+          const isScorer = data.scorerOnly || m.scorer
+          if (isScorer) {
+            pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + calcPointsScorer(prono, rh, ra)
+          } else {
+            const issue = issueMatch(rh, ra)
+            if (p.dcMatch === key && p.dcChoices?.includes(issue)) {
+              pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + 1
+            } else if (prono === issue) {
+              const total = Object.values(pronosAvecMissiles).filter(pp => pp?.[arrKey]?.[i] === issue).length
+              const nb = Object.keys(pronosMap).length
+              let pts = (nb>0 && total/nb<=0.25) ? 2 : 1
+              if (p.jackpotMatch === key) pts *= 2
+              pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + pts
+            }
+          }
+        })
+      })
+
+      const auMoinsUnMatch = Object.values(resultats).some(r => ['FINISHED','IN_PLAY','PAUSED'].includes(r?.status))
+      const gains = {}
+      if (auMoinsUnMatch && isCDM) {
+        const classement = Object.entries(pointsParJoueur).sort((a,b)=>b[1]-a[1])
+        let i = 0
+        while (i < classement.length) {
+          const pts = classement[i][1]
+          let j = i
+          while (j < classement.length && classement[j][1] === pts) j++
+          let gainPartage = 0
+          for (let r = i+1; r <= j; r++) gainPartage += BAREME_CDM[r-1] || 0
+          const gainParJoueur = Math.round(gainPartage/(j-i)*100)/100
+          for (let k = i; k < j; k++) gains[classement[k][0]] = gainParJoueur
+          i = j
+        }
+      } else if (data.gainsJoueurs) {
+        Object.assign(gains, data.gainsJoueurs)
+      }
+
+      setLastUpdate(new Date())
+      setClassJ(Object.values(map).map(j=>({...j,ptsJ:pointsParJoueur[j.id]||0,gainJ:gains[j.id]||0})).sort((a,b)=>b.gainJ-a.gainJ||b.ptsJ-a.ptsJ).map((j,i)=>({...j,rank:i+1})))
+    }
+
     const load = async () => {
       const snap = await getDocs(collection(db,'joueurs'))
-      const map = {}
+      map = {}
       snap.docs.forEach((d,i) => { map[d.id] = { id:d.id, idx:i, ...d.data() } })
       setJoueursMap(map)
       setClassG(Object.values(map).sort((a,b)=>{
@@ -58,96 +136,34 @@ export default function Classement() {
       const openJ = allJ.docs.find(d => ['ouverte','fermee'].includes(d.data().statut))
       const jDoc = openJ || allJ.docs[allJ.docs.length-1]
       if (jDoc) {
-        setJournee({ id:jDoc.id, ...jDoc.data() })
-
-        // Charger pronos + missiles une fois (peu changeant après deadline)
-        const [pronosSnap, missilesSnap] = await Promise.all([
-          getDocs(collection(db,'journees',jDoc.id,'pronos')),
-          getDocs(collection(db,'journees',jDoc.id,'missiles')),
-        ])
-        const pronosMap = {}
-        pronosSnap.docs.forEach(d => { pronosMap[d.id] = d.data() })
-        const missiles = missilesSnap.docs.map(d => d.data())
-
-        const recalc = (data) => {
-          const isCDM = data.type === 'cdm'
-          const matches = isCDM ? (data.matchesCDM || []) : (data.matchesL1 || [])
-          const resultats = data.resultats || {}
-          const penalites = data.penalites || {}
-          const pointsParJoueur = {}
-          Object.keys(map).forEach(uid => { pointsParJoueur[uid] = penalites[uid] || 0 })
-
-          // Appliquer les missiles déjà actifs (applique=true) sur une copie des pronos
-          const pronosAvecMissiles = JSON.parse(JSON.stringify(pronosMap))
-          missiles.forEach(m => {
-            if (!m.applique) return
-            const arrKey = isCDM ? 'matchesCDM' : 'matchesL1'
-            const prefix = isCDM ? 'cdm_' : 'l1_'
-            if (m.matchKey?.startsWith(prefix) && pronosAvecMissiles[m.cible]) {
-              const i = parseInt(m.matchKey.replace(prefix,''))
-              if (!pronosAvecMissiles[m.cible][arrKey]) pronosAvecMissiles[m.cible][arrKey] = []
-              pronosAvecMissiles[m.cible][arrKey][i] = m.pronoImpose
-            }
-          })
-
-          Object.keys(pronosMap).forEach(uid => {
-            const p = pronosAvecMissiles[uid]
-            matches.forEach((m, i) => {
-              const key = isCDM ? `cdm_${i}` : `l1_${i}`
-              const res = resultats[key]
-              if (!res || (res.status!=='FINISHED'&&res.status!=='IN_PLAY'&&res.status!=='PAUSED') || res.h===null) return
-              const rh = parseInt(res.h), ra = parseInt(res.a)
-              const arrKey = isCDM ? 'matchesCDM' : 'matchesL1'
-              const prono = p?.[arrKey]?.[i]
-              if (!prono) return
-              const isScorer = data.scorerOnly || m.scorer
-              if (isScorer) {
-                pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + calcPointsScorer(prono, rh, ra)
-              } else {
-                const issue = issueMatch(rh, ra)
-                if (p.dcMatch === key && p.dcChoices?.includes(issue)) {
-                  pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + 1
-                } else if (prono === issue) {
-                  const total = Object.values(pronosAvecMissiles).filter(pp => pp?.[arrKey]?.[i] === issue).length
-                  const nb = Object.keys(pronosMap).length
-                  let pts = (nb>0 && total/nb<=0.25) ? 2 : 1
-                  if (p.jackpotMatch === key) pts *= 2
-                  pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + pts
-                }
-              }
-            })
-          })
-
-          // Gains seulement si au moins un match commencé
-          const auMoinsUnMatch = Object.values(resultats).some(r => ['FINISHED','IN_PLAY','PAUSED'].includes(r?.status))
-          const gains = {}
-          if (auMoinsUnMatch && isCDM) {
-            const classement = Object.entries(pointsParJoueur).sort((a,b)=>b[1]-a[1])
-            let i = 0
-            while (i < classement.length) {
-              const pts = classement[i][1]
-              let j = i
-              while (j < classement.length && classement[j][1] === pts) j++
-              let gainPartage = 0
-              for (let r = i+1; r <= j; r++) gainPartage += BAREME_CDM[r-1] || 0
-              const gainParJoueur = Math.round(gainPartage/(j-i)*100)/100
-              for (let k = i; k < j; k++) gains[classement[k][0]] = gainParJoueur
-              i = j
-            }
-          } else if (data.gainsJoueurs) {
-            Object.assign(gains, data.gainsJoueurs)
-          }
-
-          return { pointsParJoueur, gains }
-        }
-
-        unsub = onSnapshot(doc(db,'journees',jDoc.id), d => {
+        // Listener journée (résultats, statut)
+        unsubJournee = onSnapshot(doc(db,'journees',jDoc.id), d => {
           if (!d.exists()) return
-          const data = d.data()
-          setJournee({ id:d.id, ...data })
-          setLastUpdate(new Date())
-          const { pointsParJoueur, gains } = recalc(data)
-          setClassJ(Object.values(map).map(j=>({...j,ptsJ:pointsParJoueur[j.id]||0,gainJ:gains[j.id]||0})).sort((a,b)=>b.gainJ-a.gainJ||b.ptsJ-a.ptsJ).map((j,i)=>({...j,rank:i+1})))
+          journeeData = d.data()
+          setJournee({ id:d.id, ...journeeData })
+          recalc()
+        })
+        // Listener pronos (au cas où un joueur soumet/modifie après coup)
+        unsubPronos = onSnapshot(collection(db,'journees',jDoc.id,'pronos'), snap => {
+          pronosMap = {}
+          snap.docs.forEach(d => { pronosMap[d.id] = d.data() })
+          recalc()
+        })
+        // Listener missiles (dès qu'un missile est appliqué)
+        unsubMissiles = onSnapshot(collection(db,'journees',jDoc.id,'missiles'), snap => {
+          missiles = snap.docs.map(d => d.data())
+          recalc()
+        })
+      }
+      setLoading(false)
+    }
+    load()
+    return () => {
+      if (unsubJournee) unsubJournee()
+      if (unsubPronos) unsubPronos()
+      if (unsubMissiles) unsubMissiles()
+    }
+  }, [])
         })
       }
       setLoading(false)
