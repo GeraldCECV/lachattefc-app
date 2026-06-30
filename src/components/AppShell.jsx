@@ -22,16 +22,16 @@ function TabIcon({ name, size = 22 }) {
 }
 
 const TABS = [
+  { id: 'classement', ico: 'classement', lbl: 'Classement' },
   { id: 'pronos',     ico: 'pronos',     lbl: 'Fais tes pronos' },
   { id: 'chatteux',   ico: 'live',       lbl: 'Live' },
-  { id: 'classement', ico: 'classement', lbl: 'Classement' },
   { id: 'bonus',      ico: 'bonus',      lbl: 'Bonus' },
   { id: 'reglement',  ico: 'reglement',  lbl: 'Règles' },
   { id: 'vestiaire',  ico: 'vestiaire',  lbl: 'Profil' },
 ]
 
 export default function AppShell() {
-  const [tab, setTab] = useState('pronos')
+  const [tab, setTab] = useState('classement')
   const { profil } = useUser()
 
   const pages = {
