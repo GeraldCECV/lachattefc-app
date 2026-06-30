@@ -227,11 +227,13 @@ export default function PronosChatteux() {
                   </div>
                   {isLive && (
                     <div style={{
-                      padding:'3px 10px', borderRadius:6,
-                      background:'#EE3B3B',
-                      fontSize:11, fontWeight:900, fontStyle:'italic', color:'#fff', letterSpacing:'.02em',
+                      display:'flex', alignItems:'center', gap:4,
+                      padding:'2px 7px', borderRadius:20,
+                      background:'rgba(248,68,68,.15)', border:'1px solid rgba(248,68,68,.4)',
+                      fontSize:10, fontWeight:900, color:'#FF4444', letterSpacing:'.08em',
                       animation:'pulse 1.5s infinite',
                     }}>
+                      <span style={{ width:5, height:5, borderRadius:'50%', background:'#FF4444', display:'inline-block' }} />
                       LIVE
                     </div>
                   )}
@@ -392,3 +394,4 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
