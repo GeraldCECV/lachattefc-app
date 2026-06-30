@@ -13,7 +13,7 @@ export const useUser = () => useContext(UserContext)
 export default function App() {
   const [user, setUser] = useState(null)
   const [profil, setProfil] = useState(null)
-  useNotifications(user?.uid) // Active onMessage partout dans l'app
+  const { requestPermission, permission } = useNotifications(user?.uid) // Active onMessage partout dans l'app
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -30,6 +30,21 @@ export default function App() {
     })
     return unsub
   }, [])
+
+  // Demander la permission notifications automatiquement au premier lancement en mode PWA installée
+  useEffect(() => {
+    if (!user) return
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+    if (!isStandalone) return
+    if (typeof Notification === 'undefined') return
+    if (Notification.permission !== 'default') return // déjà répondu (granted ou denied)
+    const alreadyAsked = localStorage.getItem('lachattefc_notif_asked')
+    if (alreadyAsked) return
+    localStorage.setItem('lachattefc_notif_asked', '1')
+    // Petit délai pour laisser l'app se charger avant de demander
+    const t = setTimeout(() => { requestPermission() }, 1200)
+    return () => clearTimeout(t)
+  }, [user, requestPermission])
 
   if (loading) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, background: 'var(--bg)' }}>
@@ -49,3 +64,4 @@ export default function App() {
     </UserContext.Provider>
   )
 }
+
