@@ -30,7 +30,7 @@ const getC = i => COLORS[i % COLORS.length]
 
 export default function Classement() {
   const { profil } = useUser()
-  const [tab, setTab] = useState('general')
+  const [tab, setTab] = useState('journee')
   const [historiqueList, setHistoriqueList] = useState([])
   const [loadingHistorique, setLoadingHistorique] = useState(false)
   const [selectedHistJ, setSelectedHistJ] = useState(null)
@@ -239,8 +239,8 @@ export default function Classement() {
       <div style={{ margin:'14px 16px 0', background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--R)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
         <div style={{ display:'flex', borderBottom:'1px solid rgba(155,226,45,.1)', padding:'0 4px' }}>
           {[
-            { id:'general', label:'🏆 Général' },
             { id:'journee', label: journee ? `⚡ J${journee.numero}${journee.statut==='ouverte'||journee.statut==='fermee' ? ' 🟢' : ''}` : '⚡ Journée' },
+            { id:'general', label:'🏆 Général' },
             { id:'historique', label:'📅 Historique' },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
