@@ -108,7 +108,10 @@ export default function PronosChatteux() {
     if (key === 'euro') return p.matchEuro ? { val: p.matchEuro } : null
     const idx = parseInt(key.replace(isCDM ? 'cdm_' : 'l1_', ''))
     const arr = isCDM ? p.matchesCDM : p.matchesL1
-    return arr?.[idx] ? { val: arr[idx] } : null
+    if (arr?.[idx]) return { val: arr[idx] }
+    // Pas de prono de base mais DC active sur ce match — afficher les choix DC
+    if (p.dcMatch === key && p.dcChoices?.length > 0) return { val: p.dcChoices.join('/'), isDcOnly: true }
+    return null
   }
 
   const getCorrect = (uid, key, isScorer) => {
@@ -391,6 +394,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
