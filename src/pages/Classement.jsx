@@ -118,7 +118,7 @@ export default function Classement() {
       }
 
       setLastUpdate(new Date())
-      setClassJ(Object.values(map).map(j=>({...j,ptsJ:pointsParJoueur[j.id]||0,gainJ:gains[j.id]||0})).sort((a,b)=>b.gainJ-a.gainJ||b.ptsJ-a.ptsJ).map((j,i)=>({...j,rank:i+1})))
+      setClassJ(applyDenseRank(Object.values(map).map(j=>({...j,ptsJ:pointsParJoueur[j.id]||0,gainJ:gains[j.id]||0})).sort((a,b)=>b.gainJ-a.gainJ||b.ptsJ-a.ptsJ)))
     }
 
     const load = async () => {
@@ -126,11 +126,11 @@ export default function Classement() {
       map = {}
       snap.docs.forEach((d,i) => { map[d.id] = { id:d.id, idx:i, ...d.data() } })
       setJoueursMap(map)
-      setClassG(Object.values(map).sort((a,b)=>{
+      setClassG(applyDenseRank(Object.values(map).sort((a,b)=>{
         const netA = (a.gainsTotal||0) - (a.journeesJouees||0)*5
         const netB = (b.gainsTotal||0) - (b.journeesJouees||0)*5
         return netB - netA
-      }).map((j,i)=>({...j,rank:i+1})))
+      })))
 
       const allJ = await getDocs(query(collection(db,'journees'),orderBy('numero','asc')))
       const openJ = allJ.docs.find(d => ['ouverte','fermee'].includes(d.data().statut))
@@ -181,7 +181,20 @@ export default function Classement() {
     loadHist()
   }, [tab])
 
-  const Rank = ({rank}) => {
+  
+const applyDenseRank = (arr) => {
+  if (!arr.length) return arr
+  let rank = 1
+  return arr.map((j, i) => {
+    if (i > 0) {
+      const prev = arr[i-1]
+      if (j.gainJ !== prev.gainJ || j.ptsJ !== prev.ptsJ) rank = i + 1
+    }
+    return { ...j, rank }
+  })
+}
+
+const Rank = ({rank}) => {
     if (rank===1) return <span style={{fontSize:18}}>🥇</span>
     if (rank===2) return <span style={{fontSize:18}}>🥈</span>
     if (rank===3) return <span style={{fontSize:18}}>🥉</span>
