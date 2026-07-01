@@ -19,7 +19,8 @@ export default function Bonus() {
         if (snap.exists()) setBonus(snap.data().bonus || { missile:3, jackpot:3, doubleChance:4 })
       }
       const jSnap = await getDocs(collection(db,'joueurs'))
-      setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user?.uid))
+      const joueursLocaux = jSnap.docs.map(d=>({id:d.id,...d.data()}))
+      setJoueurs(joueursLocaux.filter(j=>j.id!==user?.uid))
       // Charger historique bonus - uniquement journées avec statut resultats ou fermee
       if (user) {
         const journeesSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
@@ -56,8 +57,8 @@ export default function Bonus() {
           missilesSnap.docs.forEach(d => {
             const m = d.data()
             if (m.lanceur === user.uid) {
-              const cibleJoueur = joueurs.find(j => j.id === m.cible)
-              const cibleNom = cibleJoueur?.nom?.split(' ')[0] || m.cibleNom || '?'
+              const cibleJoueur = joueursLocaux.find(j => j.id === m.cible)
+              const cibleNom = cibleJoueur?.nom?.split(' ')[0] || null
               hist.push({ journee: j.numero, type:'missile', match: matchLabelFor(j, m.matchKey), pronoImpose: m.pronoImpose, applique: m.applique, cibleNom })
             }
           })
