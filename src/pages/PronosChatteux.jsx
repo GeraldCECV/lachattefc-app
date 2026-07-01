@@ -152,12 +152,13 @@ export default function PronosChatteux() {
     return pts
   }
 
-  const getBonusLabel = (uid, key) => {
+  const getBonusLabels = (uid, key) => {
     const p = pronos[uid]
-    if (!p) return null
-    if (p.jackpotMatch === key) return { icon: '🎰', label: 'Jackpot' }
-    if (p.dcMatch === key) return { icon: '2️⃣', label: 'DC' }
-    return null
+    if (!p) return []
+    const labels = []
+    if (p.jackpotMatch === key) labels.push({ icon: '🎰', label: 'Jackpot' })
+    if (p.dcMatch === key) labels.push({ icon: '2️⃣', label: 'DC' })
+    return labels
   }
 
   // Trier joueurs : ceux qui ont proné en premier, ABS en bas
@@ -283,7 +284,7 @@ export default function PronosChatteux() {
                   const prono = getProno(j.id, match.key)
                   const correct = getCorrect(j.id, match.key, match.isScorer)
                   const pts = getPtsMatch(j.id, match.key, match.isScorer)
-                  const bonus = getBonusLabel(j.id, match.key)
+                  const bonuses = getBonusLabels(j.id, match.key)
                   const missile = missiles.find(m => m.cible === j.id && m.matchKey === match.key)
                   const missileLance = missiles.find(m => m.lanceur === j.id && m.matchKey === match.key)
                   const hasProno = !!pronos[j.id]
@@ -322,8 +323,8 @@ export default function PronosChatteux() {
                       <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                         {/* Pastilles bonus/missile à gauche */}
                         <div style={{ display:'flex', flexDirection:'column', gap:3, alignItems:'flex-end' }}>
-                          {bonus && (
-                            <div style={{
+                          {bonuses.map((bonus, bi) => (
+                            <div key={bi} style={{
                               display:'flex', alignItems:'center', gap:3,
                               padding:'2px 6px', borderRadius:20,
                               background: bonus.icon === '🎰' ? 'rgba(255,200,0,.12)' : 'rgba(96,165,250,.12)',
@@ -333,7 +334,7 @@ export default function PronosChatteux() {
                             }}>
                               {bonus.icon} {bonus.label}
                             </div>
-                          )}
+                          ))}
                           {missile ? (
                             <div style={{
                               display:'flex', alignItems:'center', gap:3,
