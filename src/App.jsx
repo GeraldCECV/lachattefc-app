@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { auth, db } from './firebase/config'
 import Login from './pages/Login'
 import AppShell from './components/AppShell'
@@ -52,25 +52,18 @@ export default function App() {
         setTimeout(() => OneSignal.Notifications.requestPermission(), 1200)
       }
 
-      // Stocker le OneSignal User ID dans Firestore
+      // Stocker le Subscription ID OneSignal dans Firestore
       const storeOsId = async () => {
-        const osId = OneSignal.User.onesignalId
-        if (osId && user) {
+        const subId = OneSignal.User.PushSubscription.id
+        if (subId && user) {
           try {
-            await updateDoc(doc(db, 'joueurs', user.uid), {
-              osPlayerId: osId,
-            })
-            console.log('✅ OneSignal User ID enregistré:', osId)
-          } catch(e) {
-            console.warn('Erreur enregistrement OneSignal ID:', e.message)
-          }
+            await updateDoc(doc(db, 'joueurs', user.uid), { osPlayerId: subId })
+            console.log('✅ OneSignal Subscription ID enregistré:', subId)
+          } catch(e) { console.warn('Erreur:', e.message) }
         }
       }
-
       OneSignal.User.PushSubscription.addEventListener('change', storeOsId)
-
-      // Récupérer l'ID actuel si déjà subscribed
-      setTimeout(storeOsId, 2000) // petit délai pour que OneSignal soit initialisé
+      setTimeout(storeOsId, 2000)
     })
   }, [user])
 
