@@ -368,7 +368,7 @@ export default function PronosChatteux() {
                             </div>
                             {pts !== null && (
                               <div style={{
-                                fontSize:9, fontWeight:900, lineHeight:1,
+                                fontSize:13, fontWeight:900, lineHeight:1,
                                 color: pts === 0 ? 'var(--tx3)' : pts >= 3 ? '#FFD700' : 'var(--g)',
                               }}>
                                 +{pts} pt{pts > 1 ? 's' : ''}
