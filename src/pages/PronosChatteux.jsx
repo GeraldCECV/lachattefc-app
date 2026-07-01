@@ -353,36 +353,33 @@ export default function PronosChatteux() {
                             </div>
                           ) : null}
                         </div>
-                        {/* Prono */}
+                        {/* Prono + points en dessous */}
                         {prono ? (
-                          <div style={{
-                            fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
-                            minWidth:42, textAlign:'center',
-                            padding:'4px 8px', borderRadius:'var(--Rs)',
-                            color: correct === 'exact' ? '#FFD700' : correct === 'ecart' ? '#9BE22D' : correct === 'correct' ? '#9BE22D' : correct === 'issue' ? '#FB923C' : correct === 'wrong' ? '#FF4444' : prono.isMissile ? '#FF4444' : match.isScorer ? 'var(--b)' : 'var(--tx)',
-                            background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.18)' : correct === 'issue' ? 'rgba(251,146,60,.18)' : correct === 'wrong' ? 'rgba(255,68,68,.18)' : 'rgba(255,255,255,.04)',
-                            border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.6)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.5)' : correct === 'issue' ? 'rgba(251,146,60,.5)' : correct === 'wrong' ? 'rgba(255,68,68,.5)' : 'rgba(255,255,255,.06)'}`,
-                          }}>
-                            {prono.val}
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
+                            <div style={{
+                              fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
+                              minWidth:42, textAlign:'center',
+                              padding:'4px 8px', borderRadius:'var(--Rs)',
+                              color: correct === 'exact' ? '#FFD700' : correct === 'ecart' ? '#9BE22D' : correct === 'correct' ? '#9BE22D' : correct === 'issue' ? '#FB923C' : correct === 'wrong' ? '#FF4444' : prono.isMissile ? '#FF4444' : match.isScorer ? 'var(--b)' : 'var(--tx)',
+                              background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.18)' : correct === 'issue' ? 'rgba(251,146,60,.18)' : correct === 'wrong' ? 'rgba(255,68,68,.18)' : 'rgba(255,255,255,.04)',
+                              border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.6)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.5)' : correct === 'issue' ? 'rgba(251,146,60,.5)' : correct === 'wrong' ? 'rgba(255,68,68,.5)' : 'rgba(255,255,255,.06)'}`,
+                            }}>
+                              {prono.val}
+                            </div>
+                            {pts !== null && (
+                              <div style={{
+                                fontSize:9, fontWeight:900, lineHeight:1,
+                                color: pts === 0 ? 'var(--tx3)' : pts >= 3 ? '#FFD700' : 'var(--g)',
+                              }}>
+                                +{pts} pt{pts > 1 ? 's' : ''}
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div style={{ minWidth:42, textAlign:'center', color:'var(--bd2)', fontSize:16 }}>—</div>
                         )}
                       </div>
 
-                      {/* Points */}
-                      <div style={{ width:32, textAlign:'right', flexShrink:0 }}>
-                        {pts !== null ? (
-                          <div style={{
-                            fontFamily:'var(--D)', fontSize:15, fontWeight:900,
-                            color: pts === 0 ? 'var(--tx3)' : pts >= 3 ? '#FFD700' : 'var(--g)',
-                          }}>
-                            +{pts}
-                          </div>
-                        ) : (
-                          <span style={{ color:'var(--bd2)', fontSize:12 }}>—</span>
-                        )}
-                      </div>
                     </div>
                   )
                 })}
@@ -394,5 +391,6 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
