@@ -56,7 +56,9 @@ export default function Bonus() {
           missilesSnap.docs.forEach(d => {
             const m = d.data()
             if (m.lanceur === user.uid) {
-              hist.push({ journee: j.numero, type:'missile', match: matchLabelFor(j, m.matchKey), pronoImpose: m.pronoImpose, applique: m.applique })
+              const cibleJoueur = joueurs.find(j => j.id === m.cible)
+              const cibleNom = cibleJoueur?.nom?.split(' ')[0] || m.cibleNom || '?'
+              hist.push({ journee: j.numero, type:'missile', match: matchLabelFor(j, m.matchKey), pronoImpose: m.pronoImpose, applique: m.applique, cibleNom })
             }
           })
         }))
@@ -151,6 +153,7 @@ export default function Bonus() {
                           <span style={{ fontSize:11, color:'var(--tx3)', fontWeight:700 }}>J{h.journee}</span>
                         </div>
                         <div style={{ fontSize:12, color:'var(--tx2)', marginTop:3, lineHeight:1.5 }}>
+                          {isMS && h.cibleNom && <span>🎯 <strong style={{color}}>{h.cibleNom}</strong> · </span>}
                           📍 {h.match}
                           {isMS && h.pronoImpose && <span> → <strong style={{color}}>{h.pronoImpose}</strong></span>}
                           {isDC && h.choix && <span> → <strong style={{color}}>{h.choix.join(' ou ')}</strong></span>}
@@ -172,4 +175,5 @@ export default function Bonus() {
     </div>
   )
 }
+
 
