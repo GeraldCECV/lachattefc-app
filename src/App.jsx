@@ -52,32 +52,25 @@ export default function App() {
         setTimeout(() => OneSignal.Notifications.requestPermission(), 1200)
       }
 
-      // Stocker le Player ID dans Firestore pour pouvoir envoyer des notifs ciblées
-      OneSignal.User.PushSubscription.addEventListener('change', async (event) => {
-        const playerId = event.current?.id
-        if (playerId && user) {
+      // Stocker le OneSignal User ID dans Firestore
+      const storeOsId = async () => {
+        const osId = OneSignal.User.onesignalId
+        if (osId && user) {
           try {
             await updateDoc(doc(db, 'joueurs', user.uid), {
-              osPlayerIds: arrayUnion(playerId),
-              osPlayerId: playerId,
+              osPlayerId: osId,
             })
-            console.log('✅ OneSignal Player ID enregistré:', playerId)
+            console.log('✅ OneSignal User ID enregistré:', osId)
           } catch(e) {
-            console.warn('Erreur enregistrement Player ID:', e.message)
+            console.warn('Erreur enregistrement OneSignal ID:', e.message)
           }
         }
-      })
-
-      // Récupérer le Player ID actuel si déjà subscribed
-      const currentId = OneSignal.User.PushSubscription.id
-      if (currentId && user) {
-        try {
-          await updateDoc(doc(db, 'joueurs', user.uid), {
-            osPlayerIds: arrayUnion(currentId),
-            osPlayerId: currentId,
-          })
-        } catch(e) {}
       }
+
+      OneSignal.User.PushSubscription.addEventListener('change', storeOsId)
+
+      // Récupérer l'ID actuel si déjà subscribed
+      setTimeout(storeOsId, 2000) // petit délai pour que OneSignal soit initialisé
     })
   }, [user])
 
