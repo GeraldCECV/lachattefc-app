@@ -34,6 +34,13 @@ export default function AppShell() {
   const [tab, setTab] = useState('classement')
   const { profil } = useUser()
 
+  const changerOnglet = (id) => {
+    setTab(id)
+    // Vérifie en tâche de fond si une nouvelle version de l'app est dispo —
+    // si oui, rechargement auto (via onNeedRefresh dans main.jsx)
+    window.__checkForAppUpdate?.()
+  }
+
   const pages = {
     vestiaire:  <Profil />,
     pronos:     <Pronos />,
@@ -52,7 +59,7 @@ export default function AppShell() {
 
       <div className="tab-bar">
         {TABS.map(t => (
-          <button key={t.id} className={`tab-item ${tab === t.id ? 'on' : ''}`} onClick={() => setTab(t.id)}>
+          <button key={t.id} className={`tab-item ${tab === t.id ? 'on' : ''}`} onClick={() => changerOnglet(t.id)}>
             <span className="tab-ico">
               <TabIcon name={t.ico} size={20} />
             </span>
@@ -64,5 +71,6 @@ export default function AppShell() {
     </div>
   )
 }
+
 
 
