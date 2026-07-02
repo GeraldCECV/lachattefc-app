@@ -126,6 +126,10 @@ export default function PronosChatteux() {
       return Math.sign(ph - pa) === Math.sign(rh - ra) ? 'issue' : 'wrong'
     }
     const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
+    const p = pronos[uid]
+    if (p?.dcMatch === key && p?.dcChoices?.length > 0) {
+      return p.dcChoices.includes(issue) ? 'correct' : 'wrong'
+    }
     return prono.val === issue ? 'correct' : 'wrong'
   }
 
@@ -143,6 +147,10 @@ export default function PronosChatteux() {
       return Math.sign(ph - pa) === Math.sign(rh - ra) ? 1 : 0
     }
     const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
+    if (p?.dcMatch === key && p?.dcChoices?.length > 0) {
+      if (!p.dcChoices.includes(issue)) return 0
+      return p?.jackpotMatch === key ? 2 : 1
+    }
     if (prono.val !== issue) return 0
     const bonCount = Object.keys(pronos).filter(u => getProno(u, key)?.val === issue).length
     const allTotal = Object.keys(pronos).length
@@ -395,6 +403,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
