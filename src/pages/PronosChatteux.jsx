@@ -94,9 +94,9 @@ export default function PronosChatteux() {
 
   // Construire la liste des matchs à afficher
   const matchBlocks = [
-    scorer?.dom ? { key:'scorer', dom: scorer.dom, ext: scorer.ext, isScorer: true, label: '⚽ Match Scorer' } : null,
-    ...matchesMain.map((m, i) => ({ key: isCDM ? `cdm_${i}` : `l1_${i}`, dom: m.dom, ext: m.ext, label: `Match ${i+1}`, isMatchScorer: m.scorer === true })),
-    euro ? { key:'euro', dom: euro.dom, ext: euro.ext, isEuro: true, label: '🌍 Match Euro' } : null,
+    scorer?.dom ? { key:'scorer', dom: scorer.dom, ext: scorer.ext, jour: scorer.jour, heure: scorer.heure, isScorer: true, label: '⚽ Match Scorer' } : null,
+    ...matchesMain.map((m, i) => ({ key: isCDM ? `cdm_${i}` : `l1_${i}`, dom: m.dom, ext: m.ext, jour: m.jour, heure: m.heure, label: `Match ${i+1}`, isMatchScorer: m.scorer === true })),
+    euro ? { key:'euro', dom: euro.dom, ext: euro.ext, jour: euro.jour, heure: euro.heure, isEuro: true, label: '🌍 Match Euro' } : null,
   ].filter(Boolean)
 
   const getProno = (uid, key) => {
@@ -223,30 +223,37 @@ export default function PronosChatteux() {
                 display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:8,
               }}>
                 {/* Équipes */}
-                <div style={{ display:'flex', alignItems:'center', gap:6, flex:'1 1 auto', minWidth:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
-                    <TeamLogo name={match.dom} size={20} />
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                      {translateTeam(match.dom)}
-                    </span>
+                <div style={{ display:'flex', flexDirection:'column', gap:2, flex:'1 1 auto', minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
+                      <TeamLogo name={match.dom} size={20} />
+                      <span style={{ fontSize:11, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                        {translateTeam(match.dom)}
+                      </span>
+                    </div>
+                    <div style={{ fontSize:10, color:'var(--tx3)', fontWeight:700, flexShrink:0 }}>vs</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
+                      <TeamLogo name={match.ext} size={20} />
+                      <span style={{ fontSize:11, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                        {translateTeam(match.ext)}
+                      </span>
+                    </div>
+                    {isLive && (
+                      <div style={{
+                        display:'flex', alignItems:'center', gap:3, flexShrink:0,
+                        padding:'2px 6px', borderRadius:20,
+                        background:'rgba(248,68,68,.15)', border:'1px solid rgba(248,68,68,.4)',
+                        fontSize:9, fontWeight:900, color:'#FF4444', letterSpacing:'.06em',
+                        animation:'pulse 1.5s infinite',
+                      }}>
+                        <span style={{ width:4, height:4, borderRadius:'50%', background:'#FF4444', display:'inline-block' }} />
+                        LIVE
+                      </div>
+                    )}
                   </div>
-                  <div style={{ fontSize:10, color:'var(--tx3)', fontWeight:700, flexShrink:0 }}>vs</div>
-                  <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
-                    <TeamLogo name={match.ext} size={20} />
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                      {translateTeam(match.ext)}
-                    </span>
-                  </div>
-                  {isLive && (
-                    <div style={{
-                      display:'flex', alignItems:'center', gap:3, flexShrink:0,
-                      padding:'2px 6px', borderRadius:20,
-                      background:'rgba(248,68,68,.15)', border:'1px solid rgba(248,68,68,.4)',
-                      fontSize:9, fontWeight:900, color:'#FF4444', letterSpacing:'.06em',
-                      animation:'pulse 1.5s infinite',
-                    }}>
-                      <span style={{ width:4, height:4, borderRadius:'50%', background:'#FF4444', display:'inline-block' }} />
-                      LIVE
+                  {!hasScore && (match.jour || match.heure) && (
+                    <div style={{ fontSize:10, color:'var(--tx3)', fontWeight:700 }}>
+                      {match.jour}{match.jour && match.heure ? ' · ' : ''}{match.heure}
                     </div>
                   )}
                 </div>
@@ -403,6 +410,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
