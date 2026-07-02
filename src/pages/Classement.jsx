@@ -130,7 +130,7 @@ export default function Classement() {
         const netA = (a.gainsTotal||0) - (a.journeesJouees||0)*5
         const netB = (b.gainsTotal||0) - (b.journeesJouees||0)*5
         return netB - netA
-      })))
+      }), (j) => (j.gainsTotal||0) - (j.journeesJouees||0)*5))
 
       const allJ = await getDocs(query(collection(db,'journees'),orderBy('numero','asc')))
       const openJ = allJ.docs.find(d => ['ouverte','fermee'].includes(d.data().statut))
@@ -182,14 +182,11 @@ export default function Classement() {
   }, [tab])
 
   
-const applyDenseRank = (arr) => {
+const applyDenseRank = (arr, keyFn = (j) => `${j.gainJ}_${j.ptsJ}`) => {
   if (!arr.length) return arr
   let rank = 1
   return arr.map((j, i) => {
-    if (i > 0) {
-      const prev = arr[i-1]
-      if (j.gainJ !== prev.gainJ || j.ptsJ !== prev.ptsJ) rank = i + 1
-    }
+    if (i > 0 && keyFn(arr[i]) !== keyFn(arr[i-1])) rank = i + 1
     return { ...j, rank }
   })
 }
@@ -311,8 +308,8 @@ const Rank = ({rank}) => {
                     return (
                       <tr key={j.id} style={{ background: isMe ? 'rgba(155,226,45,.06)' : 'transparent' }}>
                         <td>
-                          <span style={{ fontFamily:'var(--D)', fontSize:20, color: i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--tx3)' }}>
-                            {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
+                          <span style={{ fontFamily:'var(--D)', fontSize:20, color: j.rank===1?'#FFD700':j.rank===2?'#C0C0C0':j.rank===3?'#CD7F32':'var(--tx3)' }}>
+                            {j.rank===1?'🥇':j.rank===2?'🥈':j.rank===3?'🥉':j.rank}
                           </span>
                         </td>
                         <td>
@@ -364,7 +361,12 @@ const Rank = ({rank}) => {
                 {(() => {
                   const j = historiqueList.find(j => j.id === selectedHistJ)
                   if (!j) return null
-                  const sorted = Object.entries(j.pointsJoueurs || {}).sort((a,b) => b[1]-a[1])
+                  const sortedRaw = Object.entries(j.pointsJoueurs || {}).sort((a,b) => b[1]-a[1])
+                  let rank = 1
+                  const sorted = sortedRaw.map(([uid, pts], i) => {
+                    if (i > 0 && pts !== sortedRaw[i-1][1]) rank = i + 1
+                    return [uid, pts, rank]
+                  })
                   return (
                     <table className="table" style={{ fontSize:13 }}>
                       <thead>
@@ -376,7 +378,7 @@ const Rank = ({rank}) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {sorted.map(([uid, pts], i) => {
+                        {sorted.map(([uid, pts, rank], i) => {
                           const jj = joueursMap[uid]
                           const gain = j.gainsJoueurs?.[uid] || 0
                           const isMe = uid === profil?.id
@@ -384,8 +386,8 @@ const Rank = ({rank}) => {
                           return (
                             <tr key={uid} style={{ background: isMe ? 'rgba(155,226,45,.06)' : 'transparent' }}>
                               <td>
-                                <span style={{ fontFamily:'var(--D)', fontSize:20, color: i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--tx3)' }}>
-                                  {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
+                                <span style={{ fontFamily:'var(--D)', fontSize:20, color: rank===1?'#FFD700':rank===2?'#C0C0C0':rank===3?'#CD7F32':'var(--tx3)' }}>
+                                  {rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank}
                                 </span>
                               </td>
                               <td>
@@ -433,6 +435,7 @@ const Rank = ({rank}) => {
     </div>
   )
 }
+
 
 
 
