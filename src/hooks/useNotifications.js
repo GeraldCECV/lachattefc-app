@@ -1,42 +1,33 @@
-import { useState, useEffect, useCallback } from 'react'
-import { getToken, onMessage } from 'firebase/messaging'
-import { doc, updateDoc } from 'firebase/firestore'
-import { db, VAPID_KEY } from '../firebase/config'
-import { getMessaging } from 'firebase/messaging'
-import app from '../firebase/config'
+import { useState, useCallback } from 'react'
 
 export function useNotifications(userId) {
   const [permission, setPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'default')
-  const [token, setToken] = useState(null)
 
-  // Enregistrer onMessage dès que l'app est chargée et que la permission est accordée
-  useEffect(() => {
-    // Sur iOS PWA, le SW gère toutes les notifications
-    // onMessage foreground désactivé pour éviter le double
-  }, [])
-
+  // Demande la permission via OneSignal (déjà initialisé dans App.jsx).
+  // Le Subscription ID est stocké automatiquement dans Firestore par le
+  // listener OneSignal.User.PushSubscription "change" mis en place dans App.jsx —
+  // pas besoin de token FCM ni d'écriture manuelle ici.
   const requestPermission = useCallback(async () => {
     if (!userId) return false
+    if (typeof window === 'undefined') return false
     try {
-      const messaging = getMessaging(app)
-      const perm = await Notification.requestPermission()
-      setPermission(perm)
-      if (perm !== 'granted') return false
-
-      const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY })
-      if (!fcmToken) return false
-      setToken(fcmToken)
-
-      await updateDoc(doc(db, 'joueurs', userId), {
-        fcmToken,
-        fcmUpdatedAt: new Date(),
+      return await new Promise((resolve) => {
+        window.OneSignalDeferred = window.OneSignalDeferred || []
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          try {
+            await OneSignal.Notifications.requestPermission()
+            const perm = typeof Notification !== 'undefined' ? Notification.permission : 'default'
+            setPermission(perm)
+            resolve(perm === 'granted')
+          } catch (e) {
+            resolve(false)
+          }
+        })
       })
-
-      return true
-    } catch(e) {
+    } catch (e) {
       return false
     }
   }, [userId])
 
-  return { permission, token, requestPermission }
+  return { permission, token: null, requestPermission }
 }
