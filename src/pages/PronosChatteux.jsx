@@ -27,7 +27,14 @@ export default function PronosChatteux() {
         const joueursSnap = await getDocs(collection(db,'joueurs'))
         setJoueurs(joueursSnap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (a.nom||'').localeCompare(b.nom||'')))
         setJourneesList(liste)
-        if (liste.length > 0) setSelectedJId(liste[liste.length - 1].id)
+        // Par défaut, on affiche la journée "ouverte" la plus proche (plus petit
+        // numéro), pas simplement la dernière créée — plusieurs journées peuvent
+        // être ouvertes en même temps si elles sont créées à l'avance.
+        const ouvertes = liste.filter(j => j.statut === 'ouverte')
+        const defaultJ = ouvertes.length > 0
+          ? ouvertes.reduce((a, b) => (a.numero < b.numero ? a : b))
+          : liste[liste.length - 1]
+        if (defaultJ) setSelectedJId(defaultJ.id)
         setLoading(false)
       } catch(e) {
         console.error(e)
@@ -410,6 +417,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
