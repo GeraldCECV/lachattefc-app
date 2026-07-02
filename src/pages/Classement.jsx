@@ -218,12 +218,12 @@ const Rank = ({rank}) => {
           <div style={{ fontSize:13, fontWeight:isMe?900:700, color:isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', letterSpacing:'.02em' }}>
             {j.nom?.split(' ')[0]} {isLast?'💩':''} {isMe?<span style={{fontSize:10,color:'var(--tx3)',fontWeight:400,textTransform:'none'}}>(toi)</span>:''}
           </div>
-          {net!==undefined && false && <div style={{ fontSize:11, color:net>=0?'var(--g)':'var(--r)', fontWeight:900, marginTop:1 }}>{net>=0?'+':''}{net}€ net</div>}
+          {net!==undefined && false && <div style={{ fontSize:11, color:net>=0?'var(--g)':'var(--r)', fontWeight:900, marginTop:1 }}>{net>=0?'+':''}{net.toFixed(2)}€ net</div>}
         </div>
         <div style={{ textAlign:'right' }}>
           <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em', marginBottom:2 }}>Plus-value</div>
           <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color:net>=0?'var(--g)':'var(--r)', lineHeight:1, textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
-            {net>=0?'+':''}{net}€
+            {net>=0?'+':''}{net.toFixed(2)}€
           </div>
         </div>
       </div>
@@ -323,7 +323,7 @@ const Rank = ({rank}) => {
                           </div>
                         </td>
                         <td style={{ textAlign:'right', fontFamily:'var(--D)', fontSize:22, color:isMe?'var(--g)':'var(--tx)' }}>{j.ptsJ}</td>
-                        <td style={{ textAlign:'right', color:'var(--g)', fontWeight:900, fontSize:12 }}>{j.gainJ > 0 ? `+${j.gainJ}€` : '—'}</td>
+                        <td style={{ textAlign:'right', color:'var(--g)', fontWeight:900, fontSize:12 }}>{j.gainJ > 0 ? `+${j.gainJ.toFixed(2)}€` : '—'}</td>
                       </tr>
                     )
                   })}
@@ -401,7 +401,7 @@ const Rank = ({rank}) => {
                                 </div>
                               </td>
                               <td style={{ textAlign:'right', fontFamily:'var(--D)', fontSize:22, color:isMe?'var(--g)':'var(--tx)' }}>{pts}</td>
-                              <td style={{ textAlign:'right', color:'var(--g)', fontWeight:900, fontSize:12 }}>{gain > 0 ? `+${gain}€` : '—'}</td>
+                              <td style={{ textAlign:'right', color:'var(--g)', fontWeight:900, fontSize:12 }}>{gain > 0 ? `+${gain.toFixed(2)}€` : '—'}</td>
                             </tr>
                           )
                         })}
@@ -435,6 +435,7 @@ const Rank = ({rank}) => {
     </div>
   )
 }
+
 
 
 
