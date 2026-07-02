@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { doc, getDoc, getDocs, collection, query, orderBy } from 'firebase/firestore'
 import { signOut, updatePassword } from 'firebase/auth'
-import { useNotifications } from '../hooks/useNotifications'
 import { db, auth } from '../firebase/config'
 import { useUser } from '../App'
 import logo from '../assets/logo-lachattefc.png'
@@ -9,8 +8,6 @@ import logo from '../assets/logo-lachattefc.png'
 export default function Profil() {
   const { profil, user } = useUser()
   const [stats, setStats] = useState(null)
-  const { permission, requestPermission } = useNotifications(user?.uid)
-  const [notifSent, setNotifSent] = useState(false)
   const [historique, setHistorique] = useState([])
   const [loading, setLoading] = useState(true)
   const [changingPwd, setChangingPwd] = useState(false)
@@ -139,35 +136,6 @@ export default function Profil() {
             </>
           )}
 
-          {/* Changer mdp */}
-          <div className="section-lbl">🔔 Notifications</div>
-          <div style={{ margin:'0 16px 14px' }} className="card">
-            {permission === 'granted' ? (
-              <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:13 }}>
-                <span style={{ fontSize:20 }}>✅</span>
-                <span style={{ color:'var(--g)', fontWeight:700 }}>Notifications activées</span>
-              </div>
-            ) : permission === 'denied' ? (
-              <div style={{ fontSize:13, color:'var(--r)', fontWeight:700 }}>
-                ❌ Notifications bloquées — autorise-les dans les réglages de ton téléphone
-              </div>
-            ) : (
-              <div>
-                <div style={{ fontSize:13, color:'var(--tx2)', marginBottom:10, lineHeight:1.6 }}>
-                  Reçois une notification quand une nouvelle journée est ouverte ou avant la deadline.
-                </div>
-                <button className="btn btn-secondary" style={{ width:'100%', justifyContent:'center' }}
-                  onClick={async () => {
-                    const ok = await requestPermission()
-                    if (ok) setNotifSent(true)
-                  }}>
-                  🔔 Activer les notifications
-                </button>
-                {notifSent && <div style={{ fontSize:12, color:'var(--g)', marginTop:8, fontWeight:700 }}>✅ Notifications activées !</div>}
-              </div>
-            )}
-          </div>
-
           <div className="section-lbl">🔐 Sécurité</div>
           <div style={{ margin:'0 16px 14px' }} className="card">
             {!changingPwd ? (
@@ -207,5 +175,6 @@ export default function Profil() {
     </div>
   )
 }
+
 
 
