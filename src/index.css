@@ -48,7 +48,7 @@
 }
 
 html { background: var(--bg); }
-html, body, #root { height: 100%; }
+html, body, #root { height: 100%; overflow: hidden; }
 
 body {
   background:
@@ -519,4 +519,5 @@ input, select, textarea { font-family: var(--F); }
   0%, 100% { opacity: 1; }
   50% { opacity: .3; }
 }
+
 
