@@ -64,20 +64,6 @@ export default function Profil() {
     setShowParisAnnexe(true)
   }
 
-  // Bloque le scroll du fond pendant que le modal est ouvert — sur iOS,
-  // deux conteneurs scrollables superposés (le fond + le modal) se
-  // marchent dessus et le geste tactile part sur le mauvais des deux.
-  useEffect(() => {
-    const bg = document.querySelector('.screen-content')
-    if (!bg) return
-    if (showParisAnnexe) {
-      bg.style.overflow = 'hidden'
-    } else {
-      bg.style.overflow = ''
-    }
-    return () => { bg.style.overflow = '' }
-  }, [showParisAnnexe])
-
   const soumettreParisAnnexe = async () => {
     if (paPodium.some(p => !p) || new Set(paPodium).size < 3) { setPaMsg('❌ Choisis 3 clubs différents pour le podium'); return }
     if (!paLdc.trim() || !paEuropa.trim() || !paButeur.trim() || !paPasseur.trim()) { setPaMsg('❌ Tous les champs sont requis'); return }
@@ -283,8 +269,8 @@ export default function Profil() {
 
       {/* Modal Paris Annexe */}
       {showParisAnnexe && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.8)', zIndex:500, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
-          <div style={{ width:'100%', maxHeight:'85dvh', minHeight:0, overflowY:'auto', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', borderRadius:'20px 20px 0 0', padding:20, background:'linear-gradient(180deg, rgba(20,36,27,.99), rgba(9,17,12,.995))', border:'1px solid var(--bd)', borderBottom:'none', boxShadow:'var(--shadow)' }}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.8)', zIndex:500 }}>
+          <div style={{ position:'fixed', top:'8dvh', left:0, right:0, bottom:0, overflowY:'scroll', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', borderRadius:'20px 20px 0 0', padding:'20px 20px calc(20px + env(safe-area-inset-bottom))', background:'linear-gradient(180deg, rgba(20,36,27,.99), rgba(9,17,12,.995))', border:'1px solid var(--bd)', borderBottom:'none', boxShadow:'var(--shadow)' }}>
             <div className="page-title" style={{ fontSize:22, marginBottom:4 }}>🏆 Pronostic saison</div>
             <div style={{ fontSize:12, color:'var(--tx3)', marginBottom:16 }}>À soumettre une seule fois, non modifiable ensuite.</div>
 
@@ -341,6 +327,7 @@ export default function Profil() {
     </div>
   )
 }
+
 
 
 
