@@ -58,8 +58,16 @@ export default function Profil() {
   }, [user])
 
   const ouvrirParisAnnexe = () => {
-    setPaPodium(['', '', ''])
-    setPaLdc(''); setPaEuropa(''); setPaButeur(''); setPaPasseur('')
+    if (paMonProno) {
+      setPaPodium(paMonProno.podium)
+      setPaLdc(paMonProno.ldc)
+      setPaEuropa(paMonProno.europa)
+      setPaButeur(paMonProno.buteur)
+      setPaPasseur(paMonProno.passeur)
+    } else {
+      setPaPodium(['', '', ''])
+      setPaLdc(''); setPaEuropa(''); setPaButeur(''); setPaPasseur('')
+    }
     setPaMsg('')
     setShowParisAnnexe(true)
   }
@@ -191,6 +199,18 @@ export default function Profil() {
                       LDC : {paMonProno.ldc} · Europa : {paMonProno.europa}<br/>
                       Buteur : {paMonProno.buteur} · Passeur : {paMonProno.passeur}
                     </div>
+                    {paConfig.statut === 'ouvert' && (
+                      <>
+                        {paConfig.deadline && (
+                          <div style={{ fontSize:10, color:'var(--tx3)', marginTop:8 }}>
+                            Modifiable jusqu'au {new Date(paConfig.deadline.seconds*1000).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', timeZone:'Europe/Paris' })}
+                          </div>
+                        )}
+                        <button className="btn btn-secondary" style={{ width:'100%', justifyContent:'center', marginTop:10 }} onClick={ouvrirParisAnnexe}>
+                          ✏️ Modifier mon pronostic
+                        </button>
+                      </>
+                    )}
                   </div>
                 ) : paConfig.statut === 'ouvert' ? (
                   <div>
@@ -279,8 +299,8 @@ export default function Profil() {
       {showParisAnnexe && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.8)', zIndex:500 }}>
           <div style={{ position:'fixed', top:'8dvh', left:0, right:0, bottom:0, overflowY:'scroll', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', borderRadius:'20px 20px 0 0', padding:'20px 20px calc(20px + env(safe-area-inset-bottom))', background:'linear-gradient(180deg, rgba(20,36,27,.99), rgba(9,17,12,.995))', border:'1px solid var(--bd)', borderBottom:'none', boxShadow:'var(--shadow)' }}>
-            <div className="page-title" style={{ fontSize:22, marginBottom:4 }}>🏆 Pronostic saison</div>
-            <div style={{ fontSize:12, color:'var(--tx3)', marginBottom:16 }}>À soumettre une seule fois, non modifiable ensuite.</div>
+            <div className="page-title" style={{ fontSize:22, marginBottom:4 }}>🏆 {paMonProno ? 'Modifier mon pronostic' : 'Pronostic saison'}</div>
+            <div style={{ fontSize:12, color:'var(--tx3)', marginBottom:16 }}>Modifiable autant de fois que tu veux jusqu'à la deadline.</div>
 
             {paMsg && <div className={`alert ${paMsg.startsWith('✅')?'alert-g':'alert-r'}`} style={{ marginBottom:12 }}>{paMsg}</div>}
 
@@ -335,6 +355,7 @@ export default function Profil() {
     </div>
   )
 }
+
 
 
 
