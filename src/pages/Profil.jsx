@@ -270,7 +270,7 @@ export default function Profil() {
       {/* Modal Paris Annexe */}
       {showParisAnnexe && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.8)', zIndex:500, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
-          <div className="card" style={{ width:'100%', maxHeight:'85dvh', minHeight:0, overflowY:'auto', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', borderRadius:'20px 20px 0 0', padding:20 }}>
+          <div style={{ width:'100%', maxHeight:'85dvh', minHeight:0, overflowY:'auto', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', borderRadius:'20px 20px 0 0', padding:20, background:'linear-gradient(180deg, rgba(20,36,27,.99), rgba(9,17,12,.995))', border:'1px solid var(--bd)', borderBottom:'none', boxShadow:'var(--shadow)' }}>
             <div className="page-title" style={{ fontSize:22, marginBottom:4 }}>🏆 Pronostic saison</div>
             <div style={{ fontSize:12, color:'var(--tx3)', marginBottom:16 }}>À soumettre une seule fois, non modifiable ensuite.</div>
 
@@ -327,6 +327,7 @@ export default function Profil() {
     </div>
   )
 }
+
 
 
 
