@@ -48,7 +48,7 @@
 }
 
 html { background: var(--bg); }
-html, body, #root { height: 100dvh; overflow: hidden; }
+html, body, #root { height: 100%; }
 
 body {
   background:
@@ -86,7 +86,6 @@ input, select, textarea { font-family: var(--F); }
   display: flex;
   flex-direction: column;
   height: 100dvh;
-  overflow: hidden;
   position: relative;
 }
 
@@ -98,6 +97,7 @@ input, select, textarea { font-family: var(--F); }
   position: relative;
   z-index: 1;
   padding-top: env(safe-area-inset-top);
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
   min-height: 0;
 }
 
@@ -352,7 +352,19 @@ input, select, textarea { font-family: var(--F); }
   padding-bottom: max(env(safe-area-inset-bottom), 16px);
   flex-shrink: 0;
   z-index: 100;
-  position: relative;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.tab-bar::after {
+  content: '';
+  position: absolute;
+  bottom: calc(-1 * env(safe-area-inset-bottom));
+  left: 0; right: 0;
+  height: env(safe-area-inset-bottom);
+  background: rgba(7,16,12,.96);
 }
 
 .tab-item {
@@ -519,6 +531,4 @@ input, select, textarea { font-family: var(--F); }
   0%, 100% { opacity: 1; }
   50% { opacity: .3; }
 }
-
-
 
