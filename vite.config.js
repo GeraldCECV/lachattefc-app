@@ -14,7 +14,7 @@ export default defineConfig({
         description: 'Concours de pronos La Chatte FC — Saison 26/27',
         theme_color: '#07100C',
         background_color: '#ffffff',
-        display: 'fullscreen',
+        display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         scope: '/',
