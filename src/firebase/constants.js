@@ -34,6 +34,23 @@ export const GAINS_JOURNEE = {
 };
 export const GAIN_TOTAL_J = 80;
 
+// Les 18 clubs de Ligue 1 saison 2026/27
+export const CLUBS_L1_2627 = [
+  'Angers SCO', 'AJ Auxerre', 'Stade Brestois 29', 'Le Havre AC', 'Le Mans FC',
+  'RC Lens', 'LOSC Lille', 'FC Lorient', 'Olympique Lyonnais', 'Olympique de Marseille',
+  'AS Monaco', 'OGC Nice', 'Paris FC', 'Paris Saint-Germain', 'Stade Rennais FC',
+  'RC Strasbourg', 'Toulouse FC', 'ESTAC Troyes',
+];
+
+// Paris Annexe — mises par catégorie (Article à définir dans le règlement)
+export const MISES_PARIS_ANNEXE = {
+  podium: 2,
+  ldc: 1,
+  europa: 1,
+  buteur: 1,
+  passeur: 1,
+};
+
 // Règles de points
 export const POINTS = {
   // Match 1N2 normal
@@ -50,3 +67,4 @@ export const POINTS = {
   // Seuil surprise
   seuilSurprise: 0.25,
 };
+
