@@ -341,6 +341,10 @@ input, select, textarea { font-family: var(--F); }
 }
 
 /* BOTTOM NAV */
+body.modal-open .tab-bar {
+  display: none;
+}
+
 .tab-bar {
   background: rgba(7,16,12,.96);
   backdrop-filter: blur(24px);
@@ -531,4 +535,5 @@ input, select, textarea { font-family: var(--F); }
   0%, 100% { opacity: 1; }
   50% { opacity: .3; }
 }
+
 
