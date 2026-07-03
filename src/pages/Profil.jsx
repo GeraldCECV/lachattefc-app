@@ -194,8 +194,8 @@ export default function Profil() {
                         ⏰ Deadline : {new Date(paConfig.deadline.seconds*1000).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', timeZone:'Europe/Paris' })}
                       </div>
                     )}
-                    <button className="btn btn-secondary" style={{ width:'100%', justifyContent:'center' }} onClick={ouvrirParisAnnexe}>
-                      🏆 Faire mon pronostic saison
+                    <button className="btn btn-secondary" style={{ width:'100%', display:'flex', justifyContent:'center', textAlign:'center' }} onClick={ouvrirParisAnnexe}>
+                      🏆 Je tente ma chance
                     </button>
                   </div>
                 ) : (
