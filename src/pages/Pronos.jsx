@@ -66,8 +66,7 @@ export default function Pronos() {
   const [dcMatch, setDcMatch] = useState(null) // 'l1_0' etc
   const [dcChoices, setDcChoices] = useState([]) // ['1','N'] max 2
   const [missileData, setMissileData] = useState({ cible:null, matchKey:null, prono:null })
-  const [missileUsed, setMissileUsed] = useState(false)
-  const [missileDocId, setMissileDocId] = useState(null) // id du missile créé DANS cette session (à ne pas supprimer au nettoyage)
+  const [mesMissiles, setMesMissiles] = useState([]) // liste des missiles lancés par ce joueur pour cette journée
   const [showConfirm, setShowConfirm] = useState(false)
   const [joueurs, setJoueurs] = useState([])
   const [showBonusPanel, setShowBonusPanel] = useState(null) // matchKey
@@ -120,6 +119,9 @@ export default function Pronos() {
         // Charger joueurs pour missile
         const jSnap = await getDocs(collection(db,'joueurs'))
         setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user.uid))
+        // Charger mes missiles déjà lancés pour cette journée
+        const missilesSnap = await getDocs(collection(db,'journees',jDoc.id,'missiles'))
+        setMesMissiles(missilesSnap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.lanceur===user.uid))
       }
       setLoading(false)
     }
@@ -174,23 +176,9 @@ export default function Pronos() {
     if (!user || !journee) return
     setSaving(true)
     try {
-      // ── Si mise à jour : supprimer tout ancien missile déjà lancé par ce
-      // joueur pour cette journée (sauf celui tout juste créé dans cette
-      // session, le cas échéant) — une resoumission écrase totalement,
-      // bonus compris, pas seulement quand aucun nouveau missile n'est posé.
-      if (existingProno) {
-        const oldMissilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
-        for (const mDoc of oldMissilesSnap.docs) {
-          if (mDoc.data().lanceur === user.uid && mDoc.id !== missileDocId) {
-            await deleteDoc(doc(db,'journees',journee.id,'missiles',mDoc.id))
-            // Rembourser le stock missile
-            const jSnap = await getDoc(doc(db,'joueurs',user.uid))
-            const currentStock = jSnap.data()?.bonus?.missile || 0
-            await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': currentStock + 1 })
-            setBonusStock(prev => ({ ...prev, missile: prev.missile + 1 }))
-          }
-        }
-      }
+      // Les missiles sont désormais gérés indépendamment (lancement/annulation
+      // immédiats, cf. submitMissile/annulerMissile) — plus de nettoyage
+      // implicite ici, un joueur peut cumuler plusieurs missiles par journée.
 
       // ── Vérifier si un missile a été posé sur ce joueur ──
       // Si oui, écraser le prono concerné avant de sauvegarder
@@ -265,10 +253,7 @@ export default function Pronos() {
         bonusUpdate['bonus.doubleChance'] = Math.min(stockServeur.doubleChance + 1, 4)
         setBonusStock(prev => ({ ...prev, doubleChance: Math.min(prev.doubleChance + 1, 4) }))
       }
-      // Débiter le missile si utilisé cette session
-      if (missileUsed) {
-        bonusUpdate['bonus.missile'] = Math.max(0, stockServeur.missile - 1)
-      }
+      // Le missile est débité immédiatement au lancement (submitMissile), rien à faire ici
       if (Object.keys(bonusUpdate).length > 0) {
         await updateDoc(doc(db,'joueurs',user.uid), bonusUpdate)
       }
@@ -284,7 +269,7 @@ export default function Pronos() {
         if (joueurData?.email) {
           // Récupérer les missiles lancés par ce joueur sur cette journée
           const missilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
-          const mesMissiles = missilesSnap.docs
+          const missilesPourEmail = missilesSnap.docs
             .map(d => d.data())
             .filter(m => m.lanceur === user.uid)
             .map(m => {
@@ -306,7 +291,7 @@ export default function Pronos() {
             jackpotMatch: jackpotMatch || null,
             dcMatch: dcMatch || null,
             dcChoices: dcChoices || [],
-            missiles: mesMissiles,
+            missiles: missilesPourEmail,
           })
         }
       } catch(emailErr) {
@@ -321,6 +306,10 @@ export default function Pronos() {
       setMissileMsg('Complète toutes les étapes')
       return
     }
+    if (bonusStock.missile <= 0) {
+      setMissileMsg('⚠️ Plus de missile en stock')
+      return
+    }
     try {
       // Vérifier doublon (même cible + même match)
       const existingMissiles = await getDocs(collection(db,'journees',journee.id,'missiles'))
@@ -333,24 +322,41 @@ export default function Pronos() {
         return
       }
 
+      const cibleJoueur = joueurs.find(j => j.id === missileData.cible)
       const ref = await addDoc(collection(db,'journees',journee.id,'missiles'), {
         lanceur: user.uid,
         lanceurNom: profil?.nom,
         cible: missileData.cible,
+        cibleNom: cibleJoueur?.nom || null,
         matchKey: missileData.matchKey,
         pronoImpose: missileData.prono,
         poseLe: serverTimestamp(),
         journeeId: journee.id,
         applique: false,
       })
-      setMissileDocId(ref.id)
-      // Ne pas débiter immédiatement - sera débité à l'envoi des pronos
-      setMissileUsed(true)
-      // Réduire l'affichage local pour empêcher un 2ème missile (sans toucher Firestore)
-      setBonusStock(prev => ({ ...prev, missile: prev.missile - 1 }))
+
+      // Débit immédiat du stock (plus de débit différé à l'envoi des pronos)
+      const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+      const currentStock = jSnap.data()?.bonus?.missile || 0
+      await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': Math.max(0, currentStock - 1) })
+      setBonusStock(prev => ({ ...prev, missile: Math.max(0, prev.missile - 1) }))
+      setMesMissiles(prev => [...prev, { id: ref.id, lanceur: user.uid, cible: missileData.cible, cibleNom: cibleJoueur?.nom, matchKey: missileData.matchKey, pronoImpose: missileData.prono, applique: false }])
+
       setMissileMsg('✅ Missile lancé !')
-      setTimeout(() => { setShowMissileModal(false); setMissileMsg(''); setMissileData({cible:null,matchKey:null,prono:null}); setMissileStep(1) }, 1500)
+      setTimeout(() => { setShowMissileModal(false); setMissileMsg(''); setMissileData({cible:null,matchKey:null,prono:null}); setMissileStep(1) }, 1200)
     } catch(e) { setMissileMsg('Erreur : '+e.message) }
+  }
+
+  const annulerMissile = async (missileId) => {
+    if (!confirm('Annuler ce missile ? Il sera remboursé.')) return
+    try {
+      await deleteDoc(doc(db,'journees',journee.id,'missiles',missileId))
+      const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+      const currentStock = jSnap.data()?.bonus?.missile || 0
+      await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': Math.min(currentStock + 1, 6) })
+      setBonusStock(prev => ({ ...prev, missile: Math.min(prev.missile + 1, 6) }))
+      setMesMissiles(prev => prev.filter(m => m.id !== missileId))
+    } catch(e) { alert('Erreur : '+e.message) }
   }
 
   const filled = countFilled()
@@ -683,6 +689,23 @@ export default function Pronos() {
         </div>
       )}
 
+      {/* Mes missiles lancés — annulables individuellement tant que la deadline n'est pas passée */}
+      {mesMissiles.length > 0 && (
+        <div style={{margin:'8px 16px 0',padding:'10px 14px',background:'var(--r-dim)',border:'1px solid var(--r-b)',borderRadius:'var(--Rs)',fontSize:12}}>
+          <div style={{fontWeight:700,color:'var(--r)',marginBottom:6}}>🚀 Missiles lancés ({mesMissiles.length})</div>
+          {mesMissiles.map(m => (
+            <div key={m.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'4px 0'}}>
+              <span style={{color:'var(--tx2)'}}>{m.cibleNom || 'un joueur'} · {matchLabel(m.matchKey)} → <strong>{m.pronoImpose}</strong></span>
+              {!deadlinePassed && (
+                <button onClick={()=>annulerMissile(m.id)} style={{background:'none',border:'none',color:'var(--r)',fontSize:11,fontWeight:700,cursor:'pointer',textDecoration:'underline'}}>
+                  annuler
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── SCORER — masqué pour CDM ── */}
       {journee.type !== 'cdm' && journee.matchScorer?.dom && (
         <div style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px'}}>
@@ -888,7 +911,9 @@ export default function Pronos() {
                 {filled}/{total} matchs renseignés
                 {jackpotMatch && <div style={{color:'var(--a)',fontWeight:700,marginTop:4}}>🎰 Jackpot activé</div>}
                 {dcMatch && dcChoices.length===2 && <div style={{color:'var(--p)',fontWeight:700}}>2️⃣ Double Chance activé</div>}
-                {missileUsed && <div style={{color:'var(--r)',fontWeight:700}}>🚀 Missile lancé</div>}
+                {mesMissiles.length > 0 && mesMissiles.map(m => (
+                  <div key={m.id} style={{color:'var(--r)',fontWeight:700}}>🚀 Missile sur {m.cibleNom || 'un joueur'}</div>
+                ))}
               </div>
               <div style={{display:'flex',gap:10}}>
                 <button className="btn btn-primary" style={{flex:1,height:46}} onClick={()=>{setShowConfirm(false);handleSubmit()}}>
@@ -927,6 +952,7 @@ function deadlineFmt(j) {
   const dl = new Date(j.deadline.seconds*1000)
   return `Fermeture ${dl.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`
 }
+
 
 
 
