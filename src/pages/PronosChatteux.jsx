@@ -77,18 +77,39 @@ export default function PronosChatteux() {
   )
 
   const deadlinePassed = journee.deadline ? new Date(journee.deadline.seconds * 1000) < new Date() : false
+  const selecteurJournee = journeesList.length > 1 && (
+    <select value={selectedJId} onChange={e => setSelectedJId(e.target.value)}
+      style={{ padding:'6px 10px', borderRadius:'var(--Rs)', border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--tx)', fontSize:13, fontWeight:900, cursor:'pointer' }}>
+      {journeesList.map(j => (
+        <option key={j.id} value={j.id}>J{j.numero}</option>
+      ))}
+    </select>
+  )
+
   if (journee.statut === 'ouverte' && !deadlinePassed) return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:32, textAlign:'center' }}>
-      <div style={{ fontSize:48, marginBottom:16 }}>🐱</div>
-      <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.04em', marginBottom:12 }}>Espèce de chat de la casse...</div>
-      <div style={{ fontSize:13, color:'var(--tx3)', lineHeight:1.7, maxWidth:280, margin:'0 auto' }}>
-        Tu vas attendre la deadline comme tout le monde pour voir les pronos de tes amis chatteux.
-      </div>
-      {journee?.deadline && (
-        <div style={{ marginTop:16, padding:'10px 16px', background:'rgba(155,226,45,.06)', border:'1px solid var(--g-b)', borderRadius:'var(--Rs)', fontSize:13, color:'var(--g)', fontWeight:700, display:'inline-block' }}>
-          ⏰ Deadline : {new Date(journee.deadline.seconds*1000).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', timeZone:'Europe/Paris' })} à {new Date(journee.deadline.seconds*1000).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit', timeZone:'Europe/Paris' })}
+    <div style={{ display:'flex', flexDirection:'column', minHeight:'100%' }}>
+      {journeesList.length > 1 && (
+        <div style={{ padding:'16px 16px 0', display:'flex', justifyContent:'flex-end' }}>
+          {selecteurJournee}
         </div>
       )}
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:32, textAlign:'center' }}>
+        <div style={{ fontSize:48, marginBottom:16 }}>🐱</div>
+        <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.04em', marginBottom:12 }}>Espèce de chat de la casse...</div>
+        <div style={{ fontSize:13, color:'var(--tx3)', lineHeight:1.7, maxWidth:280, margin:'0 auto' }}>
+          Tu vas attendre la deadline comme tout le monde pour voir les pronos de tes amis chatteux.
+        </div>
+        {journee?.deadline && (
+          <div style={{ marginTop:16, padding:'10px 16px', background:'rgba(155,226,45,.06)', border:'1px solid var(--g-b)', borderRadius:'var(--Rs)', fontSize:13, color:'var(--g)', fontWeight:700, display:'inline-block' }}>
+            ⏰ Deadline : {new Date(journee.deadline.seconds*1000).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', timeZone:'Europe/Paris' })} à {new Date(journee.deadline.seconds*1000).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit', timeZone:'Europe/Paris' })}
+          </div>
+        )}
+        {journeesList.length > 1 && (
+          <div style={{ marginTop:20, fontSize:12, color:'var(--tx3)' }}>
+            Tu peux consulter une autre journée avec le sélecteur en haut à droite ↑
+          </div>
+        )}
+      </div>
     </div>
   )
 
@@ -194,14 +215,7 @@ export default function PronosChatteux() {
           <div style={{ fontSize:12, color:'var(--tx3)', marginTop:2 }}>{Object.keys(pronos).length} / {joueurs.length} joueurs</div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          {journeesList.length > 1 && (
-            <select value={selectedJId} onChange={e => setSelectedJId(e.target.value)}
-              style={{ padding:'6px 10px', borderRadius:'var(--Rs)', border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--tx)', fontSize:13, fontWeight:900, cursor:'pointer' }}>
-              {journeesList.map(j => (
-                <option key={j.id} value={j.id}>J{j.numero}</option>
-              ))}
-            </select>
-          )}
+          {selecteurJournee}
           <span className={`pill ${journee.statut==='resultats'?'pill-g':'pill-a'}`}>
             {journee.statut==='resultats'?'🏁 Résultats':'🔒 Fermée'}
           </span>
@@ -417,6 +431,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
