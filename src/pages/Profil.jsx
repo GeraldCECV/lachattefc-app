@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { doc, getDoc, getDocs, collection, query, orderBy } from 'firebase/firestore'
 import { signOut, updatePassword } from 'firebase/auth'
+import { httpsCallable, getFunctions } from 'firebase/functions'
 import { db, auth } from '../firebase/config'
+import { CLUBS_L1_2627 } from '../firebase/constants'
 import { useUser } from '../App'
 import logo from '../assets/logo-lachattefc.png'
 
@@ -13,6 +15,18 @@ export default function Profil() {
   const [changingPwd, setChangingPwd] = useState(false)
   const [newPwd, setNewPwd] = useState('')
   const [pwdMsg, setPwdMsg] = useState('')
+
+  // Paris Annexe
+  const [paConfig, setPaConfig] = useState(null)
+  const [paMonProno, setPaMonProno] = useState(null)
+  const [showParisAnnexe, setShowParisAnnexe] = useState(false)
+  const [paPodium, setPaPodium] = useState(['', '', ''])
+  const [paLdc, setPaLdc] = useState('')
+  const [paEuropa, setPaEuropa] = useState('')
+  const [paButeur, setPaButeur] = useState('')
+  const [paPasseur, setPaPasseur] = useState('')
+  const [paSaving, setPaSaving] = useState(false)
+  const [paMsg, setPaMsg] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -28,10 +42,43 @@ export default function Profil() {
         }
       }
       setHistorique(hist)
+
+      // Paris Annexe
+      const paConfigSnap = await getDoc(doc(db, 'parisAnnexe', 'config'))
+      if (paConfigSnap.exists()) {
+        const cfg = paConfigSnap.data()
+        setPaConfig(cfg)
+        const monPronoSnap = await getDoc(doc(db, 'parisAnnexe', 'config', 'pronos', user.uid))
+        if (monPronoSnap.exists()) setPaMonProno(monPronoSnap.data())
+      }
+
       setLoading(false)
     }
     load()
   }, [user])
+
+  const ouvrirParisAnnexe = () => {
+    setPaPodium(['', '', ''])
+    setPaLdc(''); setPaEuropa(''); setPaButeur(''); setPaPasseur('')
+    setPaMsg('')
+    setShowParisAnnexe(true)
+  }
+
+  const soumettreParisAnnexe = async () => {
+    if (paPodium.some(p => !p) || new Set(paPodium).size < 3) { setPaMsg('❌ Choisis 3 clubs différents pour le podium'); return }
+    if (!paLdc.trim() || !paEuropa.trim() || !paButeur.trim() || !paPasseur.trim()) { setPaMsg('❌ Tous les champs sont requis'); return }
+    setPaSaving(true); setPaMsg('')
+    try {
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'soumettreParisAnnexe')
+      await fn({ podium: paPodium, ldc: paLdc.trim(), europa: paEuropa.trim(), buteur: paButeur.trim(), passeur: paPasseur.trim() })
+      setPaMonProno({ podium: paPodium, ldc: paLdc.trim(), europa: paEuropa.trim(), buteur: paButeur.trim(), passeur: paPasseur.trim() })
+      setPaMsg('✅ Pronostic enregistré !')
+      setTimeout(() => setShowParisAnnexe(false), 1200)
+    } catch(e) {
+      setPaMsg('❌ ' + e.message)
+    }
+    setPaSaving(false)
+  }
 
   const handlePwd = async () => {
     if (newPwd.length < 6) { setPwdMsg('Minimum 6 caractères'); return }
@@ -111,7 +158,52 @@ export default function Profil() {
             ))}
           </div>
 
-          {/* Historique */}
+          {/* Paris Annexe */}
+          {paConfig && (
+            <>
+              <div className="section-lbl">🏆 Paris Annexe — saison 26/27</div>
+              <div style={{ margin:'0 16px 14px' }} className="card">
+                {paConfig.statut === 'resultats' ? (
+                  <div>
+                    <div style={{ fontSize:13, color:'var(--tx2)', marginBottom:10, fontWeight:700 }}>Résultats tombés !</div>
+                    {paConfig.gains?.[user?.uid] > 0 ? (
+                      <div style={{ fontSize:14, color:'var(--g)', fontWeight:900 }}>✅ Tu as gagné +{paConfig.gains[user.uid].toFixed(2)}€ !</div>
+                    ) : (
+                      <div style={{ fontSize:13, color:'var(--tx3)' }}>Pas de gain cette fois — retente l'an prochain.</div>
+                    )}
+                  </div>
+                ) : paMonProno ? (
+                  <div>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, marginBottom:2 }}>
+                      <span style={{ fontSize:18 }}>✅</span>
+                      <span style={{ color:'var(--g)', fontWeight:700 }}>Pronostic enregistré</span>
+                    </div>
+                    <div style={{ fontSize:11, color:'var(--tx3)', marginTop:6, lineHeight:1.6 }}>
+                      Podium : {paMonProno.podium.join(' → ')}<br/>
+                      LDC : {paMonProno.ldc} · Europa : {paMonProno.europa}<br/>
+                      Buteur : {paMonProno.buteur} · Passeur : {paMonProno.passeur}
+                    </div>
+                  </div>
+                ) : paConfig.statut === 'ouvert' ? (
+                  <div>
+                    <div style={{ fontSize:13, color:'var(--tx2)', marginBottom:10, lineHeight:1.6 }}>
+                      Pronostique le podium final de L1, les vainqueurs LDC/Europa League, et le meilleur buteur/passeur de la saison. Mise totale : 6€.
+                    </div>
+                    {paConfig.deadline && (
+                      <div style={{ fontSize:11, color:'var(--tx3)', marginBottom:10 }}>
+                        ⏰ Deadline : {new Date(paConfig.deadline.seconds*1000).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', timeZone:'Europe/Paris' })}
+                      </div>
+                    )}
+                    <button className="btn btn-secondary" style={{ width:'100%', justifyContent:'center' }} onClick={ouvrirParisAnnexe}>
+                      🏆 Faire mon pronostic saison
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ fontSize:13, color:'var(--tx3)' }}>Fermé — tu n'as pas soumis de pronostic à temps.</div>
+                )}
+              </div>
+            </>
+          )}
           {historique.length > 0 && (
             <>
               <div className="section-lbl">📊 Historique récent</div>
@@ -172,9 +264,68 @@ export default function Profil() {
           </div>
         </>
       )}
+
+      {/* Modal Paris Annexe */}
+      {showParisAnnexe && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.8)', zIndex:500, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+          <div className="card" style={{ width:'100%', maxHeight:'85vh', overflowY:'auto', borderRadius:'20px 20px 0 0', padding:20 }}>
+            <div className="page-title" style={{ fontSize:22, marginBottom:4 }}>🏆 Pronostic saison</div>
+            <div style={{ fontSize:12, color:'var(--tx3)', marginBottom:16 }}>À soumettre une seule fois, non modifiable ensuite.</div>
+
+            {paMsg && <div className={`alert ${paMsg.startsWith('✅')?'alert-g':'alert-r'}`} style={{ marginBottom:12 }}>{paMsg}</div>}
+
+            <div className="form-group">
+              <label className="label">🥇 1er de L1</label>
+              <select className="input" value={paPodium[0]} onChange={e => setPaPodium([e.target.value, paPodium[1], paPodium[2]])}>
+                <option value="">— Choisir —</option>
+                {CLUBS_L1_2627.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{ marginTop:10 }}>
+              <label className="label">🥈 2e de L1</label>
+              <select className="input" value={paPodium[1]} onChange={e => setPaPodium([paPodium[0], e.target.value, paPodium[2]])}>
+                <option value="">— Choisir —</option>
+                {CLUBS_L1_2627.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{ marginTop:10 }}>
+              <label className="label">🥉 3e de L1</label>
+              <select className="input" value={paPodium[2]} onChange={e => setPaPodium([paPodium[0], paPodium[1], e.target.value])}>
+                <option value="">— Choisir —</option>
+                {CLUBS_L1_2627.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginTop:14 }}>
+              <label className="label">🏆 Vainqueur Ligue des Champions</label>
+              <input className="input" placeholder="ex: Real Madrid" value={paLdc} onChange={e => setPaLdc(e.target.value)} />
+            </div>
+            <div className="form-group" style={{ marginTop:10 }}>
+              <label className="label">🏆 Vainqueur Europa League</label>
+              <input className="input" placeholder="ex: Tottenham" value={paEuropa} onChange={e => setPaEuropa(e.target.value)} />
+            </div>
+            <div className="form-group" style={{ marginTop:10 }}>
+              <label className="label">⚽ Meilleur buteur L1</label>
+              <input className="input" placeholder="ex: Kylian Mbappé" value={paButeur} onChange={e => setPaButeur(e.target.value)} />
+            </div>
+            <div className="form-group" style={{ marginTop:10 }}>
+              <label className="label">🎯 Meilleur passeur L1</label>
+              <input className="input" placeholder="ex: Ousmane Dembélé" value={paPasseur} onChange={e => setPaPasseur(e.target.value)} />
+            </div>
+
+            <div style={{ display:'flex', gap:10, marginTop:20 }}>
+              <button className="btn btn-primary" style={{ flex:1 }} onClick={soumettreParisAnnexe} disabled={paSaving}>
+                {paSaving ? <><div className="spinner" style={{width:14,height:14}}/> Envoi...</> : '✅ Valider mon pronostic'}
+              </button>
+              <button className="btn btn-secondary" onClick={() => setShowParisAnnexe(false)}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+
 
 
 
