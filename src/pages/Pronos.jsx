@@ -931,7 +931,7 @@ export default function Pronos() {
             : existingProno ? '🔄 Mettre à jour' : `📤 Envoyer mes pronos (${filled}/${total})`
           }
         </button>
-        {filled < 10 && <div style={{textAlign:'center',fontSize:12,color:'var(--tx3)',marginTop:8}}>Renseigne les {10-filled} matchs restants</div>}
+        {filled < total && <div style={{textAlign:'center',fontSize:12,color:'var(--tx3)',marginTop:8}}>Renseigne les {total-filled} matchs restants</div>}
       </div>
     </div>
   )
@@ -952,6 +952,7 @@ function deadlineFmt(j) {
   const dl = new Date(j.deadline.seconds*1000)
   return `Fermeture ${dl.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`
 }
+
 
 
 
