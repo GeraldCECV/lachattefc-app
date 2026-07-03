@@ -62,9 +62,8 @@ export default function Pronos() {
   // Bonus state
   const [bonusStock, setBonusStock] = useState({ missile:3, jackpot:3, doubleChance:4 })
   const [activeBonus, setActiveBonus] = useState(null) // { type:'jackpot'|'dc'|'missile', matchKey: null }
-  const [jackpotMatch, setJackpotMatch] = useState(null) // 'scorer'|'l1_0'|...|'euro'
-  const [dcMatch, setDcMatch] = useState(null) // 'l1_0' etc
-  const [dcChoices, setDcChoices] = useState([]) // ['1','N'] max 2
+  const [jackpotMatches, setJackpotMatches] = useState([]) // ['l1_0','euro',...] — plusieurs possibles
+  const [dcSelections, setDcSelections] = useState([]) // [{matchKey:'l1_0', choices:['1','N']}, ...]
   const [missileData, setMissileData] = useState({ cible:null, matchKey:null, prono:null })
   const [mesMissiles, setMesMissiles] = useState([]) // liste des missiles lancés par ce joueur pour cette journée
   const [showConfirm, setShowConfirm] = useState(false)
@@ -110,8 +109,10 @@ export default function Pronos() {
             setScorerH(parseInt(parts[0])||0)
             setScorerA(parseInt(parts[1])||0)
           }
-          if (data.jackpotMatch) setJackpotMatch(data.jackpotMatch)
-          if (data.dcMatch) { setDcMatch(data.dcMatch); setDcChoices(data.dcChoices||[]) }
+          if (Array.isArray(data.jackpotMatches)) setJackpotMatches(data.jackpotMatches)
+          else if (data.jackpotMatch) setJackpotMatches([data.jackpotMatch]) // ancien format
+          if (Array.isArray(data.dcSelections)) setDcSelections(data.dcSelections)
+          else if (data.dcMatch) setDcSelections([{ matchKey: data.dcMatch, choices: data.dcChoices||[] }]) // ancien format
         }
         // Charger bonus
         const joueurDoc = await getDoc(doc(db,'joueurs',user.uid))
@@ -136,12 +137,56 @@ export default function Pronos() {
     })
   }
 
-  const toggleDc = (val) => {
-    setDcChoices(prev => {
-      if (prev.includes(val)) return prev.filter(v=>v!==val)
-      if (prev.length >= 2) return [prev[1], val]
-      return [...prev, val]
-    })
+  const toggleJackpot = async (key) => {
+    const dejaActif = jackpotMatches.includes(key)
+    try {
+      if (dejaActif) {
+        setJackpotMatches(prev => prev.filter(k => k !== key))
+        const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+        const currentStock = jSnap.data()?.bonus?.jackpot || 0
+        await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.jackpot': Math.min(currentStock + 1, 3) })
+        setBonusStock(prev => ({ ...prev, jackpot: Math.min(prev.jackpot + 1, 3) }))
+      } else {
+        if (bonusStock.jackpot <= 0) return
+        setJackpotMatches(prev => [...prev, key])
+        const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+        const currentStock = jSnap.data()?.bonus?.jackpot || 0
+        await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.jackpot': Math.max(0, currentStock - 1) })
+        setBonusStock(prev => ({ ...prev, jackpot: Math.max(0, prev.jackpot - 1) }))
+      }
+    } catch(e) { console.warn('Erreur jackpot:', e.message) }
+    setActiveBonus(null)
+  }
+
+  const toggleDcMatch = async (key) => {
+    const dejaActif = dcSelections.some(d => d.matchKey === key)
+    try {
+      if (dejaActif) {
+        setDcSelections(prev => prev.filter(d => d.matchKey !== key))
+        const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+        const currentStock = jSnap.data()?.bonus?.doubleChance || 0
+        await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.doubleChance': Math.min(currentStock + 1, 4) })
+        setBonusStock(prev => ({ ...prev, doubleChance: Math.min(prev.doubleChance + 1, 4) }))
+      } else {
+        if (bonusStock.doubleChance <= 0) return
+        setDcSelections(prev => [...prev, { matchKey: key, choices: [] }])
+        const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+        const currentStock = jSnap.data()?.bonus?.doubleChance || 0
+        await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.doubleChance': Math.max(0, currentStock - 1) })
+        setBonusStock(prev => ({ ...prev, doubleChance: Math.max(0, prev.doubleChance - 1) }))
+      }
+    } catch(e) { console.warn('Erreur DC:', e.message) }
+    setActiveBonus(null)
+  }
+
+  const toggleDcChoice = (matchKey, val) => {
+    setDcSelections(prev => prev.map(d => {
+      if (d.matchKey !== matchKey) return d
+      const choices = d.choices || []
+      if (choices.includes(val)) return { ...d, choices: choices.filter(v=>v!==val) }
+      if (choices.length >= 2) return { ...d, choices: [choices[1], val] }
+      return { ...d, choices: [...choices, val] }
+    }))
   }
 
   const countFilled = () => {
@@ -151,7 +196,8 @@ export default function Pronos() {
         const m = journee.matchesL1?.[i]
         const isMatchScorer = journee.scorerOnly || m?.scorer
         const key = journee.type === 'cdm' ? `cdm_${i}` : `l1_${i}`
-        const isDcOnThisMatch = dcMatch === key && dcChoices.length === 2
+        const dcSel = dcSelections.find(d => d.matchKey === key)
+        const isDcOnThisMatch = dcSel && dcSel.choices.length === 2
         if (isMatchScorer) {
           if (p && /^\d+-\d+$/.test(p)) n++
         } else {
@@ -164,7 +210,8 @@ export default function Pronos() {
     if (pronos.matchEuro) n++
     ;(pronos.matchesL1||[]).forEach((p, i) => {
       const key = `l1_${i}`
-      const isDcOnThisMatch = dcMatch === key && dcChoices.length === 2
+      const dcSel = dcSelections.find(d => d.matchKey === key)
+      const isDcOnThisMatch = dcSel && dcSel.choices.length === 2
       if (p || isDcOnThisMatch) n++
     })
     return n
@@ -213,50 +260,23 @@ export default function Pronos() {
         await updateDoc(doc(db,'journees',journee.id,'missiles',missile.id), { applique: true })
       }
 
-      // ── Vérifier le stock bonus côté serveur ──
+      // ── Vérifier le stock bonus côté serveur (garde-fou, débit déjà fait en immédiat) ──
       const joueurSnap = await getDoc(doc(db,'joueurs',user.uid))
-      const stockServeur = joueurSnap.exists() ? joueurSnap.data().bonus : { missile:0, jackpot:0, doubleChance:0 }
-
-      // Invalider jackpot si stock épuisé ou posé sur le scorer
-      const jackpotValide = jackpotMatch && jackpotMatch !== 'scorer' && (stockServeur.jackpot > 0)
-      const dcValide = dcMatch && dcMatch !== 'scorer' && dcChoices.length === 2 && (stockServeur.doubleChance > 0)
 
       const data = {
         ...pronosFinaux,
         joueurId: user.uid,
         joueurNom: profil?.nom,
         soumisLe: serverTimestamp(),
-        jackpotMatch: jackpotValide ? jackpotMatch : null,
-        dcMatch: dcValide ? dcMatch : null,
-        dcChoices: dcValide ? dcChoices : null,
+        jackpotMatches: jackpotMatches.filter(k => k !== 'scorer'),
+        dcSelections: dcSelections.filter(d => d.matchKey !== 'scorer' && d.choices.length === 2),
+        // Champs legacy conservés null pour compat lecture ancienne (le calcul lit désormais les tableaux)
+        jackpotMatch: null,
+        dcMatch: null,
+        dcChoices: null,
         missilesRecus: missilesSurMoi.length > 0 ? missilesSurMoi.map(m => m.id) : null,
       }
       await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
-
-      // Débiter les bonus utilisés au moment de l'envoi
-      const bonusUpdate = {}
-      if (jackpotValide && !existingProno?.jackpotMatch) {
-        bonusUpdate['bonus.jackpot'] = Math.max(0, stockServeur.jackpot - 1)
-        setBonusStock(prev => ({ ...prev, jackpot: Math.max(0, prev.jackpot - 1) }))
-      }
-      // Rembourser jackpot si désactivé lors d'un update
-      if (!jackpotValide && existingProno?.jackpotMatch) {
-        bonusUpdate['bonus.jackpot'] = Math.min(stockServeur.jackpot + 1, 3)
-        setBonusStock(prev => ({ ...prev, jackpot: Math.min(prev.jackpot + 1, 3) }))
-      }
-      if (dcValide && !existingProno?.dcMatch) {
-        bonusUpdate['bonus.doubleChance'] = Math.max(0, stockServeur.doubleChance - 1)
-        setBonusStock(prev => ({ ...prev, doubleChance: Math.max(0, prev.doubleChance - 1) }))
-      }
-      // Rembourser DC si désactivée lors d'un update
-      if (!dcValide && existingProno?.dcMatch) {
-        bonusUpdate['bonus.doubleChance'] = Math.min(stockServeur.doubleChance + 1, 4)
-        setBonusStock(prev => ({ ...prev, doubleChance: Math.min(prev.doubleChance + 1, 4) }))
-      }
-      // Le missile est débité immédiatement au lancement (submitMissile), rien à faire ici
-      if (Object.keys(bonusUpdate).length > 0) {
-        await updateDoc(doc(db,'joueurs',user.uid), bonusUpdate)
-      }
 
       setExistingProno(data)
       setSaved(true)
@@ -288,9 +308,8 @@ export default function Pronos() {
             matchScorer: journee.matchScorer || null,
             matchEuro: journee.matchEuro || null,
             scorerOnly: journee.scorerOnly || false,
-            jackpotMatch: jackpotMatch || null,
-            dcMatch: dcMatch || null,
-            dcChoices: dcChoices || [],
+            jackpotMatches: jackpotMatches || [],
+            dcSelections: dcSelections || [],
             missiles: missilesPourEmail,
           })
         }
@@ -682,10 +701,14 @@ export default function Pronos() {
       </div>}
 
       {/* Bonus actifs recap */}
-      {!journee.scorerOnly && (jackpotMatch || dcMatch) && (
+      {!journee.scorerOnly && (jackpotMatches.length > 0 || dcSelections.length > 0) && (
         <div style={{margin:'8px 16px 0',padding:'10px 14px',background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:'var(--Rs)',fontSize:12}}>
-          {jackpotMatch && <div style={{color:'var(--a)',fontWeight:700}}>🎰 Jackpot → {matchLabel(jackpotMatch)}</div>}
-          {dcMatch && dcChoices.length===2 && <div style={{color:'var(--p)',fontWeight:700,marginTop:jackpotMatch?4:0}}>2️⃣ Double Chance → {matchLabel(dcMatch)} · {dcChoices.join(' ou ')}</div>}
+          {jackpotMatches.map(k => (
+            <div key={k} style={{color:'var(--a)',fontWeight:700}}>🎰 Jackpot → {matchLabel(k)}</div>
+          ))}
+          {dcSelections.filter(d=>d.choices.length===2).map(d => (
+            <div key={d.matchKey} style={{color:'var(--p)',fontWeight:700,marginTop:4}}>2️⃣ Double Chance → {matchLabel(d.matchKey)} · {d.choices.join(' ou ')}</div>
+          ))}
         </div>
       )}
 
@@ -729,8 +752,9 @@ export default function Pronos() {
         if (!m?.dom) return null
         const key = journee.type === 'cdm' ? `cdm_${i}` : `l1_${i}`
         const sel = pronos.matchesL1?.[i]
-        const isJP = jackpotMatch === key
-        const isDC = dcMatch === key
+        const isJP = jackpotMatches.includes(key)
+        const isDC = dcSelections.some(d => d.matchKey === key)
+        const dcChoicesIci = dcSelections.find(d => d.matchKey === key)?.choices || []
         const isSelectingBonus = activeBonus?.type === 'jackpot' || activeBonus?.type === 'dc'
 
         // Mode scorer uniquement
@@ -806,18 +830,12 @@ export default function Pronos() {
                 <TeamLogo name={m.ext} size={22} />
               </div>
               <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                {isJP && <span className="pill pill-a">🎰 Jackpot</span>}
-                {isDC && <span className="pill pill-p">2️⃣ DC</span>}
+                {isJP && <span className="pill pill-a" style={{cursor:'pointer'}} onClick={()=>toggleJackpot(key)}>🎰 Jackpot ✕</span>}
+                {isDC && <span className="pill pill-p" style={{cursor:'pointer'}} onClick={()=>toggleDcMatch(key)}>2️⃣ DC ✕</span>}
                 {isSelectingBonus && !(activeBonus.type==='jackpot' && isJP) && !(activeBonus.type==='dc' && isDC) && (
                   <button onClick={()=>{
-                    if (activeBonus.type==='jackpot') {
-                      setJackpotMatch(key)
-                      setActiveBonus(null)
-                    }
-                    if (activeBonus.type==='dc') {
-                      setDcMatch(key)
-                      setActiveBonus(null)
-                    }
+                    if (activeBonus.type==='jackpot') toggleJackpot(key)
+                    if (activeBonus.type==='dc') toggleDcMatch(key)
                   }} style={{
                     padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
                     borderColor:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
@@ -833,7 +851,7 @@ export default function Pronos() {
             {isDC ? (
               // Double Chance — 3 boutons toggle
               <div style={{display:'flex',gap:7}}>
-                {['1','N','2'].map(v => <DcBtn key={v} val={v} selected={dcChoices} onClick={()=>toggleDc(v)} />)}
+                {['1','N','2'].map(v => <DcBtn key={v} val={v} selected={dcChoicesIci} onClick={()=>toggleDcChoice(key, v)} />)}
               </div>
             ) : (
               // Normal 1N2
@@ -849,11 +867,15 @@ export default function Pronos() {
 
       {/* ── EURO ── */}
       <div className="section-lbl" style={{padding:'8px 20px'}}>🌍 Match européen — 1N2</div>
-      {journee.matchEuro?.dom && (
+      {journee.matchEuro?.dom && (() => {
+        const isJPEuro = jackpotMatches.includes('euro')
+        const isDCEuro = dcSelections.some(d => d.matchKey === 'euro')
+        const dcChoicesEuro = dcSelections.find(d => d.matchKey === 'euro')?.choices || []
+        return (
         <div style={{
           margin:'0 16px 10px',
-          background: jackpotMatch==='euro'?'rgba(251,191,36,.04)':dcMatch==='euro'?'rgba(192,132,252,.04)':'rgba(249,115,22,.03)',
-          border:`1px solid ${jackpotMatch==='euro'?'var(--a-b)':dcMatch==='euro'?'var(--p-b)':pronos.matchEuro?'var(--g-b)':'var(--o-b)'}`,
+          background: isJPEuro?'rgba(251,191,36,.04)':isDCEuro?'rgba(192,132,252,.04)':'rgba(249,115,22,.03)',
+          border:`1px solid ${isJPEuro?'var(--a-b)':isDCEuro?'var(--p-b)':pronos.matchEuro?'var(--g-b)':'var(--o-b)'}`,
           borderRadius:'var(--R)',padding:'13px 14px',
         }}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
@@ -864,29 +886,27 @@ export default function Pronos() {
               </div>
               <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{journee.matchEuro.jour} {journee.matchEuro.heure}</div>
             </div>
-            {(activeBonus?.type==='jackpot'||activeBonus?.type==='dc') && jackpotMatch!=='euro' && dcMatch!=='euro' && (
-              <button onClick={()=>{
-                if (activeBonus.type==='jackpot') {
-                  setJackpotMatch('euro')
-                  setActiveBonus(null)
-                }
-                if (activeBonus.type==='dc') {
-                  setDcMatch('euro')
-                  setActiveBonus(null)
-                }
-              }} style={{
-                padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
-                borderColor:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
-                background:'none',cursor:'pointer',fontSize:11,fontWeight:700,
-                color:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
-              }}>
-                {activeBonus.type==='jackpot'?'🎰 Ici':'2️⃣ Ici'}
-              </button>
-            )}
+            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              {isJPEuro && <span className="pill pill-a" style={{cursor:'pointer'}} onClick={()=>toggleJackpot('euro')}>🎰 Jackpot ✕</span>}
+              {isDCEuro && <span className="pill pill-p" style={{cursor:'pointer'}} onClick={()=>toggleDcMatch('euro')}>2️⃣ DC ✕</span>}
+              {(activeBonus?.type==='jackpot'||activeBonus?.type==='dc') && !(activeBonus.type==='jackpot'&&isJPEuro) && !(activeBonus.type==='dc'&&isDCEuro) && (
+                <button onClick={()=>{
+                  if (activeBonus.type==='jackpot') toggleJackpot('euro')
+                  if (activeBonus.type==='dc') toggleDcMatch('euro')
+                }} style={{
+                  padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
+                  borderColor:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
+                  background:'none',cursor:'pointer',fontSize:11,fontWeight:700,
+                  color:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
+                }}>
+                  {activeBonus.type==='jackpot'?'🎰 Ici':'2️⃣ Ici'}
+                </button>
+              )}
+            </div>
           </div>
-          {dcMatch==='euro' ? (
+          {isDCEuro ? (
             <div style={{display:'flex',gap:7}}>
-              {['1','N','2'].map(v => <DcBtn key={v} val={v} selected={dcChoices} onClick={()=>toggleDc(v)} />)}
+              {['1','N','2'].map(v => <DcBtn key={v} val={v} selected={dcChoicesEuro} onClick={()=>toggleDcChoice('euro', v)} />)}
             </div>
           ) : (
             <div style={{display:'flex',gap:7}}>
@@ -896,7 +916,8 @@ export default function Pronos() {
             </div>
           )}
         </div>
-      )}
+        )
+      })()}
 
       {/* CTA */}
       <div style={{padding:'4px 16px 24px'}}>
@@ -909,8 +930,8 @@ export default function Pronos() {
               </div>
               <div style={{fontSize:13,color:'var(--tx2)',marginBottom:16,lineHeight:1.6}}>
                 {filled}/{total} matchs renseignés
-                {jackpotMatch && <div style={{color:'var(--a)',fontWeight:700,marginTop:4}}>🎰 Jackpot activé</div>}
-                {dcMatch && dcChoices.length===2 && <div style={{color:'var(--p)',fontWeight:700}}>2️⃣ Double Chance activé</div>}
+                {jackpotMatches.map(k => <div key={k} style={{color:'var(--a)',fontWeight:700,marginTop:4}}>🎰 Jackpot → {matchLabel(k)}</div>)}
+                {dcSelections.filter(d=>d.choices.length===2).map(d => <div key={d.matchKey} style={{color:'var(--p)',fontWeight:700}}>2️⃣ DC → {matchLabel(d.matchKey)}</div>)}
                 {mesMissiles.length > 0 && mesMissiles.map(m => (
                   <div key={m.id} style={{color:'var(--r)',fontWeight:700}}>🚀 Missile sur {m.cibleNom || 'un joueur'}</div>
                 ))}
@@ -952,6 +973,7 @@ function deadlineFmt(j) {
   const dl = new Date(j.deadline.seconds*1000)
   return `Fermeture ${dl.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`
 }
+
 
 
 
