@@ -67,6 +67,7 @@ export default function Pronos() {
   const [dcChoices, setDcChoices] = useState([]) // ['1','N'] max 2
   const [missileData, setMissileData] = useState({ cible:null, matchKey:null, prono:null })
   const [missileUsed, setMissileUsed] = useState(false)
+  const [missileDocId, setMissileDocId] = useState(null) // id du missile créé DANS cette session (à ne pas supprimer au nettoyage)
   const [showConfirm, setShowConfirm] = useState(false)
   const [joueurs, setJoueurs] = useState([])
   const [showBonusPanel, setShowBonusPanel] = useState(null) // matchKey
@@ -173,11 +174,14 @@ export default function Pronos() {
     if (!user || !journee) return
     setSaving(true)
     try {
-      // ── Si mise à jour : supprimer l'ancien missile lancé si pas de nouveau missile ──
-      if (existingProno && !missileUsed) {
+      // ── Si mise à jour : supprimer tout ancien missile déjà lancé par ce
+      // joueur pour cette journée (sauf celui tout juste créé dans cette
+      // session, le cas échéant) — une resoumission écrase totalement,
+      // bonus compris, pas seulement quand aucun nouveau missile n'est posé.
+      if (existingProno) {
         const oldMissilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
         for (const mDoc of oldMissilesSnap.docs) {
-          if (mDoc.data().lanceur === user.uid) {
+          if (mDoc.data().lanceur === user.uid && mDoc.id !== missileDocId) {
             await deleteDoc(doc(db,'journees',journee.id,'missiles',mDoc.id))
             // Rembourser le stock missile
             const jSnap = await getDoc(doc(db,'joueurs',user.uid))
@@ -329,7 +333,7 @@ export default function Pronos() {
         return
       }
 
-      await addDoc(collection(db,'journees',journee.id,'missiles'), {
+      const ref = await addDoc(collection(db,'journees',journee.id,'missiles'), {
         lanceur: user.uid,
         lanceurNom: profil?.nom,
         cible: missileData.cible,
@@ -339,6 +343,7 @@ export default function Pronos() {
         journeeId: journee.id,
         applique: false,
       })
+      setMissileDocId(ref.id)
       // Ne pas débiter immédiatement - sera débité à l'envoi des pronos
       setMissileUsed(true)
       // Réduire l'affichage local pour empêcher un 2ème missile (sans toucher Firestore)
@@ -922,6 +927,7 @@ function deadlineFmt(j) {
   const dl = new Date(j.deadline.seconds*1000)
   return `Fermeture ${dl.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`
 }
+
 
 
 
