@@ -190,8 +190,10 @@ export default function Profil() {
                       Pronostique le podium final de L1, les vainqueurs LDC/Europa League, et le meilleur buteur/passeur de la saison. Mise totale : 6€.
                     </div>
                     {paConfig.deadline && (
-                      <div style={{ fontSize:11, color:'var(--tx3)', marginBottom:10 }}>
-                        ⏰ Deadline : {new Date(paConfig.deadline.seconds*1000).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', timeZone:'Europe/Paris' })}
+                      <div style={{ textAlign:'center', marginBottom:12 }}>
+                        <span style={{ display:'inline-block', padding:'8px 14px', background:'rgba(155,226,45,.06)', border:'1px solid var(--g-b)', borderRadius:'var(--Rs)', fontSize:12, color:'var(--g)', fontWeight:700 }}>
+                          ⏰ Deadline : {new Date(paConfig.deadline.seconds*1000).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', timeZone:'Europe/Paris' })}
+                        </span>
                       </div>
                     )}
                     <button className="btn btn-secondary" style={{ width:'100%', display:'flex', justifyContent:'center', textAlign:'center' }} onClick={ouvrirParisAnnexe}>
