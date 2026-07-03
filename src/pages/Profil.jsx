@@ -64,6 +64,20 @@ export default function Profil() {
     setShowParisAnnexe(true)
   }
 
+  // Bloque le scroll du fond pendant que le modal est ouvert — sur iOS,
+  // deux conteneurs scrollables superposés (le fond + le modal) se
+  // marchent dessus et le geste tactile part sur le mauvais des deux.
+  useEffect(() => {
+    const bg = document.querySelector('.screen-content')
+    if (!bg) return
+    if (showParisAnnexe) {
+      bg.style.overflow = 'hidden'
+    } else {
+      bg.style.overflow = ''
+    }
+    return () => { bg.style.overflow = '' }
+  }, [showParisAnnexe])
+
   const soumettreParisAnnexe = async () => {
     if (paPodium.some(p => !p) || new Set(paPodium).size < 3) { setPaMsg('❌ Choisis 3 clubs différents pour le podium'); return }
     if (!paLdc.trim() || !paEuropa.trim() || !paButeur.trim() || !paPasseur.trim()) { setPaMsg('❌ Tous les champs sont requis'); return }
@@ -327,6 +341,7 @@ export default function Profil() {
     </div>
   )
 }
+
 
 
 
