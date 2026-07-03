@@ -186,7 +186,7 @@ export default function Profil() {
                   </div>
                 ) : paConfig.statut === 'ouvert' ? (
                   <div>
-                    <div style={{ fontSize:13, color:'var(--tx2)', marginBottom:10, lineHeight:1.6 }}>
+                    <div style={{ fontSize:13, color:'var(--tx2)', marginBottom:10, lineHeight:1.6, textAlign:'center' }}>
                       Pronostique le podium final de L1, les vainqueurs LDC/Europa League, et le meilleur buteur/passeur de la saison. Mise totale : 6€.
                     </div>
                     {paConfig.deadline && (
