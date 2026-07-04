@@ -72,14 +72,6 @@ export default function Profil() {
     setShowParisAnnexe(true)
   }
 
-  // Masque la barre de navigation du bas tant que le modal est ouvert —
-  // elle est en position:fixed et peut visuellement "sauter" quand le
-  // clavier ou un sélecteur natif iOS s'ouvre pour remplir un champ.
-  useEffect(() => {
-    document.body.classList.toggle('modal-open', showParisAnnexe)
-    return () => document.body.classList.remove('modal-open')
-  }, [showParisAnnexe])
-
   const soumettreParisAnnexe = async () => {
     if (paPodium.some(p => !p) || new Set(paPodium).size < 3) { setPaMsg('❌ Choisis 3 clubs différents pour le podium'); return }
     if (!paLdc.trim() || !paEuropa.trim() || !paButeur.trim() || !paPasseur.trim()) { setPaMsg('❌ Tous les champs sont requis'); return }
@@ -355,6 +347,7 @@ export default function Profil() {
     </div>
   )
 }
+
 
 
 
