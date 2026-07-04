@@ -46,6 +46,36 @@ function DcBtn({ val, selected, onClick }) {
   )
 }
 
+function Confetti() {
+  const colors = ['#9BE22D', '#FFD700', '#60A5FA', '#F87171', '#C084FC', '#FB923C']
+  const pieces = Array.from({ length: 40 }, (_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    color: colors[i % colors.length],
+    delay: Math.random() * 0.3,
+    duration: 1.6 + Math.random() * 1,
+    size: 6 + Math.random() * 6,
+  }))
+  return (
+    <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:9999, overflow:'hidden' }}>
+      <style>{`
+        @keyframes confetti-fall {
+          0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+      `}</style>
+      {pieces.map(p => (
+        <div key={p.id} style={{
+          position:'absolute', top:0, left:`${p.left}%`,
+          width:p.size, height:p.size*0.4, background:p.color,
+          borderRadius:2,
+          animation:`confetti-fall ${p.duration}s ease-in ${p.delay}s forwards`,
+        }} />
+      ))}
+    </div>
+  )
+}
+
 export default function Pronos() {
   const { profil, user } = useUser()
   const [journee, setJournee] = useState(null)
@@ -54,10 +84,20 @@ export default function Pronos() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
   const [scorerH, setScorerH] = useState(0)
   const [scorerA, setScorerA] = useState(0)
   const [deadlinePassed, setDeadlinePassed] = useState(false)
   const journeeAVenir = journee?.statut === 'a-venir'
+
+  // Petit feedback immersif à la validation : confettis + vibration
+  // (vibration ignorée sans effet sur iOS, l'API n'y existe pas — mais
+  // fonctionne sur Android, gratuit à ajouter).
+  const celebrer = () => {
+    setShowConfetti(true)
+    if (navigator.vibrate) navigator.vibrate([30, 40, 60])
+    setTimeout(() => setShowConfetti(false), 2200)
+  }
 
   // Bonus state
   const [bonusStock, setBonusStock] = useState({ missile:3, jackpot:3, doubleChance:4 })
@@ -280,6 +320,7 @@ export default function Pronos() {
 
       setExistingProno(data)
       setSaved(true)
+      celebrer()
       setTimeout(() => setSaved(false), 3000)
 
       // Envoyer email de confirmation
@@ -423,6 +464,7 @@ export default function Pronos() {
         await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
         setExistingProno(data)
         setSaved(true)
+        celebrer()
         setTimeout(() => setSaved(false), 3000)
       } catch(e) { alert('Erreur : '+e.message) }
       setSaving(false)
@@ -483,6 +525,7 @@ export default function Pronos() {
         await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
         setExistingProno(data)
         setSaved(true)
+        celebrer()
         setTimeout(() => setSaved(false), 3000)
       } catch(e) { alert('Erreur : '+e.message) }
       setSaving(false)
@@ -954,6 +997,8 @@ export default function Pronos() {
         </button>
         {filled < total && <div style={{textAlign:'center',fontSize:12,color:'var(--tx3)',marginTop:8}}>Renseigne les {total-filled} matchs restants</div>}
       </div>
+
+      {showConfetti && <Confetti />}
     </div>
   )
 }
@@ -973,6 +1018,7 @@ function deadlineFmt(j) {
   const dl = new Date(j.deadline.seconds*1000)
   return `Fermeture ${dl.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`
 }
+
 
 
 
