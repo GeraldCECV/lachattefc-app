@@ -27,13 +27,19 @@ export default function PronosChatteux() {
         const joueursSnap = await getDocs(collection(db,'joueurs'))
         setJoueurs(joueursSnap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (a.nom||'').localeCompare(b.nom||'')))
         setJourneesList(liste)
-        // Par défaut, on affiche la journée "ouverte" la plus proche (plus petit
-        // numéro), pas simplement la dernière créée — plusieurs journées peuvent
-        // être ouvertes en même temps si elles sont créées à l'avance.
+        // Priorité 1 : une journée avec un match EN DIRECT en ce moment,
+        // peu importe son statut (une journée "fermee" peut encore avoir
+        // des matchs en cours si sa deadline pronos est passée avant le
+        // coup d'envoi réel). Priorité 2 : la journée "ouverte" la plus
+        // proche. Sinon, la dernière de la liste.
+        const journeeAvecLive = liste.find(j => {
+          const resultats = j.resultats || {}
+          return Object.values(resultats).some(r => r?.status === 'IN_PLAY' || r?.status === 'PAUSED')
+        })
         const ouvertes = liste.filter(j => j.statut === 'ouverte')
-        const defaultJ = ouvertes.length > 0
+        const defaultJ = journeeAvecLive || (ouvertes.length > 0
           ? ouvertes.reduce((a, b) => (a.numero < b.numero ? a : b))
-          : liste[liste.length - 1]
+          : liste[liste.length - 1])
         if (defaultJ) setSelectedJId(defaultJ.id)
         setLoading(false)
       } catch(e) {
@@ -431,6 +437,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
