@@ -250,7 +250,7 @@ export default function Profil() {
                     </div>
                     <div style={{ fontFamily:'var(--D)', fontSize:22, color:'var(--tx)', letterSpacing:'.03em', minWidth:32, textAlign:'right' }}>{h.pts}</div>
                     <div style={{ fontSize:12, color:h.gain>0?'var(--g)':'var(--tx3)', fontWeight:900, minWidth:36, textAlign:'right' }}>
-                      {h.gain>0?`+${h.gain}€`:'—'}
+                      {h.gain>0?`+${h.gain.toFixed(2)}€`:'—'}
                     </div>
                   </div>
                 ))}
