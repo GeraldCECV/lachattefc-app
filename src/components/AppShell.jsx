@@ -53,7 +53,18 @@ export default function AppShell() {
       if (CHAMPS.includes(e.target.tagName)) document.body.classList.add('modal-open')
     }
     const onFocusOut = (e) => {
-      if (CHAMPS.includes(e.target.tagName)) document.body.classList.remove('modal-open')
+      if (!CHAMPS.includes(e.target.tagName)) return
+      document.body.classList.remove('modal-open')
+      // Après fermeture du clavier iOS, la page peut rester scrollée de
+      // quelques pixels au lieu de revenir pile en haut — ce qui fait
+      // "remonter" l'en-tête sous la zone protégée du haut (status bar).
+      // On force un retour en haut si on était déjà proche du haut.
+      setTimeout(() => {
+        const contenu = document.querySelector('.screen-content')
+        if (contenu && contenu.scrollTop > 0 && contenu.scrollTop < 150) {
+          contenu.scrollTop = 0
+        }
+      }, 300)
     }
     document.addEventListener('focusin', onFocusIn)
     document.addEventListener('focusout', onFocusOut)
@@ -93,6 +104,7 @@ export default function AppShell() {
     </div>
   )
 }
+
 
 
 
