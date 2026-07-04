@@ -48,12 +48,12 @@ function DcBtn({ val, selected, onClick }) {
 
 function Confetti() {
   const colors = ['#9BE22D', '#FFD700', '#60A5FA', '#F87171', '#C084FC', '#FB923C']
-  const pieces = Array.from({ length: 40 }, (_, i) => ({
+  const pieces = Array.from({ length: 90 }, (_, i) => ({
     id: i,
     left: Math.random() * 100,
     color: colors[i % colors.length],
-    delay: Math.random() * 0.3,
-    duration: 1.6 + Math.random() * 1,
+    delay: Math.random() * 0.6,
+    duration: 2.5 + Math.random() * 1.8,
     size: 6 + Math.random() * 6,
   }))
   return (
@@ -96,7 +96,7 @@ export default function Pronos() {
   const celebrer = () => {
     setShowConfetti(true)
     if (navigator.vibrate) navigator.vibrate([30, 40, 60])
-    setTimeout(() => setShowConfetti(false), 2200)
+    setTimeout(() => setShowConfetti(false), 5000)
   }
 
   // Bonus state
@@ -1018,6 +1018,7 @@ function deadlineFmt(j) {
   const dl = new Date(j.deadline.seconds*1000)
   return `Fermeture ${dl.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`
 }
+
 
 
 
