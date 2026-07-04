@@ -284,7 +284,7 @@ export default function PronosChatteux() {
                         animation:'pulse 1.5s infinite',
                       }}>
                         <span style={{ width:4, height:4, borderRadius:'50%', background:'#FF4444', display:'inline-block' }} />
-                        {res.status === 'PAUSED' ? 'MT' : (res.minute ? `${res.minute}'` : 'LIVE')}
+                        LIVE
                       </div>
                     )}
                   </div>
@@ -448,6 +448,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
