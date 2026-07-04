@@ -120,6 +120,11 @@ export default function PronosChatteux() {
   )
 
   const isCDM = journee.type === 'cdm'
+  // Helpers jackpot/DC multi-instances, retro-compatibles avec l'ancien format à champ unique
+  const getJackpotMatches = (p) => Array.isArray(p?.jackpotMatches) ? p.jackpotMatches : (p?.jackpotMatch ? [p.jackpotMatch] : [])
+  const getDcSelections = (p) => Array.isArray(p?.dcSelections) ? p.dcSelections : (p?.dcMatch ? [{ matchKey: p.dcMatch, choices: p.dcChoices||[] }] : [])
+  const isJackpotOn = (p, key) => getJackpotMatches(p).includes(key)
+  const getDcChoicesFor = (p, key) => getDcSelections(p).find(d => d.matchKey === key)?.choices
   const scorer = journee.matchScorer
   const matchesMain = isCDM
     ? (journee.matchesCDM || []).filter(m => m?.dom)
@@ -144,7 +149,8 @@ export default function PronosChatteux() {
     const arr = isCDM ? p.matchesCDM : p.matchesL1
     if (arr?.[idx]) return { val: arr[idx] }
     // Pas de prono de base mais DC active sur ce match — afficher les choix DC
-    if (p.dcMatch === key && p.dcChoices?.length > 0) return { val: p.dcChoices.join('/'), isDcOnly: true }
+    const dcChoicesIci = getDcChoicesFor(p, key)
+    if (dcChoicesIci?.length > 0) return { val: dcChoicesIci.join('/'), isDcOnly: true }
     return null
   }
 
@@ -161,8 +167,9 @@ export default function PronosChatteux() {
     }
     const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
     const p = pronos[uid]
-    if (p?.dcMatch === key && p?.dcChoices?.length > 0) {
-      return p.dcChoices.includes(issue) ? 'correct' : 'wrong'
+    const dcChoicesIci = getDcChoicesFor(p, key)
+    if (dcChoicesIci?.length > 0) {
+      return dcChoicesIci.includes(issue) ? 'correct' : 'wrong'
     }
     return prono.val === issue ? 'correct' : 'wrong'
   }
@@ -181,16 +188,17 @@ export default function PronosChatteux() {
       return Math.sign(ph - pa) === Math.sign(rh - ra) ? 1 : 0
     }
     const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
-    if (p?.dcMatch === key && p?.dcChoices?.length > 0) {
-      if (!p.dcChoices.includes(issue)) return 0
-      return p?.jackpotMatch === key ? 2 : 1
+    const dcChoicesIci = getDcChoicesFor(p, key)
+    if (dcChoicesIci?.length > 0) {
+      if (!dcChoicesIci.includes(issue)) return 0
+      return isJackpotOn(p, key) ? 2 : 1
     }
     if (prono.val !== issue) return 0
     const bonCount = Object.keys(pronos).filter(u => getProno(u, key)?.val === issue).length
     const allTotal = Object.keys(pronos).length
     const ratio = allTotal > 0 ? bonCount / allTotal : 1
     let pts = ratio <= 0.25 ? 2 : 1
-    if (p?.jackpotMatch === key) pts *= 2
+    if (isJackpotOn(p, key)) pts *= 2
     return pts
   }
 
@@ -198,8 +206,8 @@ export default function PronosChatteux() {
     const p = pronos[uid]
     if (!p) return []
     const labels = []
-    if (p.jackpotMatch === key) labels.push({ icon: '🎰', label: 'Jackpot' })
-    if (p.dcMatch === key) labels.push({ icon: '2️⃣', label: 'DC' })
+    if (isJackpotOn(p, key)) labels.push({ icon: '🎰', label: 'Jackpot' })
+    if (getDcChoicesFor(p, key)?.length > 0) labels.push({ icon: '2️⃣', label: 'DC' })
     return labels
   }
 
