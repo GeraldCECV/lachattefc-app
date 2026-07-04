@@ -88,8 +88,11 @@ export default function Classement() {
           } else {
             const issue = issueMatch(rh, ra)
             const dcChoicesIci = dcSelectionsArr.find(d => d.matchKey === key)?.choices
-            if (dcChoicesIci?.length === 2 && dcChoicesIci.includes(issue)) {
-              pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + (jackpotMatchesArr.includes(key) ? 2 : 1)
+            if (dcChoicesIci?.length === 2) {
+              // DC active sur ce match : exclusive — gagne (1 ou 2pts si jackpot) ou 0, jamais de repli sur le prono brut
+              if (dcChoicesIci.includes(issue)) {
+                pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + (jackpotMatchesArr.includes(key) ? 2 : 1)
+              }
             } else if (prono === issue) {
               const total = Object.values(pronosAvecMissiles).filter(pp => pp?.[arrKey]?.[i] === issue).length
               const nb = Object.keys(pronosMap).length
@@ -438,6 +441,7 @@ const Rank = ({rank}) => {
     </div>
   )
 }
+
 
 
 
