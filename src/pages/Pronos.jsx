@@ -110,15 +110,6 @@ export default function Pronos() {
   const [joueurs, setJoueurs] = useState([])
   const [showBonusPanel, setShowBonusPanel] = useState(null) // matchKey
   const [showMissileModal, setShowMissileModal] = useState(false)
-
-  // Masque la barre de navigation du bas tant qu'un modal est ouvert —
-  // elle est en position:fixed et peut visuellement "sauter" quand le
-  // clavier ou un sélecteur natif iOS s'ouvre pour remplir un champ.
-  useEffect(() => {
-    const unModalEstOuvert = showMissileModal || showConfirm
-    document.body.classList.toggle('modal-open', unModalEstOuvert)
-    return () => document.body.classList.remove('modal-open')
-  }, [showMissileModal, showConfirm])
   const [missileStep, setMissileStep] = useState(1) // 1=cible 2=match 3=prono
   const [missileMsg, setMissileMsg] = useState('')
 
