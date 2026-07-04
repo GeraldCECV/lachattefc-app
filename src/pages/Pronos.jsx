@@ -187,7 +187,7 @@ export default function Pronos() {
         await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.jackpot': Math.min(currentStock + 1, 3) })
         setBonusStock(prev => ({ ...prev, jackpot: Math.min(prev.jackpot + 1, 3) }))
       } else {
-        if (bonusStock.jackpot <= 0) return
+        if (bonusStock.jackpot <= 0 || jackpotMatches.length > 0) return
         setJackpotMatches(prev => [...prev, key])
         const jSnap = await getDoc(doc(db,'joueurs',user.uid))
         const currentStock = jSnap.data()?.bonus?.jackpot || 0
@@ -208,7 +208,7 @@ export default function Pronos() {
         await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.doubleChance': Math.min(currentStock + 1, 4) })
         setBonusStock(prev => ({ ...prev, doubleChance: Math.min(prev.doubleChance + 1, 4) }))
       } else {
-        if (bonusStock.doubleChance <= 0) return
+        if (bonusStock.doubleChance <= 0 || dcSelections.length > 0) return
         setDcSelections(prev => [...prev, { matchKey: key, choices: [] }])
         const jSnap = await getDoc(doc(db,'joueurs',user.uid))
         const currentStock = jSnap.data()?.bonus?.doubleChance || 0
@@ -368,6 +368,10 @@ export default function Pronos() {
     }
     if (bonusStock.missile <= 0) {
       setMissileMsg('⚠️ Plus de missile en stock')
+      return
+    }
+    if (mesMissiles.length > 0) {
+      setMissileMsg('⚠️ Un seul missile par journée — annule le précédent pour en poser un autre')
       return
     }
     try {
@@ -707,40 +711,54 @@ export default function Pronos() {
 
       {/* Bonus strip */}
       {!journee.scorerOnly && <div style={{margin:'12px 16px 0',display:'flex',gap:8,flexWrap:'wrap'}}>
-        {/* Missile */}
-        {bonusStock.missile > 0 && !deadlinePassed && (
-          <button onClick={()=>setShowMissileModal(true)} style={{
-            display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
-            background:'var(--r-dim)',border:'1px solid var(--r-b)',
-            borderRadius:999,fontSize:12,fontWeight:700,color:'var(--r)',cursor:'pointer',
-          }}>
-            🚀 Missile ×{bonusStock.missile}
-          </button>
-        )}
-        {/* Jackpot */}
-        {bonusStock.jackpot > 0 && !deadlinePassed && (
-          <button onClick={()=>setActiveBonus(activeBonus?.type==='jackpot'?null:{type:'jackpot'})} style={{
-            display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
-            background:activeBonus?.type==='jackpot'?'var(--a-dim)':'rgba(255,255,255,.04)',
-            border:`1px solid ${activeBonus?.type==='jackpot'?'var(--a-b)':'rgba(255,255,255,.1)'}`,
-            borderRadius:999,fontSize:12,fontWeight:700,
-            color:activeBonus?.type==='jackpot'?'var(--a)':'var(--tx3)',cursor:'pointer',
-          }}>
-            🎰 Jackpot ×{bonusStock.jackpot} {activeBonus?.type==='jackpot'?'— Sélectionne un match':''}
-          </button>
-        )}
-        {/* Double Chance */}
-        {bonusStock.doubleChance > 0 && !deadlinePassed && (
-          <button onClick={()=>setActiveBonus(activeBonus?.type==='dc'?null:{type:'dc'})} style={{
-            display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
-            background:activeBonus?.type==='dc'?'var(--p-dim)':'rgba(255,255,255,.04)',
-            border:`1px solid ${activeBonus?.type==='dc'?'var(--p-b)':'rgba(255,255,255,.1)'}`,
-            borderRadius:999,fontSize:12,fontWeight:700,
-            color:activeBonus?.type==='dc'?'var(--p)':'var(--tx3)',cursor:'pointer',
-          }}>
-            2️⃣ DC ×{bonusStock.doubleChance} {activeBonus?.type==='dc'?'— Sélectionne un match':''}
-          </button>
-        )}
+        {/* Missile — 1 seul par journée */}
+        {!deadlinePassed && (bonusStock.missile > 0 || mesMissiles.length > 0) && (() => {
+          const dejaPose = mesMissiles.length > 0
+          return (
+            <button onClick={()=>{ if (!dejaPose) setShowMissileModal(true) }} disabled={dejaPose} style={{
+              display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
+              background:dejaPose?'rgba(255,255,255,.03)':'var(--r-dim)',
+              border:`1px solid ${dejaPose?'rgba(255,255,255,.08)':'var(--r-b)'}`,
+              borderRadius:999,fontSize:12,fontWeight:700,
+              color:dejaPose?'var(--tx3)':'var(--r)',cursor:dejaPose?'not-allowed':'pointer',
+              opacity:dejaPose?0.6:1,
+            }}>
+              🚀 Missile {dejaPose?'posé':`×${bonusStock.missile}`}
+            </button>
+          )
+        })()}
+        {/* Jackpot — 1 seul par journée */}
+        {!deadlinePassed && (bonusStock.jackpot > 0 || jackpotMatches.length > 0) && (() => {
+          const dejaPose = jackpotMatches.length > 0
+          return (
+            <button onClick={()=>{ if (!dejaPose) setActiveBonus(activeBonus?.type==='jackpot'?null:{type:'jackpot'}) }} disabled={dejaPose} style={{
+              display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
+              background:dejaPose?'rgba(255,255,255,.03)':activeBonus?.type==='jackpot'?'var(--a-dim)':'rgba(255,255,255,.04)',
+              border:`1px solid ${dejaPose?'rgba(255,255,255,.08)':activeBonus?.type==='jackpot'?'var(--a-b)':'rgba(255,255,255,.1)'}`,
+              borderRadius:999,fontSize:12,fontWeight:700,
+              color:dejaPose?'var(--tx3)':activeBonus?.type==='jackpot'?'var(--a)':'var(--tx3)',
+              cursor:dejaPose?'not-allowed':'pointer',opacity:dejaPose?0.6:1,
+            }}>
+              🎰 Jackpot {dejaPose?'posé':`×${bonusStock.jackpot}`} {!dejaPose && activeBonus?.type==='jackpot'?'— Sélectionne un match':''}
+            </button>
+          )
+        })()}
+        {/* Double Chance — 1 seule par journée */}
+        {!deadlinePassed && (bonusStock.doubleChance > 0 || dcSelections.length > 0) && (() => {
+          const dejaPose = dcSelections.length > 0
+          return (
+            <button onClick={()=>{ if (!dejaPose) setActiveBonus(activeBonus?.type==='dc'?null:{type:'dc'}) }} disabled={dejaPose} style={{
+              display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
+              background:dejaPose?'rgba(255,255,255,.03)':activeBonus?.type==='dc'?'var(--p-dim)':'rgba(255,255,255,.04)',
+              border:`1px solid ${dejaPose?'rgba(255,255,255,.08)':activeBonus?.type==='dc'?'var(--p-b)':'rgba(255,255,255,.1)'}`,
+              borderRadius:999,fontSize:12,fontWeight:700,
+              color:dejaPose?'var(--tx3)':activeBonus?.type==='dc'?'var(--p)':'var(--tx3)',
+              cursor:dejaPose?'not-allowed':'pointer',opacity:dejaPose?0.6:1,
+            }}>
+              2️⃣ DC {dejaPose?'posée':`×${bonusStock.doubleChance}`} {!dejaPose && activeBonus?.type==='dc'?'— Sélectionne un match':''}
+            </button>
+          )
+        })()}
       </div>}
 
       {/* Bonus actifs recap */}
@@ -1018,6 +1036,7 @@ function deadlineFmt(j) {
   const dl = new Date(j.deadline.seconds*1000)
   return `Fermeture ${dl.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`
 }
+
 
 
 
