@@ -51,8 +51,10 @@ export default function Bonus() {
           ])
           if (pronoDoc.exists()) {
             const p = pronoDoc.data()
-            if (p.jackpotMatch) hist.push({ journee: j.numero, type:'jackpot', match: matchLabelFor(j, p.jackpotMatch) })
-            if (p.dcMatch) hist.push({ journee: j.numero, type:'dc', match: matchLabelFor(j, p.dcMatch), choix: p.dcChoices })
+            const jackpotMatchesArr = Array.isArray(p.jackpotMatches) ? p.jackpotMatches : (p.jackpotMatch ? [p.jackpotMatch] : [])
+            const dcSelectionsArr = Array.isArray(p.dcSelections) ? p.dcSelections : (p.dcMatch ? [{ matchKey: p.dcMatch, choices: p.dcChoices||[] }] : [])
+            jackpotMatchesArr.forEach(key => hist.push({ journee: j.numero, type:'jackpot', match: matchLabelFor(j, key) }))
+            dcSelectionsArr.forEach(d => hist.push({ journee: j.numero, type:'dc', match: matchLabelFor(j, d.matchKey), choix: d.choices }))
           }
           missilesSnap.docs.forEach(d => {
             const m = d.data()
