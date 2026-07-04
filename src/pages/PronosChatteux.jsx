@@ -167,7 +167,8 @@ export default function PronosChatteux() {
     }
     const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
     const p = pronos[uid]
-    const dcChoicesIci = getDcChoicesFor(p, key)
+    const missileIci = missiles.find(m => m.cible === uid && m.matchKey === key && m.applique)
+    const dcChoicesIci = missileIci ? null : getDcChoicesFor(p, key)
     if (dcChoicesIci?.length > 0) {
       return dcChoicesIci.includes(issue) ? 'correct' : 'wrong'
     }
@@ -188,7 +189,8 @@ export default function PronosChatteux() {
       return Math.sign(ph - pa) === Math.sign(rh - ra) ? 1 : 0
     }
     const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
-    const dcChoicesIci = getDcChoicesFor(p, key)
+    const missileIci = missiles.find(m => m.cible === uid && m.matchKey === key && m.applique)
+    const dcChoicesIci = missileIci ? null : getDcChoicesFor(p, key)
     if (dcChoicesIci?.length > 0) {
       if (!dcChoicesIci.includes(issue)) return 0
       return isJackpotOn(p, key) ? 2 : 1
@@ -446,6 +448,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
