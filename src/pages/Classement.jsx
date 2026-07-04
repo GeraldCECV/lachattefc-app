@@ -72,6 +72,8 @@ export default function Classement() {
 
       Object.keys(pronosMap).forEach(uid => {
         const p = pronosAvecMissiles[uid]
+        const jackpotMatchesArr = Array.isArray(p?.jackpotMatches) ? p.jackpotMatches : (p?.jackpotMatch ? [p.jackpotMatch] : [])
+        const dcSelectionsArr = Array.isArray(p?.dcSelections) ? p.dcSelections : (p?.dcMatch ? [{ matchKey: p.dcMatch, choices: p.dcChoices||[] }] : [])
         matches.forEach((m, i) => {
           const key = isCDM ? `cdm_${i}` : `l1_${i}`
           const res = resultats[key]
@@ -85,13 +87,14 @@ export default function Classement() {
             pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + calcPointsScorer(prono, rh, ra)
           } else {
             const issue = issueMatch(rh, ra)
-            if (p.dcMatch === key && p.dcChoices?.includes(issue)) {
-              pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + 1
+            const dcChoicesIci = dcSelectionsArr.find(d => d.matchKey === key)?.choices
+            if (dcChoicesIci?.length === 2 && dcChoicesIci.includes(issue)) {
+              pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + (jackpotMatchesArr.includes(key) ? 2 : 1)
             } else if (prono === issue) {
               const total = Object.values(pronosAvecMissiles).filter(pp => pp?.[arrKey]?.[i] === issue).length
               const nb = Object.keys(pronosMap).length
               let pts = (nb>0 && total/nb<=0.25) ? 2 : 1
-              if (p.jackpotMatch === key) pts *= 2
+              if (jackpotMatchesArr.includes(key)) pts *= 2
               pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + pts
             }
           }
