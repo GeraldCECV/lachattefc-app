@@ -327,8 +327,8 @@ export default function PronosChatteux() {
                   const correct = getCorrect(j.id, match.key, match.isScorer)
                   const pts = getPtsMatch(j.id, match.key, match.isScorer)
                   const bonuses = getBonusLabels(j.id, match.key)
-                  const missile = missiles.find(m => m.cible === j.id && m.matchKey === match.key)
-                  const missileLance = missiles.find(m => m.lanceur === j.id && m.matchKey === match.key)
+                  const missilesRecus = missiles.filter(m => m.cible === j.id && m.matchKey === match.key)
+                  const missilesLances = missiles.filter(m => m.lanceur === j.id && m.matchKey === match.key)
                   const hasProno = !!pronos[j.id]
 
                   // Couleur bg ligne
@@ -377,27 +377,28 @@ export default function PronosChatteux() {
                               {bonus.icon} {bonus.label}
                             </div>
                           ))}
-                          {missile ? (
-                            <div style={{
+                          {missilesRecus.map(m => (
+                            <div key={m.id} style={{
                               display:'flex', alignItems:'center', gap:3,
                               padding:'2px 6px', borderRadius:20,
                               background:'rgba(248,68,68,.12)',
                               border:'1px solid rgba(248,68,68,.3)',
                               fontSize:10, fontWeight:700, color:'#FF4444',
                             }}>
-                              🚀 {joueurs.find(u => u.id === missile.lanceur)?.nom?.split(' ')[0] || '?'}
+                              🚀 {joueurs.find(u => u.id === m.lanceur)?.nom?.split(' ')[0] || '?'}
                             </div>
-                          ) : missileLance ? (
-                            <div style={{
+                          ))}
+                          {missilesLances.map(m => (
+                            <div key={m.id} style={{
                               display:'flex', alignItems:'center', gap:3,
                               padding:'2px 6px', borderRadius:20,
                               background:'rgba(251,146,60,.12)',
                               border:'1px solid rgba(251,146,60,.3)',
                               fontSize:10, fontWeight:700, color:'var(--o)',
                             }}>
-                              ↗ {joueurs.find(u => u.id === missileLance.cible)?.nom?.split(' ')[0] || '?'}
+                              ↗ {joueurs.find(u => u.id === m.cible)?.nom?.split(' ')[0] || '?'}
                             </div>
-                          ) : null}
+                          ))}
                         </div>
                         {/* Prono + points en dessous */}
                         {prono ? (
@@ -437,6 +438,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
