@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUser } from '../App'
 import Pronos from '../pages/Pronos'
 import PronosChatteux from '../pages/PronosChatteux'
@@ -41,6 +41,28 @@ export default function AppShell() {
     window.__checkForAppUpdate?.()
   }
 
+  // Masque la barre du bas dès qu'un champ (input/select/textarea) prend
+  // le focus n'importe où dans l'app — pas seulement dans un modal. Sur
+  // iOS, le clavier natif (ou un sélecteur natif comme <select>) redimensionne
+  // le viewport visuel, ce qui fait "sauter" la barre en position:fixed.
+  // La solution robuste est de la masquer pendant la saisie plutôt que
+  // d'essayer de la stabiliser pendant que ça bouge.
+  useEffect(() => {
+    const CHAMPS = ['INPUT', 'SELECT', 'TEXTAREA']
+    const onFocusIn = (e) => {
+      if (CHAMPS.includes(e.target.tagName)) document.body.classList.add('modal-open')
+    }
+    const onFocusOut = (e) => {
+      if (CHAMPS.includes(e.target.tagName)) document.body.classList.remove('modal-open')
+    }
+    document.addEventListener('focusin', onFocusIn)
+    document.addEventListener('focusout', onFocusOut)
+    return () => {
+      document.removeEventListener('focusin', onFocusIn)
+      document.removeEventListener('focusout', onFocusOut)
+    }
+  }, [])
+
   const pages = {
     vestiaire:  <Profil />,
     pronos:     <Pronos />,
@@ -71,6 +93,7 @@ export default function AppShell() {
     </div>
   )
 }
+
 
 
 
