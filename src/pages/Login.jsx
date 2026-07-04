@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { httpsCallable, getFunctions } from 'firebase/functions'
 import { auth } from '../firebase/config'
 import logo from '../assets/logo-lachattefc.png'
 
@@ -18,11 +19,12 @@ export default function Login() {
     if (!email) { setError('Entre ton email ci-dessus'); return }
     setResetting(true)
     try {
-      await sendPasswordResetEmail(auth, email)
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'demanderResetMotDePasse')
+      await fn({ email })
       setResetSent(true)
       setError('')
     } catch(e) {
-      setError('Email introuvable — verifie ton adresse')
+      setError('Une erreur est survenue, réessaie')
     }
     setResetting(false)
   }
@@ -75,10 +77,11 @@ export default function Login() {
                 if (!resetEmail) { setError('Entre ton email'); return }
                 setResetting(true)
                 try {
-                  await sendPasswordResetEmail(auth, resetEmail)
+                  const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'demanderResetMotDePasse')
+                  await fn({ email: resetEmail })
                   setResetSent(true)
                   setError('')
-                } catch(e) { setError('Email introuvable') }
+                } catch(e) { setError('Une erreur est survenue, réessaie') }
                 setResetting(false)
               }} disabled={resetting || !resetEmail}>
                 {resetting ? 'Envoi...' : '📧 Envoyer le lien de réinitialisation'}
