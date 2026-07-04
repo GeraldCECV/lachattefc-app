@@ -27,19 +27,19 @@ export default function PronosChatteux() {
         const joueursSnap = await getDocs(collection(db,'joueurs'))
         setJoueurs(joueursSnap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (a.nom||'').localeCompare(b.nom||'')))
         setJourneesList(liste)
-        // Priorité 1 : une journée avec un match EN DIRECT en ce moment,
-        // peu importe son statut (une journée "fermee" peut encore avoir
-        // des matchs en cours si sa deadline pronos est passée avant le
-        // coup d'envoi réel). Priorité 2 : la journée "ouverte" la plus
-        // proche. Sinon, la dernière de la liste.
-        const journeeAvecLive = liste.find(j => {
-          const resultats = j.resultats || {}
-          return Object.values(resultats).some(r => r?.status === 'IN_PLAY' || r?.status === 'PAUSED')
-        })
+        // Priorité 1 : une journée "fermee" (deadline pronos passée, mais
+        // pas encore résolue en "resultats") — couvre à la fois l'attente
+        // du coup d'envoi, les matchs en cours, et l'attente des scores
+        // finaux, sans dépendre du statut live match par match.
+        // Priorité 2 : la journée "ouverte" la plus proche. Sinon, la
+        // dernière de la liste.
+        const fermees = liste.filter(j => j.statut === 'fermee')
         const ouvertes = liste.filter(j => j.statut === 'ouverte')
-        const defaultJ = journeeAvecLive || (ouvertes.length > 0
+        const defaultJ = fermees.length > 0
+          ? fermees.reduce((a, b) => (a.numero < b.numero ? a : b))
+          : ouvertes.length > 0
           ? ouvertes.reduce((a, b) => (a.numero < b.numero ? a : b))
-          : liste[liste.length - 1])
+          : liste[liste.length - 1]
         if (defaultJ) setSelectedJId(defaultJ.id)
         setLoading(false)
       } catch(e) {
@@ -437,6 +437,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
