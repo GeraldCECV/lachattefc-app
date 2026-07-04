@@ -68,6 +68,18 @@ export default function Classement() {
           if (!pronosAvecMissiles[m.cible][arrKey]) pronosAvecMissiles[m.cible][arrKey] = []
           pronosAvecMissiles[m.cible][arrKey][i] = m.pronoImpose
         }
+        // DC annulée par le missile sur ce match (jackpot conservé) —
+        // même règle que côté serveur : le missile prévaut sur la DC.
+        const cibleData = pronosAvecMissiles[m.cible]
+        if (cibleData && m.matchKey) {
+          if (Array.isArray(cibleData.dcSelections)) {
+            cibleData.dcSelections = cibleData.dcSelections.filter(d => d.matchKey !== m.matchKey)
+          }
+          if (cibleData.dcMatch === m.matchKey) {
+            cibleData.dcMatch = null
+            cibleData.dcChoices = null
+          }
+        }
       })
 
       Object.keys(pronosMap).forEach(uid => {
@@ -441,6 +453,7 @@ const Rank = ({rank}) => {
     </div>
   )
 }
+
 
 
 
