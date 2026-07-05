@@ -29,7 +29,15 @@
       }
       setAppHeight();
       window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
-      window.addEventListener('load', setAppHeight);
+      window.addEventListener('load', () => {
+        setAppHeight();
+        // Re-mesure de sécurité : en mode PWA standalone, l'affichage
+        // peut mettre un instant à se stabiliser après le chargement —
+        // une mesure prise trop tôt peut figer une hauteur légèrement
+        // trop courte, laissant un espace vide permanent en bas.
+        setTimeout(setAppHeight, 300);
+        setTimeout(setAppHeight, 800);
+      });
     </script>
     <script>
       // Force reload when new Service Worker is available
@@ -58,6 +66,7 @@
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+
 
 
 
