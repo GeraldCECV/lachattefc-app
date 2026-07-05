@@ -85,7 +85,7 @@ export default function PronosChatteux() {
   const deadlinePassed = journee.deadline ? new Date(journee.deadline.seconds * 1000) < new Date() : false
   const selecteurJournee = journeesList.length > 1 && (
     <select value={selectedJId} onChange={e => setSelectedJId(e.target.value)}
-      style={{ padding:'6px 10px', borderRadius:'var(--Rs)', border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--tx)', fontSize:13, fontWeight:900, cursor:'pointer' }}>
+      style={{ padding:'6px 10px', borderRadius:'var(--Rs)', border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--tx)', fontSize:16, fontWeight:900, cursor:'pointer' }}>
       {journeesList.map(j => (
         <option key={j.id} value={j.id}>J{j.numero}</option>
       ))}
@@ -448,6 +448,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
