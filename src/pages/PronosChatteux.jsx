@@ -275,6 +275,16 @@ export default function PronosChatteux() {
                         {translateTeam(match.ext)}
                       </span>
                     </div>
+                    {(match.isScorer || match.isMatchScorer) && (
+                      <div style={{
+                        display:'flex', alignItems:'center', gap:3, flexShrink:0,
+                        padding:'2px 6px', borderRadius:20,
+                        background:'rgba(96,165,250,.15)', border:'1px solid rgba(96,165,250,.4)',
+                        fontSize:9, fontWeight:900, color:'var(--b)', letterSpacing:'.06em',
+                      }}>
+                        ⚽ SCORER
+                      </div>
+                    )}
                     {isLive && (
                       <div style={{
                         display:'flex', alignItems:'center', gap:3, flexShrink:0,
@@ -475,6 +485,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
