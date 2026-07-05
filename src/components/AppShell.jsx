@@ -59,26 +59,26 @@ export default function AppShell() {
       // quelques pixels au lieu de revenir pile en haut — ce qui fait
       // "remonter" l'en-tête sous la zone protégée du haut (status bar).
       // On force un retour en haut si on était déjà proche du haut.
-      setTimeout(() => {
+      const forcerRepaint = () => {
         const contenu = document.querySelector('.screen-content')
         if (contenu && contenu.scrollTop > 0 && contenu.scrollTop < 150) {
           contenu.scrollTop = 0
         }
-        // iOS peut laisser un état visuel "gelé" (le calcul de layout est
-        // correct mais l'écran n'a pas été redessiné) après la fermeture
-        // du clavier — forcer un repaint via un micro-scroll suffit
-        // généralement à réveiller le rendu.
         const shell = document.querySelector('.app-shell')
         if (shell) {
-          shell.style.transform = 'translateZ(0)'
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              shell.style.transform = ''
-            })
-          })
+          const displayOriginal = shell.style.display
+          shell.style.display = 'none'
+          void shell.offsetHeight // force la lecture synchrone (déclenche le reflow)
+          shell.style.display = displayOriginal
         }
         window.scrollTo(0, 0)
-      }, 300)
+      }
+      // iOS peut laisser un état visuel "gelé" (le layout calculé est
+      // correct mais l'écran n'a pas été redessiné) après la fermeture
+      // du clavier. Deux passes à des délais différents, au cas où la
+      // première tombe encore pendant l'animation de fermeture.
+      setTimeout(forcerRepaint, 350)
+      setTimeout(forcerRepaint, 700)
     }
     document.addEventListener('focusin', onFocusIn)
     document.addEventListener('focusout', onFocusOut)
@@ -118,6 +118,7 @@ export default function AppShell() {
     </div>
   )
 }
+
 
 
 
