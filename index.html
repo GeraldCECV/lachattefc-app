@@ -17,6 +17,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
+      // Fige la hauteur réelle de l'app dans une variable CSS, mesurée une
+      // seule fois hors ouverture du clavier. iOS recalcule mal 100dvh
+      // quand le clavier s'ouvre/se ferme (bug connu) et peut rester
+      // bloqué sur une valeur incorrecte après la fermeture. En figeant
+      // la hauteur sur une mesure JS stable (mise à jour seulement sur
+      // rotation d'écran, jamais sur ouverture/fermeture clavier), l'app
+      // n'a plus jamais besoin de recalculer sa hauteur pendant la saisie.
+      function setAppHeight() {
+        document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+      }
+      setAppHeight();
+      window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
+      window.addEventListener('load', setAppHeight);
+    </script>
+    <script>
       // Force reload when new Service Worker is available
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -43,5 +58,6 @@
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+
 
 
