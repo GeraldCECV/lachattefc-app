@@ -240,7 +240,7 @@ input, select, textarea { font-family: var(--F); }
   border: 1px solid var(--bd2);
   border-radius: var(--Rs);
   color: var(--tx);
-  font-size: 14px;
+  font-size: 16px;
   outline: none;
   transition: border-color .15s, box-shadow .15s;
 }
@@ -535,6 +535,7 @@ body.modal-open .tab-bar {
   0%, 100% { opacity: 1; }
   50% { opacity: .3; }
 }
+
 
 
 
