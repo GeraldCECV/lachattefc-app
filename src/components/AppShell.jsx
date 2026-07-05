@@ -55,30 +55,35 @@ export default function AppShell() {
     const onFocusOut = (e) => {
       if (!CHAMPS.includes(e.target.tagName)) return
       document.body.classList.remove('modal-open')
-      // Après fermeture du clavier iOS, la page peut rester scrollée de
-      // quelques pixels au lieu de revenir pile en haut — ce qui fait
-      // "remonter" l'en-tête sous la zone protégée du haut (status bar).
-      // On force un retour en haut si on était déjà proche du haut.
-      const forcerRepaint = () => {
-        const contenu = document.querySelector('.screen-content')
-        if (contenu && contenu.scrollTop > 0 && contenu.scrollTop < 150) {
-          contenu.scrollTop = 0
-        }
-        const shell = document.querySelector('.app-shell')
-        if (shell) {
-          const displayOriginal = shell.style.display
-          shell.style.display = 'none'
-          void shell.offsetHeight // force la lecture synchrone (déclenche le reflow)
-          shell.style.display = displayOriginal
-        }
+      // Après fermeture du clavier iOS, l'en-tête peut rester visuellement
+      // "gelé" sous la status bar — un simple repaint (transform, display
+      // toggle) ne suffit pas à le réveiller. Ce qui marche à coup sûr,
+      // observé en test : changer d'onglet puis revenir. On reproduit
+      // donc ce même mécanisme automatiquement — un vrai démontage/
+      // remontage React de la page via son propre état, pas juste un
+      // effet visuel — plutôt que de deviner une nouvelle astuce.
+      setTimeout(() => {
+        setTab(t => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setTab(t)
+              // En plus du remount : un vrai scroll animé (pas un saut
+              // instantané) sur le contenu qui vient d'être remonté —
+              // se rapproche davantage d'un geste de scroll manuel,
+              // qui est ce qui répare le souci de façon fiable en test.
+              requestAnimationFrame(() => {
+                const contenu = document.querySelector('.screen-content')
+                if (contenu) {
+                  contenu.scrollTo({ top: 20, behavior: 'smooth' })
+                  setTimeout(() => contenu.scrollTo({ top: 0, behavior: 'smooth' }), 150)
+                }
+              })
+            })
+          })
+          return '__refresh__'
+        })
         window.scrollTo(0, 0)
-      }
-      // iOS peut laisser un état visuel "gelé" (le layout calculé est
-      // correct mais l'écran n'a pas été redessiné) après la fermeture
-      // du clavier. Deux passes à des délais différents, au cas où la
-      // première tombe encore pendant l'animation de fermeture.
-      setTimeout(forcerRepaint, 350)
-      setTimeout(forcerRepaint, 700)
+      }, 350)
     }
     document.addEventListener('focusin', onFocusIn)
     document.addEventListener('focusout', onFocusOut)
@@ -118,6 +123,7 @@ export default function AppShell() {
     </div>
   )
 }
+
 
 
 
