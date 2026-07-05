@@ -64,6 +64,20 @@ export default function AppShell() {
         if (contenu && contenu.scrollTop > 0 && contenu.scrollTop < 150) {
           contenu.scrollTop = 0
         }
+        // iOS peut laisser un état visuel "gelé" (le calcul de layout est
+        // correct mais l'écran n'a pas été redessiné) après la fermeture
+        // du clavier — forcer un repaint via un micro-scroll suffit
+        // généralement à réveiller le rendu.
+        const shell = document.querySelector('.app-shell')
+        if (shell) {
+          shell.style.transform = 'translateZ(0)'
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              shell.style.transform = ''
+            })
+          })
+        }
+        window.scrollTo(0, 0)
       }, 300)
     }
     document.addEventListener('focusin', onFocusIn)
@@ -104,6 +118,7 @@ export default function AppShell() {
     </div>
   )
 }
+
 
 
 
