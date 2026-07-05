@@ -55,35 +55,6 @@ export default function AppShell() {
     const onFocusOut = (e) => {
       if (!CHAMPS.includes(e.target.tagName)) return
       document.body.classList.remove('modal-open')
-      // Après fermeture du clavier iOS, l'en-tête peut rester visuellement
-      // "gelé" sous la status bar — un simple repaint (transform, display
-      // toggle) ne suffit pas à le réveiller. Ce qui marche à coup sûr,
-      // observé en test : changer d'onglet puis revenir. On reproduit
-      // donc ce même mécanisme automatiquement — un vrai démontage/
-      // remontage React de la page via son propre état, pas juste un
-      // effet visuel — plutôt que de deviner une nouvelle astuce.
-      setTimeout(() => {
-        setTab(t => {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              setTab(t)
-              // En plus du remount : un vrai scroll animé (pas un saut
-              // instantané) sur le contenu qui vient d'être remonté —
-              // se rapproche davantage d'un geste de scroll manuel,
-              // qui est ce qui répare le souci de façon fiable en test.
-              requestAnimationFrame(() => {
-                const contenu = document.querySelector('.screen-content')
-                if (contenu) {
-                  contenu.scrollTo({ top: 300, behavior: 'smooth' })
-                  setTimeout(() => contenu.scrollTo({ top: 0, behavior: 'smooth' }), 250)
-                }
-              })
-            })
-          })
-          return '__refresh__'
-        })
-        window.scrollTo(0, 0)
-      }, 350)
     }
     document.addEventListener('focusin', onFocusIn)
     document.addEventListener('focusout', onFocusOut)
