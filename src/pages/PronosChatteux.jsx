@@ -329,6 +329,33 @@ export default function PronosChatteux() {
                 )}
               </div>
 
+              {/* Sagesse du groupe — répartition des pronos une fois la deadline passée */}
+              {!match.isScorer && (journee.statut === 'fermee' || journee.statut === 'resultats') && (() => {
+                const counts = { '1': 0, 'N': 0, '2': 0 }
+                let total = 0
+                joueurs.forEach(j => {
+                  const v = getProno(j.id, match.key)?.val
+                  if (v === '1' || v === 'N' || v === '2') { counts[v]++; total++ }
+                })
+                if (total === 0) return null
+                const pct = v => Math.round((counts[v] / total) * 100)
+                const COLORS = { '1': 'var(--b)', 'N': 'var(--a)', '2': 'var(--p)' }
+                return (
+                  <div style={{ padding:'8px 14px', borderBottom:'1px solid var(--bd)' }}>
+                    <div style={{ display:'flex', height:8, borderRadius:5, overflow:'hidden', background:'rgba(255,255,255,.05)' }}>
+                      {['1','N','2'].map(v => counts[v] > 0 && (
+                        <div key={v} style={{ width:`${pct(v)}%`, background:COLORS[v] }} title={`${v}: ${pct(v)}%`} />
+                      ))}
+                    </div>
+                    <div style={{ display:'flex', justifyContent:'space-between', marginTop:4, fontSize:10, fontWeight:700 }}>
+                      {['1','N','2'].map(v => (
+                        <span key={v} style={{ color: counts[v] > 0 ? COLORS[v] : 'var(--tx3)' }}>{v} · {pct(v)}%</span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Lignes joueurs */}
               <div>
                 {joueursTriés.map((j, idx) => {
@@ -448,6 +475,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
