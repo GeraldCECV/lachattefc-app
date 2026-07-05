@@ -74,8 +74,8 @@ export default function AppShell() {
               requestAnimationFrame(() => {
                 const contenu = document.querySelector('.screen-content')
                 if (contenu) {
-                  contenu.scrollTo({ top: 20, behavior: 'smooth' })
-                  setTimeout(() => contenu.scrollTo({ top: 0, behavior: 'smooth' }), 150)
+                  contenu.scrollTo({ top: 300, behavior: 'smooth' })
+                  setTimeout(() => contenu.scrollTo({ top: 0, behavior: 'smooth' }), 250)
                 }
               })
             })
@@ -123,6 +123,7 @@ export default function AppShell() {
     </div>
   )
 }
+
 
 
 
