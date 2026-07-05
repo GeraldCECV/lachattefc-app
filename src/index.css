@@ -85,7 +85,7 @@ input, select, textarea { font-family: var(--F); }
 .app-shell {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: var(--app-height, 100dvh);
   position: relative;
 }
 
@@ -535,5 +535,6 @@ body.modal-open .tab-bar {
   0%, 100% { opacity: 1; }
   50% { opacity: .3; }
 }
+
 
 
