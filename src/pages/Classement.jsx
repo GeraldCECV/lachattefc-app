@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
+import JerseyAvatar from '../components/JerseyAvatar'
 
 const BAREME_CDM = [24, 16, 12, 9, 7, 5, 4, 3]
 
@@ -229,9 +230,7 @@ const Rank = ({rank}) => {
         borderBottom:'1px solid rgba(155,226,45,.08)',
       }}>
         <Rank rank={j.rank} />
-        <div className="av" style={{ width:34, height:34, background:isMe?'var(--g-dim)':bg, color:isMe?'var(--g)':color, fontSize:11, border:`1px solid ${isMe?'var(--g-b)':'rgba(255,255,255,.08)'}` }}>
-          {j.initiales}
-        </div>
+        <JerseyAvatar club={j.clubCoeur} initials={j.initiales} size={34} />
         <div style={{ flex:1 }}>
           <div style={{ fontSize:13, fontWeight:isMe?900:700, color:isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', letterSpacing:'.02em' }}>
             {j.nom?.split(' ')[0]} {isLast?'💩':''} {isMe?<span style={{fontSize:10,color:'var(--tx3)',fontWeight:400,textTransform:'none'}}>(toi)</span>:''}
@@ -332,9 +331,7 @@ const Rank = ({rank}) => {
                         </td>
                         <td>
                           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                            <div className="av" style={{ width:28, height:28, fontSize:10, background:isMe?'var(--g-dim)':bg, color:isMe?'var(--g)':color, border:`1px solid ${isMe?'var(--g-b)':'rgba(255,255,255,.08)'}` }}>
-                              {j.initiales}
-                            </div>
+                            <JerseyAvatar club={j.clubCoeur} initials={j.initiales} size={28} />
                             <span style={{ fontWeight:isMe?900:700, color:isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', fontSize:12 }}>
                               {j.nom?.split(' ')[0]} {isMe && <span style={{fontSize:10,color:'var(--tx3)',fontWeight:400,textTransform:'none'}}>(toi)</span>}
                             </span>
@@ -410,9 +407,7 @@ const Rank = ({rank}) => {
                               </td>
                               <td>
                                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                                  <div className="av" style={{ width:28, height:28, fontSize:10, background:isMe?'var(--g-dim)':bg, color:isMe?'var(--g)':color, border:`1px solid ${isMe?'var(--g-b)':'rgba(255,255,255,.08)'}` }}>
-                                    {jj?.initiales || '?'}
-                                  </div>
+                                  <JerseyAvatar club={jj?.clubCoeur} initials={jj?.initiales || '?'} size={28} />
                                   <span style={{ fontWeight:isMe?900:700, color:isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', fontSize:12 }}>
                                     {jj?.nom?.split(' ')[0] || uid} {isMe && <span style={{fontSize:10,color:'var(--tx3)',fontWeight:400,textTransform:'none'}}>(toi)</span>}
                                   </span>
@@ -453,6 +448,7 @@ const Rank = ({rank}) => {
     </div>
   )
 }
+
 
 
 
