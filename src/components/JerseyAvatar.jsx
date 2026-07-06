@@ -142,7 +142,7 @@ const FILE_SLUGS = {
   'as monaco': ['monaco'],
   'ogc nice': ['nice'],
   'paris fc': ['paris_fc', 'parisfc', 'paris-fc'],
-  'paris saint-germain': ['psg'],
+  'paris saint-germain': ['psg', 'paris_sg', 'parissg'],
   'stade rennais fc': ['rennes'],
   'rc strasbourg': ['strasbourg'],
   'toulouse fc': ['toulouse'],
@@ -227,4 +227,5 @@ export default function JerseyAvatar({ club, initials, size = 40 }) {
     </div>
   )
 }
+
 
