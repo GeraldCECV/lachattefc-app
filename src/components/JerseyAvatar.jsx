@@ -34,12 +34,11 @@ function getFileCandidates(name) {
   const n = normalize(name)
   const slugs = FILE_SLUGS[n] || Object.entries(FILE_SLUGS).find(([key]) => n.includes(key) || key.includes(n))?.[1]
   if (!slugs) return []
-  // Cherche d'abord sur GitHub Raw (fiable sur tous les deployments),
-  // puis fallback sur les chemins locaux
-  const githubBase = 'https://raw.githubusercontent.com/GeraldCECV/lachattefc-app/main/public'
+  // Utilise jsDelivr CDN (plus fiable que GitHub Raw)
+  const cdnBase = 'https://cdn.jsdelivr.net/gh/GeraldCECV/lachattefc-app@main/public'
   return slugs.flatMap(s => [
-    `${githubBase}/maillot/${s}.png`,
-    `${githubBase}/maillots/${s}.png`,
+    `${cdnBase}/maillot/${s}.png`,
+    `${cdnBase}/maillots/${s}.png`,
     `/maillots/${s}.png`,
     `/maillot/${s}.png`
   ])
