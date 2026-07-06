@@ -1,7 +1,6 @@
 {
   "rewrites": [
     { "source": "/logos/:path*", "destination": "/logos/:path*" },
-    { "source": "/maillot/:path*", "destination": "/maillot/:path*" },
     { "source": "/maillots/:path*", "destination": "/maillots/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

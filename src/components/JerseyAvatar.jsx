@@ -1,9 +1,6 @@
 import { useState } from 'react'
 import { translateTeam } from '../utils/teamName'
 
-// Noms de fichiers candidats par club — plusieurs variantes tolérées
-// (underscore, sans séparateur, tiret) pour ne pas être trop strict sur
-// la convention de nommage. Cherche dans /public/maillot/{slug}.png.
 const FILE_SLUGS = {
   'angers sco': ['angers'],
   'aj auxerre': ['auxerre'],
@@ -34,24 +31,15 @@ function getFileCandidates(name) {
   const n = normalize(name)
   const slugs = FILE_SLUGS[n] || Object.entries(FILE_SLUGS).find(([key]) => n.includes(key) || key.includes(n))?.[1]
   if (!slugs) return []
-  // Cherche les PNG dans la racine /public/ d'abord (structure lachattefc-app),
-  // puis dans /maillot/ et /maillots/ (structure lachattefc-admin)
-  return slugs.flatMap(s => [
-    `/maillot/${s}.png`,       // racine /public/ pour app joueurs
-    `/maillots/${s}.png`,      // dossier pour admin
-    `/${s}.png`                // fallback direct racine
-  ])
+  return slugs.map(s => `/maillots/${s}.png`)
 }
 
-// Avatar maillot. Cherche un fichier uploadé dans /public/maillot/ ou via GitHub Raw.
-// À défaut, affiche les initiales.
 export default function JerseyAvatar({ club, initials, size = 40 }) {
   const candidates = getFileCandidates(club)
   const [candidateIdx, setCandidateIdx] = useState(0)
   const [allFilesFailed, setAllFilesFailed] = useState(candidates.length === 0)
 
   if (!allFilesFailed && candidates[candidateIdx]) {
-    console.log(`[JerseyAvatar] Trying ${club}:`, candidates[candidateIdx])
     return (
       <img
         src={candidates[candidateIdx]}
@@ -59,18 +47,13 @@ export default function JerseyAvatar({ club, initials, size = 40 }) {
         title={translateTeam(club)}
         style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0 }}
         onError={() => {
-          console.log(`[JerseyAvatar] Failed to load ${candidates[candidateIdx]}, trying next...`)
           if (candidateIdx + 1 < candidates.length) setCandidateIdx(i => i + 1)
-          else {
-            console.log(`[JerseyAvatar] All candidates failed for ${club}`)
-            setAllFilesFailed(true)
-          }
+          else setAllFilesFailed(true)
         }}
       />
     )
   }
 
-  // À défaut : initiales uniquement
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
