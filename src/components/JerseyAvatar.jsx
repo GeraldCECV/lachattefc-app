@@ -1,55 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { translateTeam } from '../utils/teamName'
-
-const FILE_SLUGS = {
-  'angers sco': ['angers'],
-  'aj auxerre': ['auxerre'],
-  'stade brestois 29': ['brest'],
-  'le havre ac': ['le_havre', 'lehavre', 'le-havre'],
-  'le mans fc': ['lemans', 'le_mans', 'le-mans'],
-  'rc lens': ['lens'],
-  'losc lille': ['lille'],
-  'fc lorient': ['lorient'],
-  'olympique lyonnais': ['lyon'],
-  'olympique de marseille': ['marseille'],
-  'as monaco': ['monaco'],
-  'ogc nice': ['nice'],
-  'paris fc': ['paris_fc', 'parisfc', 'paris-fc'],
-  'paris saint-germain': ['psg', 'paris_sg', 'parissg'],
-  'stade rennais fc': ['rennes'],
-  'rc strasbourg': ['strasbourg'],
-  'toulouse fc': ['toulouse'],
-  'estac troyes': ['troyes'],
-}
+import { MAILLOTS } from '../assets/maillotsMap'
 
 function normalize(name) {
   return name?.toLowerCase().trim().replace(/\s+/g, ' ') || ''
 }
 
-function getFileCandidates(name) {
-  if (!name) return []
-  const n = normalize(name)
-  const slugs = FILE_SLUGS[n] || Object.entries(FILE_SLUGS).find(([key]) => n.includes(key) || key.includes(n))?.[1]
-  if (!slugs) return []
-  return slugs.map(s => `/maillots/${s}.png`)
+function getMaillotUrl(club) {
+  if (!club) return null
+  const n = normalize(club)
+  if (MAILLOTS[n]) return MAILLOTS[n][0]
+  for (const [key, url] of Object.entries(MAILLOTS)) {
+    if (n.includes(key) || key.includes(n)) return url
+  }
+  return null
 }
 
 export default function JerseyAvatar({ club, initials, size = 40 }) {
-  const candidates = getFileCandidates(club)
-  const [candidateIdx, setCandidateIdx] = useState(0)
-  const [allFilesFailed, setAllFilesFailed] = useState(candidates.length === 0)
+  const [imageUrl, setImageUrl] = useState(null)
+  const [hasError, setHasError] = useState(false)
 
-  if (!allFilesFailed && candidates[candidateIdx]) {
+  useEffect(() => {
+    const url = getMaillotUrl(club)
+    setImageUrl(url)
+    setHasError(false)
+  }, [club])
+
+  if (imageUrl && !hasError) {
     return (
       <img
-        src={candidates[candidateIdx]}
+        key={`${club}-${imageUrl}`}
+        src={imageUrl}
         alt={translateTeam(club)}
         title={translateTeam(club)}
         style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0 }}
-        onError={() => {
-          if (candidateIdx + 1 < candidates.length) setCandidateIdx(i => i + 1)
-          else setAllFilesFailed(true)
-        }}
+        onError={() => setHasError(true)}
       />
     )
   }
