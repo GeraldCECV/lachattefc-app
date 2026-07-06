@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { translateTeam } from '../utils/teamName'
 
 // Couleurs (maillot domicile, simplifié en 2 tons) par club/sélection.
@@ -122,10 +123,65 @@ function getColors(name) {
   return null
 }
 
-// Avatar maillot stylisé, colorié aux couleurs du club choisi. Si aucun
-// club n'est renseigné (ou non reconnu), retombe sur un rond avec les
-// initiales — même comportement que l'ancien avatar par défaut.
+// Noms de fichiers candidats par club — plusieurs variantes tolérées
+// (underscore, sans séparateur, tiret) pour ne pas être trop strict sur
+// la convention de nommage. Cherche dans /public/maillots/{slug}.png.
+// Dès qu'un fichier existe pour un club (ajouté à la main dans ce
+// dossier), il prend le pas sur le maillot dessiné en SVG.
+const FILE_SLUGS = {
+  'angers sco': ['angers'],
+  'aj auxerre': ['auxerre'],
+  'stade brestois 29': ['brest'],
+  'le havre ac': ['le_havre', 'lehavre', 'le-havre'],
+  'le mans fc': ['lemans', 'le_mans', 'le-mans'],
+  'rc lens': ['lens'],
+  'losc lille': ['lille'],
+  'fc lorient': ['lorient'],
+  'olympique lyonnais': ['lyon'],
+  'olympique de marseille': ['marseille'],
+  'as monaco': ['monaco'],
+  'ogc nice': ['nice'],
+  'paris fc': ['paris_fc', 'parisfc', 'paris-fc'],
+  'paris saint-germain': ['psg'],
+  'stade rennais fc': ['rennes'],
+  'rc strasbourg': ['strasbourg'],
+  'toulouse fc': ['toulouse'],
+  'estac troyes': ['troyes'],
+}
+
+function getFileCandidates(name) {
+  const n = normalize(name)
+  if (FILE_SLUGS[n]) return FILE_SLUGS[n].map(s => `/maillots/${s}.png`)
+  for (const [key, slugs] of Object.entries(FILE_SLUGS)) {
+    if (n.includes(key) || key.includes(n)) return slugs.map(s => `/maillots/${s}.png`)
+  }
+  return []
+}
+
+// Avatar maillot. Priorité à un fichier uploadé dans /public/maillots/
+// (déposé à la main par l'admin) ; à défaut, maillot stylisé dessiné en
+// SVG (silhouette générique + couleurs du club) ; à défaut, rond avec
+// les initiales — comme l'ancien avatar par défaut.
 export default function JerseyAvatar({ club, initials, size = 40 }) {
+  const candidates = getFileCandidates(club)
+  const [candidateIdx, setCandidateIdx] = useState(0)
+  const [allFilesFailed, setAllFilesFailed] = useState(candidates.length === 0)
+
+  if (!allFilesFailed && candidates[candidateIdx]) {
+    return (
+      <img
+        src={candidates[candidateIdx]}
+        alt={translateTeam(club)}
+        title={translateTeam(club)}
+        style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0 }}
+        onError={() => {
+          if (candidateIdx + 1 < candidates.length) setCandidateIdx(i => i + 1)
+          else setAllFilesFailed(true)
+        }}
+      />
+    )
+  }
+
   const colors = getColors(club)
 
   if (!colors) {
@@ -171,3 +227,4 @@ export default function JerseyAvatar({ club, initials, size = 40 }) {
     </div>
   )
 }
+
