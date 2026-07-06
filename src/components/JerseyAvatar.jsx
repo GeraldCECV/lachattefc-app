@@ -34,13 +34,12 @@ function getFileCandidates(name) {
   const n = normalize(name)
   const slugs = FILE_SLUGS[n] || Object.entries(FILE_SLUGS).find(([key]) => n.includes(key) || key.includes(n))?.[1]
   if (!slugs) return []
-  // Utilise jsDelivr CDN (plus fiable que GitHub Raw)
-  const cdnBase = 'https://cdn.jsdelivr.net/gh/GeraldCECV/lachattefc-app@main/public'
+  // Cherche les PNG dans la racine /public/ d'abord (structure lachattefc-app),
+  // puis dans /maillot/ et /maillots/ (structure lachattefc-admin)
   return slugs.flatMap(s => [
-    `${cdnBase}/maillot/${s}.png`,
-    `${cdnBase}/maillots/${s}.png`,
-    `/maillots/${s}.png`,
-    `/maillot/${s}.png`
+    `/maillot/${s}.png`,       // racine /public/ pour app joueurs
+    `/maillots/${s}.png`,      // dossier pour admin
+    `/${s}.png`                // fallback direct racine
   ])
 }
 
