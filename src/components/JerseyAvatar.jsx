@@ -151,11 +151,10 @@ const FILE_SLUGS = {
 
 function getFileCandidates(name) {
   const n = normalize(name)
-  if (FILE_SLUGS[n]) return FILE_SLUGS[n].map(s => `/maillots/${s}.png`)
-  for (const [key, slugs] of Object.entries(FILE_SLUGS)) {
-    if (n.includes(key) || key.includes(n)) return slugs.map(s => `/maillots/${s}.png`)
-  }
-  return []
+  const slugs = FILE_SLUGS[n] || Object.entries(FILE_SLUGS).find(([key]) => n.includes(key) || key.includes(n))?.[1]
+  if (!slugs) return []
+  // Tolère les deux noms de dossier (maillots/ ou maillot/), au cas où
+  return slugs.flatMap(s => [`/maillots/${s}.png`, `/maillot/${s}.png`])
 }
 
 // Avatar maillot. Priorité à un fichier uploadé dans /public/maillots/
@@ -227,5 +226,6 @@ export default function JerseyAvatar({ club, initials, size = 40 }) {
     </div>
   )
 }
+
 
 
