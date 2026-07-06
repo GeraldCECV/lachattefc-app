@@ -4,6 +4,7 @@ import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/f
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
+import JerseyAvatar from '../components/JerseyAvatar'
 
 export default function PronosChatteux() {
   const { profil } = useUser()
@@ -393,13 +394,7 @@ export default function PronosChatteux() {
                     }}>
                       {/* Avatar + nom */}
                       <div style={{ display:'flex', alignItems:'center', gap:7, flex:1, minWidth:0 }}>
-                        <div className="av" style={{
-                          width:26, height:26, fontSize:9, flexShrink:0,
-                          background: isMe ? 'var(--g-dim)' : 'rgba(255,255,255,.06)',
-                          color: isMe ? 'var(--g)' : 'var(--tx3)',
-                        }}>
-                          {j.initiales}
-                        </div>
+                        <JerseyAvatar club={j.clubCoeur} initials={j.initiales} size={26} />
                         <div style={{ minWidth:0 }}>
                           <div style={{ fontSize:12, fontWeight:900, color: isMe ? 'var(--g)' : 'var(--tx)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                             {j.nom?.split(' ')[0]}
@@ -485,6 +480,7 @@ export default function PronosChatteux() {
     </div>
   )
 }
+
 
 
 
