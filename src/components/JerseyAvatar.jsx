@@ -154,8 +154,15 @@ function getFileCandidates(name) {
   const n = normalize(name)
   const slugs = FILE_SLUGS[n] || Object.entries(FILE_SLUGS).find(([key]) => n.includes(key) || key.includes(n))?.[1]
   if (!slugs) return []
-  // Tolère les deux noms de dossier (maillots/ ou maillot/), au cas où
-  return slugs.flatMap(s => [`/maillots/${s}.png`, `/maillot/${s}.png`])
+  // Cherche d'abord sur GitHub Raw (fiable sur tous les deployments),
+  // puis fallback sur les chemins locaux
+  const githubBase = 'https://raw.githubusercontent.com/GeraldCECV/lachattefc-app/main/public'
+  return slugs.flatMap(s => [
+    `${githubBase}/maillot/${s}.png`,
+    `${githubBase}/maillots/${s}.png`,
+    `/maillots/${s}.png`,
+    `/maillot/${s}.png`
+  ])
 }
 
 // Avatar maillot. Priorité à un fichier uploadé dans /public/maillots/
