@@ -53,6 +53,7 @@ export default function JerseyAvatar({ club, initials, size = 40 }) {
   const [allFilesFailed, setAllFilesFailed] = useState(candidates.length === 0)
 
   if (!allFilesFailed && candidates[candidateIdx]) {
+    console.log(`[JerseyAvatar] Trying ${club}:`, candidates[candidateIdx])
     return (
       <img
         src={candidates[candidateIdx]}
@@ -60,8 +61,12 @@ export default function JerseyAvatar({ club, initials, size = 40 }) {
         title={translateTeam(club)}
         style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0 }}
         onError={() => {
+          console.log(`[JerseyAvatar] Failed to load ${candidates[candidateIdx]}, trying next...`)
           if (candidateIdx + 1 < candidates.length) setCandidateIdx(i => i + 1)
-          else setAllFilesFailed(true)
+          else {
+            console.log(`[JerseyAvatar] All candidates failed for ${club}`)
+            setAllFilesFailed(true)
+          }
         }}
       />
     )
