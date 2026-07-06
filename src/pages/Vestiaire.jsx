@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, onSnapshot, query, orderBy, limit } from 'firebase/firestore'
+import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
@@ -15,11 +15,12 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
   const [journee, setJournee] = useState(null)
   const [monProno, setMonProno] = useState(null)
   const [topClassement, setTopClassement] = useState([])
-  const [countdown, setCountdown] = useState({})
   const [loading, setLoading] = useState(true)
+  const [countdown, setCountdown] = useState('')
 
   useEffect(() => {
     let unsubJ = null
+    setMonProno(null)
     const load = async () => {
       // Charger la première journée ouverte ou en cours
       const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
@@ -28,22 +29,59 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
         const data = d.data()
         if (data.statut === 'resultats') return false
         const dl = data.deadline ? new Date(data.deadline.seconds * 1000) : null
-        return !dl || dl > now || data.statut === 'ouverte' || data.statut === 'fermee'
+        return data.statut === 'ouverte' || data.statut === 'fermee'
       })
       const snap = { docs: openDocs.length > 0 ? [openDocs[0]] : allSnap.docs.slice(-1), empty: allSnap.empty }
       if (!snap.empty) {
         const jDoc = snap.docs[0]
-        unsubJ = onSnapshot(doc(db,'journees',jDoc.id), d => {
-          if (d.exists()) setJournee({ id:d.id, ...d.data() })
+        unsubJ = onSnapshot(doc(db,'journees',jDoc.id), async d => {
+          if (!d.exists()) return
+          const jData = { id:d.id, ...d.data() }
+          setJournee(jData)
+
+          // Classement live depuis pointsJoueurs (même source que Classement)
+          const joueursSnap = await getDocs(collection(db,'joueurs'))
+          const joueurs = joueursSnap.docs.map(j => ({ id:j.id, ...j.data() }))
+          const pts = jData.pointsJoueurs || {}
+          const penalites = jData.penalites || {}
+          const BAREME = [24, 16, 12, 9, 7, 5, 4, 3, 0]
+
+          const ptsAvecPenalites = {}
+          joueurs.forEach(j => {
+            ptsAvecPenalites[j.id] = (pts[j.id] || 0) + (penalites[j.id] || 0)
+          })
+          const hasSomePoints = Object.values(pts).some(p => p > 0)
+
+          const sorted = joueurs
+            .filter(j => pts[j.id] !== undefined) // seulement joueurs avec pronos
+            .map(j => ({ ...j, ptsJ: ptsAvecPenalites[j.id] || 0 }))
+            .sort((a,b) => b.ptsJ - a.ptsJ)
+
+          // Partage des gains en cas d'égalité
+          let ei = 0
+          while (ei < sorted.length) {
+            const epts = sorted[ei].ptsJ
+            let fin = ei
+            while (fin < sorted.length && sorted[fin].ptsJ === epts) fin++
+            let gainPartage = 0
+            for (let r = ei; r < fin; r++) gainPartage += BAREME[r] || 0
+            const gainParJoueur = hasSomePoints ? Math.round(gainPartage / (fin - ei) * 100) / 100 : 0
+            for (let k = ei; k < fin; k++) sorted[k] = { ...sorted[k], gainJ: gainParJoueur }
+            ei = fin
+          }
+
+          setTopClassement(sorted.slice(0,5))
         })
         if (profil) {
+          setMonProno(null)
           const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
+          console.log('🔍 pronos J docs:', pronosSnap.docs.map(d => d.id))
+          console.log('🔍 profil.id:', profil.id)
           const monDoc = pronosSnap.docs.find(d => d.id === profil.id)
+          console.log('🔍 monDoc trouvé:', !!monDoc)
           if (monDoc) setMonProno(monDoc.data())
         }
       }
-      const jSnap = await getDocs(collection(db,'joueurs'))
-      setTopClassement(jSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.pointsTotal||0)-(a.pointsTotal||0)).slice(0,5))
       setLoading(false)
     }
     load()
@@ -75,7 +113,29 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
       <div style={{ padding:'16px 20px 12px', display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
         <div>
           <div className="page-title">Vestiaire</div>
-          <div className="page-sub">Salut {prenom} 👋</div>
+          <div className="page-sub">{(() => {
+            const msgs = [
+              `Salut ${prenom} 👋`,
+              `Prêt à tout rafler ${prenom} ? 💰`,
+              `${prenom}, les matchs t'attendent ⚽`,
+              `Alors ${prenom}, on sent le champion ? 🏆`,
+              `${prenom}, montre-leur de quoi t'es capable 🔥`,
+              `${prenom}, t'es le meilleur pronostiqueur de la Chatte ? 🐱`,
+              `${prenom}, les gains t'attendent 💸`,
+              `${prenom}, la Ligue 1 n'a qu'à bien se tenir ⚡`,
+            ]
+            const key = 'lachattefc_welcome_msg'
+            const prevKey = 'lachattefc_welcome_msg_prev'
+            let msg = sessionStorage.getItem(key)
+            if (!msg) {
+              const prev = sessionStorage.getItem(prevKey)
+              const available = msgs.filter(m => m !== prev)
+              msg = available[Math.floor(Math.random() * available.length)]
+              sessionStorage.setItem(prevKey, msg)
+              sessionStorage.setItem(key, msg)
+            }
+            return msg
+          })()}</div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <div style={{ textAlign:'right' }}>
@@ -172,13 +232,13 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           )}
 
           {/* Classement */}
-          <div className="section-lbl">🏆 Classement général</div>
+          <div className="section-lbl">⚡ Classement J{journee?.numero} • Live</div>
           <div style={{ margin:'0 16px 12px' }} className="card">
             {topClassement.map((j,idx) => {
               const [bg,color] = COLORS[idx]||['rgba(155,226,45,.1)','var(--g)']
               const isMe = j.id === profil?.id
               return (
-                <div key={j.id} className="match-row" style={isMe?{background:'rgba(155,226,45,.06)',borderRadius:10,padding:'10px 8px',margin:'0 -8px'}:{}}>
+                <div key={j.id} className="match-row" style={isMe?{background:'rgba(155,226,45,.06)',borderRadius:10}:{}}>
                   <div style={{ width:26, textAlign:'center', fontSize:idx<3?18:13, fontWeight:900, color:idx<3?color:'var(--tx3)', flexShrink:0 }}>
                     {idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':idx+1}
                   </div>
@@ -189,9 +249,10 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                     <div className="match-name" style={{ color:isMe?'var(--g)':'var(--tx)', fontSize:13 }}>
                       {j.nom?.split(' ')[0]} {isMe?<span style={{fontSize:10,color:'var(--tx3)'}}>（toi）</span>:''}
                     </div>
+                    <div style={{ fontSize:11, color:'var(--tx3)' }}>{j.ptsJ || 0} pts</div>
                   </div>
-                  <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color:isMe?'var(--g)':'var(--tx)', textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
-                    {j.pointsTotal||0}
+                  <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color: (j.gainJ||0)>0?'var(--g)':'var(--tx3)' }}>
+                    {(j.gainJ||0)>0?'+':''}{j.gainJ||0}€
                   </div>
                 </div>
               )
@@ -215,8 +276,8 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                   <div className="match-row">
                     <div className="match-info">
                       <div className="match-name" style={{ display:'flex', alignItems:'center', gap:6 }}>
-                        🎯 <TeamLogo name={journee.matchScorer.dom} size={20} /> {journee.matchScorer.dom} — {journee.matchScorer.ext} <TeamLogo name={journee.matchScorer.ext} size={20} />
-                        <span style={{ marginLeft:6, fontSize:10, background:'var(--b-dim)', color:'#93C5FD', padding:'1px 6px', borderRadius:4, fontWeight:900, border:'1px solid var(--b-b)' }}>SCORER</span>
+                        ⚽ <TeamLogo name={journee.matchScorer.dom} size={20} /> {journee.matchScorer.dom} — {journee.matchScorer.ext} <TeamLogo name={journee.matchScorer.ext} size={20} />
+                        <span style={{ marginLeft:6, fontSize:10, background:'var(--b-dim)', color:'#93C5FD', padding:'1px 6px', borderRadius:4, fontWeight:900, border:'1px solid var(--b-b)' }}>À SCORER</span>
                       </div>
                       <div className="match-time">L1 · {journee.matchScorer.jour} {journee.matchScorer.heure}</div>
                     </div>
@@ -230,7 +291,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
                     ) : <div style={{ fontSize:12, color:'var(--tx3)' }}>—</div>}
                   </div>
                 )}
-                {journee.matchesL1.map((m,i) => m?.dom && m.dom !== journee.matchScorer?.dom && (
+                {journee.matchesL1.map((m,i) => m?.dom && (
                   <div key={i} className="match-row">
                     <div className="match-info">
                       <div className="match-name" style={{ display:'flex', alignItems:'center', gap:5 }}><TeamLogo name={m.dom} size={18} />{m.dom} — {m.ext}<TeamLogo name={m.ext} size={18} /></div>

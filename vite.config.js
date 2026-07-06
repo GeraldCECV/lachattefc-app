@@ -11,10 +11,10 @@ export default defineConfig({
       manifest: {
         name: 'La Chatte FC',
         short_name: 'La Chatte FC',
-        description: 'Concours de pronos La Chatte FC — Saison 25/26',
+        description: 'Concours de pronos La Chatte FC — Saison 26/27',
         theme_color: '#07100C',
-        background_color: '#07100C',
-        display: 'standalone',
+        background_color: '#ffffff',
+        display: 'fullscreen',
         orientation: 'portrait',
         start_url: '/',
         scope: '/',
@@ -34,8 +34,14 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}']
-      }
+        globPatterns: [],
+        runtimeCaching: [],
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+      },
+      injectRegister: 'auto',
+      selfDestroying: false,
     })
   ],
 })

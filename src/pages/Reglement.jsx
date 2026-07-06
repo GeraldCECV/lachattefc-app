@@ -79,7 +79,7 @@ export default function Reglement() {
           <p>Si le résultat est trouvé par <Strong>moins de 25%</Strong> des participants → <Strong>2 points</Strong> au lieu de 1.</p>
         </div>
         <div style={{ margin:'10px 0', padding:'12px', background:'rgba(96,165,250,.06)', border:'1px solid var(--b-b)', borderRadius:'var(--Rs)' }}>
-          <div style={{ fontWeight:900, color:'#93C5FD', marginBottom:6, fontSize:12, textTransform:'uppercase', letterSpacing:'.05em' }}>🎯 Match à scorer</div>
+          <div style={{ fontWeight:900, color:'#93C5FD', marginBottom:6, fontSize:12, textTransform:'uppercase', letterSpacing:'.05em' }}>⚽ Match à scorer</div>
           <Li>Bon score = <Strong>3 pts</Strong></Li>
           <Li>Bon écart = <Strong>2 pts</Strong></Li>
           <Li>Bonne issue seulement = <Strong>1 pt</Strong></Li>
@@ -93,7 +93,7 @@ export default function Reglement() {
         <p style={{ marginBottom:12, fontSize:12, color:'var(--tx3)' }}>Les bonus ne peuvent pas être posés sur le match à scorer. Possible de cumuler les 3 types sur la même journée, mais pas deux fois le même type.</p>
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           {[
-            { ico:'🎯', title:'Missile', qty:'×5 / saison', color:'var(--r)', dim:'var(--r-dim)', b:'var(--r-b)', desc:"Le plus puissant — prévaut sur tous les autres bonus. Change le prono d'un adversaire que tu détermines, sur le match de ton choix." },
+            { ico:'🚀', title:'Missile', qty:'×6 / saison · 2 salves', color:'var(--r)', dim:'var(--r-dim)', b:'var(--r-b)', desc:"Choisis un adversaire, un match et impose-lui ton pronostic. Son prono est remplacé par le tien. Ses bonus (Jackpot, Double Chance) restent actifs. · Salve 1 : J1→J17 · Salve 2 : J18→J33 (rechargé à la trêve)" },
             { ico:'🎰', title:'Jackpot', qty:'×3 / saison', color:'var(--a)', dim:'var(--a-dim)', b:'var(--a-b)', desc:"Double tes points sur le match de ton choix." },
             { ico:'2️⃣', title:'Double Chance', qty:'×4 / saison', color:'var(--p)', dim:'var(--p-dim)', b:'var(--p-b)', desc:"Joue 2 résultats sur 1 match (1/N, 1/2 ou N/2). Si l'un est bon → 1pt." },
           ].map(b => (
@@ -122,7 +122,7 @@ export default function Reglement() {
       <Section num="8" title="Gains">
         <div style={{ marginBottom:12 }}>
           <div style={{ fontWeight:900, color:'var(--g)', marginBottom:8, fontSize:12, textTransform:'uppercase', letterSpacing:'.05em' }}>Gains par journée — Pot : 80€</div>
-          {[[1,'🥇','24€'],[2,'🥈','18€'],[3,'🥉','14€'],[4,'4e','11€'],[5,'5e','8€'],[6,'6e','5€']].map(([r,m,g]) => (
+          {[[1,'🥇','24€'],[2,'🥈','16€'],[3,'🥉','12€'],[4,'4e','9€'],[5,'5e','7€'],[6,'6e','5€'],[7,'7e','4€'],[8,'8e','3€']].map(([r,m,g]) => (
             <div key={r} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid rgba(155,226,45,.06)', fontSize:13 }}>
               <span>{m} pronostiqueur</span>
               <span style={{ fontWeight:900, color:'var(--g)' }}>{g}</span>

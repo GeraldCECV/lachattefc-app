@@ -1,26 +1,20 @@
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+// Ce service worker Firebase Cloud Messaging n'est plus utilisé — le projet
+// est passé à OneSignal (voir OneSignalSDKWorker.js). Ce fichier se contente
+// de se désenregistrer lui-même et de vider ses caches, pour nettoyer les
+// installations existantes sur les téléphones qui l'avaient enregistré avant
+// la migration.
+self.addEventListener('install', () => {
+  self.skipWaiting()
+})
 
-firebase.initializeApp({
-  apiKey: "AIzaSyD0jdLm0-pg6aI73nIyRw9Wz_6mNaKWtW4",
-  authDomain: "lachattefc-7129a.firebaseapp.com",
-  projectId: "lachattefc-7129a",
-  storageBucket: "lachattefc-7129a.firebasestorage.app",
-  messagingSenderId: "4702396559",
-  appId: "1:4702396559:web:84b28a8ea357a4533450fa",
-});
-
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'La Chatte FC';
-  const body = payload.notification?.body || '';
-  self.registration.showNotification(title, {
-    body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    image: '/icon-512.png',
-    vibrate: [200, 100, 200],
-    data: payload.data || {},
-  });
-});
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys()
+      await Promise.all(keys.map((k) => caches.delete(k)))
+      await self.registration.unregister()
+      const allClients = await clients.matchAll({ type: 'window' })
+      allClients.forEach((client) => client.navigate(client.url))
+    })()
+  )
+})

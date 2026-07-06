@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, setDoc, getDoc, updateDoc, query, orderBy, limit, serverTimestamp, addDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, addDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
+import { translateTeam } from '../utils/teamName'
 
 // ── Helpers ──
 const RESULT_COLORS = {
-  '1': { sel:'var(--b)', dim:'var(--b-dim)', label:'🏠 1' },
-  'N': { sel:'var(--a)', dim:'var(--a-dim)', label:'= N' },
-  '2': { sel:'var(--p)', dim:'var(--p-dim)', label:'✈ 2' },
+  '1': { sel:'var(--b)', dim:'var(--b-dim)', label:'1' },
+  'N': { sel:'var(--a)', dim:'var(--a-dim)', label:'N' },
+  '2': { sel:'var(--p)', dim:'var(--p-dim)', label:'2' },
 }
 
 function PronoBtn({ val, selected, onClick, disabled }) {
@@ -44,6 +46,36 @@ function DcBtn({ val, selected, onClick }) {
   )
 }
 
+function Confetti() {
+  const colors = ['#9BE22D', '#FFD700', '#60A5FA', '#F87171', '#C084FC', '#FB923C']
+  const pieces = Array.from({ length: 90 }, (_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    color: colors[i % colors.length],
+    delay: Math.random() * 0.6,
+    duration: 2.5 + Math.random() * 1.8,
+    size: 6 + Math.random() * 6,
+  }))
+  return (
+    <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:9999, overflow:'hidden' }}>
+      <style>{`
+        @keyframes confetti-fall {
+          0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+      `}</style>
+      {pieces.map(p => (
+        <div key={p.id} style={{
+          position:'absolute', top:0, left:`${p.left}%`,
+          width:p.size, height:p.size*0.4, background:p.color,
+          borderRadius:2,
+          animation:`confetti-fall ${p.duration}s ease-in ${p.delay}s forwards`,
+        }} />
+      ))}
+    </div>
+  )
+}
+
 export default function Pronos() {
   const { profil, user } = useUser()
   const [journee, setJournee] = useState(null)
@@ -52,18 +84,28 @@ export default function Pronos() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
   const [scorerH, setScorerH] = useState(0)
   const [scorerA, setScorerA] = useState(0)
   const [deadlinePassed, setDeadlinePassed] = useState(false)
+  const journeeAVenir = journee?.statut === 'a-venir'
+
+  // Petit feedback immersif à la validation : confettis + vibration
+  // (vibration ignorée sans effet sur iOS, l'API n'y existe pas — mais
+  // fonctionne sur Android, gratuit à ajouter).
+  const celebrer = () => {
+    setShowConfetti(true)
+    if (navigator.vibrate) navigator.vibrate([30, 40, 60])
+    setTimeout(() => setShowConfetti(false), 5000)
+  }
 
   // Bonus state
-  const [bonusStock, setBonusStock] = useState({ missile:5, jackpot:3, doubleChance:4 })
+  const [bonusStock, setBonusStock] = useState({ missile:3, jackpot:3, doubleChance:4 })
   const [activeBonus, setActiveBonus] = useState(null) // { type:'jackpot'|'dc'|'missile', matchKey: null }
-  const [jackpotMatch, setJackpotMatch] = useState(null) // 'scorer'|'l1_0'|...|'euro'
-  const [dcMatch, setDcMatch] = useState(null) // 'l1_0' etc
-  const [dcChoices, setDcChoices] = useState([]) // ['1','N'] max 2
+  const [jackpotMatches, setJackpotMatches] = useState([]) // ['l1_0','euro',...] — plusieurs possibles
+  const [dcSelections, setDcSelections] = useState([]) // [{matchKey:'l1_0', choices:['1','N']}, ...]
   const [missileData, setMissileData] = useState({ cible:null, matchKey:null, prono:null })
-  const [missileUsed, setMissileUsed] = useState(false)
+  const [mesMissiles, setMesMissiles] = useState([]) // liste des missiles lancés par ce joueur pour cette journée
   const [showConfirm, setShowConfirm] = useState(false)
   const [joueurs, setJoueurs] = useState([])
   const [showBonusPanel, setShowBonusPanel] = useState(null) // matchKey
@@ -81,13 +123,17 @@ export default function Pronos() {
         const data = d.data()
         if (data.statut === 'resultats') return false
         const dl = data.deadline ? new Date(data.deadline.seconds * 1000) : null
-        return !dl || dl > now || data.statut === 'ouverte'
+        return data.statut !== 'fermee' && (!dl || dl > now)
       })
       if (openDocs.length === 0) { setLoading(false); return }
       snap = { docs: [openDocs[0]], empty: false }
       if (snap.empty) { setLoading(false); return }
       const jDoc = snap.docs[0]
-      const j = { id:jDoc.id, ...jDoc.data() }
+      const jRaw = { id:jDoc.id, ...jDoc.data() }
+      // Normaliser CDM : mapper matchesCDM → matchesL1 pour compatibilité
+      const j = jRaw.type === 'cdm'
+        ? { ...jRaw, matchesL1: (jRaw.matchesCDM || []).map(m => ({ ...m, type: 'cdm' })), matchScorer: null, matchEuro: null }
+        : jRaw
       setJournee(j)
       if (j.deadline) setDeadlinePassed(new Date() > new Date(j.deadline.seconds*1000))
 
@@ -103,15 +149,20 @@ export default function Pronos() {
             setScorerH(parseInt(parts[0])||0)
             setScorerA(parseInt(parts[1])||0)
           }
-          if (data.jackpotMatch) setJackpotMatch(data.jackpotMatch)
-          if (data.dcMatch) { setDcMatch(data.dcMatch); setDcChoices(data.dcChoices||[]) }
+          if (Array.isArray(data.jackpotMatches)) setJackpotMatches(data.jackpotMatches)
+          else if (data.jackpotMatch) setJackpotMatches([data.jackpotMatch]) // ancien format
+          if (Array.isArray(data.dcSelections)) setDcSelections(data.dcSelections)
+          else if (data.dcMatch) setDcSelections([{ matchKey: data.dcMatch, choices: data.dcChoices||[] }]) // ancien format
         }
         // Charger bonus
         const joueurDoc = await getDoc(doc(db,'joueurs',user.uid))
-        if (joueurDoc.exists()) setBonusStock(joueurDoc.data().bonus || { missile:5, jackpot:3, doubleChance:4 })
+        if (joueurDoc.exists()) setBonusStock(joueurDoc.data().bonus || { missile:3, jackpot:3, doubleChance:4 })
         // Charger joueurs pour missile
         const jSnap = await getDocs(collection(db,'joueurs'))
         setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user.uid))
+        // Charger mes missiles déjà lancés pour cette journée
+        const missilesSnap = await getDocs(collection(db,'journees',jDoc.id,'missiles'))
+        setMesMissiles(missilesSnap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.lanceur===user.uid))
       }
       setLoading(false)
     }
@@ -126,40 +177,95 @@ export default function Pronos() {
     })
   }
 
-  const toggleDc = (val) => {
-    setDcChoices(prev => {
-      if (prev.includes(val)) return prev.filter(v=>v!==val)
-      if (prev.length >= 2) return [prev[1], val]
-      return [...prev, val]
-    })
+  const toggleJackpot = async (key) => {
+    const dejaActif = jackpotMatches.includes(key)
+    try {
+      if (dejaActif) {
+        setJackpotMatches(prev => prev.filter(k => k !== key))
+        const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+        const currentStock = jSnap.data()?.bonus?.jackpot || 0
+        await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.jackpot': Math.min(currentStock + 1, 3) })
+        setBonusStock(prev => ({ ...prev, jackpot: Math.min(prev.jackpot + 1, 3) }))
+      } else {
+        if (bonusStock.jackpot <= 0 || jackpotMatches.length > 0) return
+        setJackpotMatches(prev => [...prev, key])
+        const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+        const currentStock = jSnap.data()?.bonus?.jackpot || 0
+        await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.jackpot': Math.max(0, currentStock - 1) })
+        setBonusStock(prev => ({ ...prev, jackpot: Math.max(0, prev.jackpot - 1) }))
+      }
+    } catch(e) { console.warn('Erreur jackpot:', e.message) }
+    setActiveBonus(null)
+  }
+
+  const toggleDcMatch = async (key) => {
+    const dejaActif = dcSelections.some(d => d.matchKey === key)
+    try {
+      if (dejaActif) {
+        setDcSelections(prev => prev.filter(d => d.matchKey !== key))
+        const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+        const currentStock = jSnap.data()?.bonus?.doubleChance || 0
+        await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.doubleChance': Math.min(currentStock + 1, 4) })
+        setBonusStock(prev => ({ ...prev, doubleChance: Math.min(prev.doubleChance + 1, 4) }))
+      } else {
+        if (bonusStock.doubleChance <= 0 || dcSelections.length > 0) return
+        setDcSelections(prev => [...prev, { matchKey: key, choices: [] }])
+        const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+        const currentStock = jSnap.data()?.bonus?.doubleChance || 0
+        await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.doubleChance': Math.max(0, currentStock - 1) })
+        setBonusStock(prev => ({ ...prev, doubleChance: Math.max(0, prev.doubleChance - 1) }))
+      }
+    } catch(e) { console.warn('Erreur DC:', e.message) }
+    setActiveBonus(null)
+  }
+
+  const toggleDcChoice = (matchKey, val) => {
+    setDcSelections(prev => prev.map(d => {
+      if (d.matchKey !== matchKey) return d
+      const choices = d.choices || []
+      if (choices.includes(val)) return { ...d, choices: choices.filter(v=>v!==val) }
+      if (choices.length >= 2) return { ...d, choices: [choices[1], val] }
+      return { ...d, choices: [...choices, val] }
+    }))
   }
 
   const countFilled = () => {
     let n = 0
+    if (journee?.type === 'cdm') {
+      ;(pronos.matchesL1||[]).forEach((p, i) => {
+        const m = journee.matchesL1?.[i]
+        const isMatchScorer = journee.scorerOnly || m?.scorer
+        const key = journee.type === 'cdm' ? `cdm_${i}` : `l1_${i}`
+        const dcSel = dcSelections.find(d => d.matchKey === key)
+        const isDcOnThisMatch = dcSel && dcSel.choices.length === 2
+        if (isMatchScorer) {
+          if (p && /^\d+-\d+$/.test(p)) n++
+        } else {
+          if (p || isDcOnThisMatch) n++
+        }
+      })
+      return n
+    }
     if (pronos.matchScorer || (scorerH !== null)) n++
     if (pronos.matchEuro) n++
-    ;(pronos.matchesL1||[]).forEach(p => { if (p) n++ })
+    ;(pronos.matchesL1||[]).forEach((p, i) => {
+      const key = `l1_${i}`
+      const dcSel = dcSelections.find(d => d.matchKey === key)
+      const isDcOnThisMatch = dcSel && dcSel.choices.length === 2
+      if (p || isDcOnThisMatch) n++
+    })
     return n
   }
+
+  const total = journee?.type === 'cdm' ? (journee.matchesCDM?.length || journee.matchesL1?.length || 6) : 10
 
   const handleSubmit = async () => {
     if (!user || !journee) return
     setSaving(true)
     try {
-      // ── Si mise à jour : supprimer l'ancien missile lancé si pas de nouveau missile ──
-      if (existingProno && !missileUsed) {
-        const oldMissilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
-        for (const mDoc of oldMissilesSnap.docs) {
-          if (mDoc.data().lanceur === user.uid) {
-            await deleteDoc(doc(db,'journees',journee.id,'missiles',mDoc.id))
-            // Rembourser le stock missile
-            const jSnap = await getDoc(doc(db,'joueurs',user.uid))
-            const currentStock = jSnap.data()?.bonus?.missile || 0
-            await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': currentStock + 1 })
-            setBonusStock(prev => ({ ...prev, missile: prev.missile + 1 }))
-          }
-        }
-      }
+      // Les missiles sont désormais gérés indépendamment (lancement/annulation
+      // immédiats, cf. submitMissile/annulerMissile) — plus de nettoyage
+      // implicite ici, un joueur peut cumuler plusieurs missiles par journée.
 
       // ── Vérifier si un missile a été posé sur ce joueur ──
       // Si oui, écraser le prono concerné avant de sauvegarder
@@ -168,7 +274,13 @@ export default function Pronos() {
         .map(d => ({ id:d.id, ...d.data() }))
         .filter(m => m.cible === user.uid && !m.applique)
 
-      const pronosFinaux = {
+      const isCDM = journee.type === 'cdm'
+      const pronosFinaux = isCDM ? {
+        ...pronos,
+        matchesCDM: [...(pronos.matchesL1 || Array(journee.matchesCDM?.length || 8).fill(null))],
+        matchScorer: null,
+        matchEuro: null,
+      } : {
         ...pronos,
         matchScorer: `${scorerH}-${scorerA}`,
         matchesL1: [...(pronos.matchesL1 || Array(8).fill(null))],
@@ -177,8 +289,9 @@ export default function Pronos() {
       // Appliquer les missiles reçus
       for (const missile of missilesSurMoi) {
         const { matchKey, pronoImpose } = missile
-        if (matchKey.startsWith('l1_')) {
-          const i = parseInt(matchKey.replace('l1_', ''))
+        if (matchKey.startsWith('l1_') || matchKey.startsWith('cdm_')) {
+          const prefix = matchKey.startsWith('cdm_') ? 'cdm_' : 'l1_'
+          const i = parseInt(matchKey.replace(prefix, ''))
           pronosFinaux.matchesL1[i] = pronoImpose
         } else if (matchKey === 'euro') {
           pronosFinaux.matchEuro = pronoImpose
@@ -187,47 +300,63 @@ export default function Pronos() {
         await updateDoc(doc(db,'journees',journee.id,'missiles',missile.id), { applique: true })
       }
 
-      // ── Vérifier le stock bonus côté serveur ──
+      // ── Vérifier le stock bonus côté serveur (garde-fou, débit déjà fait en immédiat) ──
       const joueurSnap = await getDoc(doc(db,'joueurs',user.uid))
-      const stockServeur = joueurSnap.exists() ? joueurSnap.data().bonus : { missile:0, jackpot:0, doubleChance:0 }
-
-      // Invalider jackpot si stock épuisé
-      const jackpotValide = jackpotMatch && (stockServeur.jackpot > 0)
-      const dcValide = dcMatch && dcChoices.length === 2 && (stockServeur.doubleChance > 0)
 
       const data = {
         ...pronosFinaux,
         joueurId: user.uid,
         joueurNom: profil?.nom,
         soumisLe: serverTimestamp(),
-        jackpotMatch: jackpotValide ? jackpotMatch : null,
-        dcMatch: dcValide ? dcMatch : null,
-        dcChoices: dcValide ? dcChoices : null,
+        jackpotMatches: jackpotMatches.filter(k => k !== 'scorer'),
+        dcSelections: dcSelections.filter(d => d.matchKey !== 'scorer' && d.choices.length === 2),
+        // Champs legacy conservés null pour compat lecture ancienne (le calcul lit désormais les tableaux)
+        jackpotMatch: null,
+        dcMatch: null,
+        dcChoices: null,
         missilesRecus: missilesSurMoi.length > 0 ? missilesSurMoi.map(m => m.id) : null,
       }
       await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
 
-      // Débiter les bonus utilisés au moment de l'envoi
-      const bonusUpdate = {}
-      if (jackpotValide && !existingProno?.jackpotMatch) {
-        bonusUpdate['bonus.jackpot'] = Math.max(0, stockServeur.jackpot - 1)
-        setBonusStock(prev => ({ ...prev, jackpot: Math.max(0, prev.jackpot - 1) }))
-      }
-      if (dcValide && !existingProno?.dcMatch) {
-        bonusUpdate['bonus.doubleChance'] = Math.max(0, stockServeur.doubleChance - 1)
-        setBonusStock(prev => ({ ...prev, doubleChance: Math.max(0, prev.doubleChance - 1) }))
-      }
-      // Débiter le missile si utilisé cette session
-      if (missileUsed) {
-        bonusUpdate['bonus.missile'] = Math.max(0, stockServeur.missile - 1)
-      }
-      if (Object.keys(bonusUpdate).length > 0) {
-        await updateDoc(doc(db,'joueurs',user.uid), bonusUpdate)
-      }
-
       setExistingProno(data)
       setSaved(true)
+      celebrer()
       setTimeout(() => setSaved(false), 3000)
+
+      // Envoyer email de confirmation
+      try {
+        const joueurSnap2 = await getDoc(doc(db,'joueurs',user.uid))
+        const joueurData = joueurSnap2.data()
+        if (joueurData?.email) {
+          // Récupérer les missiles lancés par ce joueur sur cette journée
+          const missilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
+          const missilesPourEmail = missilesSnap.docs
+            .map(d => d.data())
+            .filter(m => m.lanceur === user.uid)
+            .map(m => {
+              const cibleJoueur = joueurs.find(j => j.id === m.cible)
+              return { cibleNom: cibleJoueur?.nom?.split(' ')[0] || 'un joueur', matchKey: m.matchKey, pronoImpose: m.pronoImpose }
+            })
+          const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
+          await fn({
+            journeeId: journee.id,
+            journeeNumero: journee.numero,
+            joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
+            joueurEmail: joueurData.email,
+            pronos: [...(pronos.matchesL1 || [])],
+            matchesCDM: journee.type === 'cdm' ? (journee.matchesCDM || []) : null,
+            matchesL1: journee.type !== 'cdm' ? (journee.matchesL1 || []) : null,
+            matchScorer: journee.matchScorer || null,
+            matchEuro: journee.matchEuro || null,
+            scorerOnly: journee.scorerOnly || false,
+            jackpotMatches: jackpotMatches || [],
+            dcSelections: dcSelections || [],
+            missiles: missilesPourEmail,
+          })
+        }
+      } catch(emailErr) {
+        console.warn('Email non envoyé:', emailErr.message)
+      }
     } catch(e) { alert('Erreur : '+e.message) }
     setSaving(false)
   }
@@ -235,6 +364,14 @@ export default function Pronos() {
   const submitMissile = async () => {
     if (!missileData.cible || !missileData.matchKey || !missileData.prono) {
       setMissileMsg('Complète toutes les étapes')
+      return
+    }
+    if (bonusStock.missile <= 0) {
+      setMissileMsg('⚠️ Plus de missile en stock')
+      return
+    }
+    if (mesMissiles.length > 0) {
+      setMissileMsg('⚠️ Un seul missile par journée — annule le précédent pour en poser un autre')
       return
     }
     try {
@@ -249,36 +386,58 @@ export default function Pronos() {
         return
       }
 
-      await addDoc(collection(db,'journees',journee.id,'missiles'), {
+      const cibleJoueur = joueurs.find(j => j.id === missileData.cible)
+      const ref = await addDoc(collection(db,'journees',journee.id,'missiles'), {
         lanceur: user.uid,
         lanceurNom: profil?.nom,
         cible: missileData.cible,
+        cibleNom: cibleJoueur?.nom || null,
         matchKey: missileData.matchKey,
         pronoImpose: missileData.prono,
         poseLe: serverTimestamp(),
         journeeId: journee.id,
         applique: false,
       })
-      // Ne pas débiter immédiatement - sera débité à l'envoi des pronos
-      setMissileUsed(true)
-      // Réduire l'affichage local pour empêcher un 2ème missile (sans toucher Firestore)
-      setBonusStock(prev => ({ ...prev, missile: prev.missile - 1 }))
+
+      // Débit immédiat du stock (plus de débit différé à l'envoi des pronos)
+      const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+      const currentStock = jSnap.data()?.bonus?.missile || 0
+      await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': Math.max(0, currentStock - 1) })
+      setBonusStock(prev => ({ ...prev, missile: Math.max(0, prev.missile - 1) }))
+      setMesMissiles(prev => [...prev, { id: ref.id, lanceur: user.uid, cible: missileData.cible, cibleNom: cibleJoueur?.nom, matchKey: missileData.matchKey, pronoImpose: missileData.prono, applique: false }])
+
       setMissileMsg('✅ Missile lancé !')
-      setTimeout(() => { setShowMissileModal(false); setMissileMsg(''); setMissileData({cible:null,matchKey:null,prono:null}); setMissileStep(1) }, 1500)
+      setTimeout(() => { setShowMissileModal(false); setMissileMsg(''); setMissileData({cible:null,matchKey:null,prono:null}); setMissileStep(1) }, 1200)
     } catch(e) { setMissileMsg('Erreur : '+e.message) }
   }
 
-  const total = 10
+  const annulerMissile = async (missileId) => {
+    if (!confirm('Annuler ce missile ? Il sera remboursé.')) return
+    try {
+      await deleteDoc(doc(db,'journees',journee.id,'missiles',missileId))
+      const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+      const currentStock = jSnap.data()?.bonus?.missile || 0
+      await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': Math.min(currentStock + 1, 6) })
+      setBonusStock(prev => ({ ...prev, missile: Math.min(prev.missile + 1, 6) }))
+      setMesMissiles(prev => prev.filter(m => m.id !== missileId))
+    } catch(e) { alert('Erreur : '+e.message) }
+  }
+
   const filled = countFilled()
   const pct = Math.round(filled/total*100)
 
   const matchLabel = (key) => {
     if (!journee) return key
-    if (key === 'scorer') return `🎯 ${journee.matchScorer?.dom||'?'} — ${journee.matchScorer?.ext||'?'}`
+    if (key === 'scorer') return `⚽ ${journee.matchScorer?.dom||'?'} — ${journee.matchScorer?.ext||'?'}`
     if (key === 'euro') return `🌍 ${journee.matchEuro?.dom||'?'} — ${journee.matchEuro?.ext||'?'}`
+    if (key.startsWith('cdm_')) {
+      const i = parseInt(key.replace('cdm_',''))
+      const m = journee.matchesCDM?.[i]
+      return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
+    }
     const i = parseInt(key.replace('l1_',''))
     const m = journee.matchesL1?.[i]
-    return m ? `${m.dom} — ${m.ext}` : key
+    return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
   }
 
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:60}}><div className="spinner" style={{width:24,height:24}}></div></div>
@@ -309,6 +468,7 @@ export default function Pronos() {
         await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
         setExistingProno(data)
         setSaved(true)
+        celebrer()
         setTimeout(() => setSaved(false), 3000)
       } catch(e) { alert('Erreur : '+e.message) }
       setSaving(false)
@@ -324,14 +484,14 @@ export default function Pronos() {
         <div style={{margin:'12px 16px 0',padding:'10px 14px',background:'rgba(155,226,45,.06)',border:'1px solid var(--g-b)',borderRadius:'var(--Rs)',fontSize:12,color:'var(--g)',fontWeight:700}}>
           ⚽ Multiplex — tous les matchs débutent en même temps. Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt
         </div>
-        <div className="section-lbl" style={{padding:'14px 20px 8px'}}>🇫🇷 Ligue 1 — {matchesL1.length} matchs à scorer</div>
+        <div className="section-lbl" style={{padding:'14px 20px 8px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {matchesL1.length} matchs à scorer</div>
         {matchesL1.map((m, i) => (
           <div key={i} style={{margin:'0 16px 8px',background:'rgba(155,226,45,.04)',border:'1px solid var(--g-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
               <TeamLogo name={m.dom} size={22} />
-              <span style={{fontSize:14,fontWeight:700}}>{m.dom}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.dom)}</span>
               <span style={{color:'var(--tx3)'}}>—</span>
-              <span style={{fontSize:14,fontWeight:700}}>{m.ext}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.ext)}</span>
               <TeamLogo name={m.ext} size={22} />
               <span style={{fontSize:11,color:'var(--tx3)',marginLeft:'auto'}}>{m.jour} {m.heure}</span>
             </div>
@@ -369,6 +529,7 @@ export default function Pronos() {
         await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
         setExistingProno(data)
         setSaved(true)
+        celebrer()
         setTimeout(() => setSaved(false), 3000)
       } catch(e) { alert('Erreur : '+e.message) }
       setSaving(false)
@@ -386,9 +547,9 @@ export default function Pronos() {
           <div key={i} style={{margin:'0 16px 8px',background:'rgba(251,191,36,.04)',border:'1px solid var(--a-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
               <TeamLogo name={m.dom} size={22} />
-              <span style={{fontSize:14,fontWeight:700}}>{m.dom}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.dom)}</span>
               <span style={{color:'var(--tx3)'}}>—</span>
-              <span style={{fontSize:14,fontWeight:700}}>{m.ext}</span>
+              <span style={{fontSize:14,fontWeight:700}}>{translateTeam(m.ext)}</span>
               <TeamLogo name={m.ext} size={22} />
               <span style={{fontSize:11,color:'var(--tx3)',marginLeft:'auto'}}>{m.jour} {m.heure}</span>
             </div>
@@ -428,11 +589,11 @@ export default function Pronos() {
 
       {/* ── MISSILE MODAL ── */}
       {showMissileModal && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:500,padding:'0 0 var(--tab-h) 0'}}>
-          <div style={{width:'100%',maxWidth:420,background:'#000',border:'1px solid var(--r-b)',borderRadius:'20px 20px 0 0',padding:24,boxShadow:'0 -8px 40px rgba(0,0,0,.8)'}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:500,overflowY:'scroll',WebkitOverflowScrolling:'touch',paddingBottom:100}}>
+          <div style={{width:'100%',maxWidth:420,margin:'60px auto 0',background:'#0a0a0a',border:'1px solid var(--r-b)',borderRadius:20,padding:24,boxShadow:'0 8px 40px rgba(0,0,0,.8)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
               <div>
-                <div style={{fontFamily:'var(--D)',fontSize:26,letterSpacing:'.04em',color:'var(--r)'}}>🎯 Missile</div>
+                <div style={{fontFamily:'var(--D)',fontSize:26,letterSpacing:'.04em',color:'var(--r)'}}>🚀 Missile</div>
                 <div style={{fontSize:12,color:'var(--tx3)',marginTop:2}}>
                   {missileStep===1?'1/3 · Choisir la cible':missileStep===2?'2/3 · Choisir le match':'3/3 · Choisir le prono à imposer'}
                 </div>
@@ -458,7 +619,7 @@ export default function Pronos() {
                     </button>
                   ))}
                 </div>
-                <button className="btn btn-primary" style={{width:'100%',height:48}} onClick={()=>missileData.cible&&setMissileStep(2)} disabled={!missileData.cible}>
+                <button className="btn btn-primary" style={{width:'100%',height:48}} onClick={()=>missileData.cible&&(setMissileStep(2),setMissileMsg(''))} disabled={!missileData.cible}>
                   Continuer →
                 </button>
               </>
@@ -469,7 +630,7 @@ export default function Pronos() {
               <>
                 <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
                   {[
-                    ...(journee.matchesL1||[]).map((m,i)=>m?.dom?{key:`l1_${i}`,label:`${m.dom} — ${m.ext}`}:null).filter(Boolean),
+                    ...(journee.matchesL1||[]).map((m,i)=>m?.dom && !(journee.scorerOnly || m.scorer) ?{key: journee.type==='cdm'?`cdm_${i}`:`l1_${i}`,label:`${translateTeam(m.dom)} — ${translateTeam(m.ext)}`}:null).filter(Boolean),
                     journee.matchEuro?.dom ? {key:'euro',label:`🌍 ${journee.matchEuro.dom} — ${journee.matchEuro.ext}`} : null,
                   ].filter(Boolean).map(m => (
                     <button key={m.key} onClick={()=>setMissileData(p=>({...p,matchKey:m.key}))} style={{
@@ -485,7 +646,7 @@ export default function Pronos() {
                 </div>
                 <div style={{display:'flex',gap:8}}>
                   <button className="btn btn-secondary" onClick={()=>setMissileStep(1)}>← Retour</button>
-                  <button className="btn btn-primary" style={{flex:1}} onClick={()=>missileData.matchKey&&setMissileStep(3)} disabled={!missileData.matchKey}>
+                  <button className="btn btn-primary" style={{flex:1}} onClick={()=>missileData.matchKey&&(setMissileStep(3),setMissileMsg(''))} disabled={!missileData.matchKey}>
                     Continuer →
                   </button>
                 </div>
@@ -515,7 +676,7 @@ export default function Pronos() {
                 <div style={{display:'flex',gap:8}}>
                   <button className="btn btn-secondary" onClick={()=>setMissileStep(2)}>← Retour</button>
                   <button className="btn btn-danger" style={{flex:1,height:44}} onClick={submitMissile} disabled={!missileData.prono}>
-                    🎯 Lancer le missile
+                    🚀 Lancer le missile
                   </button>
                 </div>
               </>
@@ -549,76 +710,169 @@ export default function Pronos() {
       </div>
 
       {/* Bonus strip */}
-      <div style={{margin:'12px 16px 0',display:'flex',gap:8,flexWrap:'wrap'}}>
-        {/* Missile */}
-        {bonusStock.missile > 0 && !deadlinePassed && (
-          <button onClick={()=>setShowMissileModal(true)} style={{
-            display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
-            background:'var(--r-dim)',border:'1px solid var(--r-b)',
-            borderRadius:999,fontSize:12,fontWeight:700,color:'var(--r)',cursor:'pointer',
-          }}>
-            🎯 Missile ×{bonusStock.missile}
-          </button>
-        )}
-        {/* Jackpot */}
-        {bonusStock.jackpot > 0 && !deadlinePassed && (
-          <button onClick={()=>setActiveBonus(activeBonus?.type==='jackpot'?null:{type:'jackpot'})} style={{
-            display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
-            background:activeBonus?.type==='jackpot'?'var(--a-dim)':'rgba(255,255,255,.04)',
-            border:`1px solid ${activeBonus?.type==='jackpot'?'var(--a-b)':'rgba(255,255,255,.1)'}`,
-            borderRadius:999,fontSize:12,fontWeight:700,
-            color:activeBonus?.type==='jackpot'?'var(--a)':'var(--tx3)',cursor:'pointer',
-          }}>
-            🎰 Jackpot ×{bonusStock.jackpot} {activeBonus?.type==='jackpot'?'— Sélectionne un match':''}
-          </button>
-        )}
-        {/* Double Chance */}
-        {bonusStock.doubleChance > 0 && !deadlinePassed && (
-          <button onClick={()=>setActiveBonus(activeBonus?.type==='dc'?null:{type:'dc'})} style={{
-            display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
-            background:activeBonus?.type==='dc'?'var(--p-dim)':'rgba(255,255,255,.04)',
-            border:`1px solid ${activeBonus?.type==='dc'?'var(--p-b)':'rgba(255,255,255,.1)'}`,
-            borderRadius:999,fontSize:12,fontWeight:700,
-            color:activeBonus?.type==='dc'?'var(--p)':'var(--tx3)',cursor:'pointer',
-          }}>
-            2️⃣ DC ×{bonusStock.doubleChance} {activeBonus?.type==='dc'?'— Sélectionne un match':''}
-          </button>
-        )}
-      </div>
+      {!journee.scorerOnly && <div style={{margin:'12px 16px 0',display:'flex',gap:8,flexWrap:'wrap'}}>
+        {/* Missile — 1 seul par journée */}
+        {!deadlinePassed && (bonusStock.missile > 0 || mesMissiles.length > 0) && (() => {
+          const dejaPose = mesMissiles.length > 0
+          return (
+            <button onClick={()=>{ if (!dejaPose) setShowMissileModal(true) }} disabled={dejaPose} style={{
+              display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
+              background:dejaPose?'rgba(255,255,255,.03)':'var(--r-dim)',
+              border:`1px solid ${dejaPose?'rgba(255,255,255,.08)':'var(--r-b)'}`,
+              borderRadius:999,fontSize:12,fontWeight:700,
+              color:dejaPose?'var(--tx3)':'var(--r)',cursor:dejaPose?'not-allowed':'pointer',
+              opacity:dejaPose?0.6:1,
+            }}>
+              🚀 Missile {dejaPose?'posé':`×${bonusStock.missile}`}
+            </button>
+          )
+        })()}
+        {/* Jackpot — 1 seul par journée */}
+        {!deadlinePassed && (bonusStock.jackpot > 0 || jackpotMatches.length > 0) && (() => {
+          const dejaPose = jackpotMatches.length > 0
+          return (
+            <button onClick={()=>{ if (!dejaPose) setActiveBonus(activeBonus?.type==='jackpot'?null:{type:'jackpot'}) }} disabled={dejaPose} style={{
+              display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
+              background:dejaPose?'rgba(255,255,255,.03)':activeBonus?.type==='jackpot'?'var(--a-dim)':'rgba(255,255,255,.04)',
+              border:`1px solid ${dejaPose?'rgba(255,255,255,.08)':activeBonus?.type==='jackpot'?'var(--a-b)':'rgba(255,255,255,.1)'}`,
+              borderRadius:999,fontSize:12,fontWeight:700,
+              color:dejaPose?'var(--tx3)':activeBonus?.type==='jackpot'?'var(--a)':'var(--tx3)',
+              cursor:dejaPose?'not-allowed':'pointer',opacity:dejaPose?0.6:1,
+            }}>
+              🎰 Jackpot {dejaPose?'posé':`×${bonusStock.jackpot}`} {!dejaPose && activeBonus?.type==='jackpot'?'— Sélectionne un match':''}
+            </button>
+          )
+        })()}
+        {/* Double Chance — 1 seule par journée */}
+        {!deadlinePassed && (bonusStock.doubleChance > 0 || dcSelections.length > 0) && (() => {
+          const dejaPose = dcSelections.length > 0
+          return (
+            <button onClick={()=>{ if (!dejaPose) setActiveBonus(activeBonus?.type==='dc'?null:{type:'dc'}) }} disabled={dejaPose} style={{
+              display:'flex',alignItems:'center',gap:6,padding:'6px 12px',
+              background:dejaPose?'rgba(255,255,255,.03)':activeBonus?.type==='dc'?'var(--p-dim)':'rgba(255,255,255,.04)',
+              border:`1px solid ${dejaPose?'rgba(255,255,255,.08)':activeBonus?.type==='dc'?'var(--p-b)':'rgba(255,255,255,.1)'}`,
+              borderRadius:999,fontSize:12,fontWeight:700,
+              color:dejaPose?'var(--tx3)':activeBonus?.type==='dc'?'var(--p)':'var(--tx3)',
+              cursor:dejaPose?'not-allowed':'pointer',opacity:dejaPose?0.6:1,
+            }}>
+              2️⃣ DC {dejaPose?'posée':`×${bonusStock.doubleChance}`} {!dejaPose && activeBonus?.type==='dc'?'— Sélectionne un match':''}
+            </button>
+          )
+        })()}
+      </div>}
 
       {/* Bonus actifs recap */}
-      {(jackpotMatch || dcMatch) && (
+      {!journee.scorerOnly && (jackpotMatches.length > 0 || dcSelections.length > 0) && (
         <div style={{margin:'8px 16px 0',padding:'10px 14px',background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:'var(--Rs)',fontSize:12}}>
-          {jackpotMatch && <div style={{color:'var(--a)',fontWeight:700}}>🎰 Jackpot → {matchLabel(jackpotMatch)}</div>}
-          {dcMatch && dcChoices.length===2 && <div style={{color:'var(--p)',fontWeight:700,marginTop:jackpotMatch?4:0}}>2️⃣ Double Chance → {matchLabel(dcMatch)} · {dcChoices.join(' ou ')}</div>}
+          {jackpotMatches.map(k => (
+            <div key={k} style={{color:'var(--a)',fontWeight:700}}>🎰 Jackpot → {matchLabel(k)}</div>
+          ))}
+          {dcSelections.filter(d=>d.choices.length===2).map(d => (
+            <div key={d.matchKey} style={{color:'var(--p)',fontWeight:700,marginTop:4}}>2️⃣ Double Chance → {matchLabel(d.matchKey)} · {d.choices.join(' ou ')}</div>
+          ))}
         </div>
       )}
 
-      {/* ── SCORER ── */}
-      <div className="section-lbl" style={{padding:'16px 20px 8px'}}>🎯 Match à scorer — Ligue 1</div>
-      <div style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px'}}>
-        <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau</div>
-        <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
-          {journee.matchScorer?.dom||'?'} — {journee.matchScorer?.ext||'?'}
-          <span style={{marginLeft:8,fontSize:11,color:'var(--tx3)'}}>{journee.matchScorer?.jour} {journee.matchScorer?.heure}</span>
+      {/* Mes missiles lancés — annulables individuellement tant que la deadline n'est pas passée */}
+      {mesMissiles.length > 0 && (
+        <div style={{margin:'8px 16px 0',padding:'10px 14px',background:'var(--r-dim)',border:'1px solid var(--r-b)',borderRadius:'var(--Rs)',fontSize:12}}>
+          <div style={{fontWeight:700,color:'var(--r)',marginBottom:6}}>🚀 Missiles lancés ({mesMissiles.length})</div>
+          {mesMissiles.map(m => (
+            <div key={m.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'4px 0'}}>
+              <span style={{color:'var(--tx2)'}}>{m.cibleNom || 'un joueur'} · {matchLabel(m.matchKey)} → <strong>{m.pronoImpose}</strong></span>
+              {!deadlinePassed && (
+                <button onClick={()=>annulerMissile(m.id)} style={{background:'none',border:'none',color:'var(--r)',fontSize:11,fontWeight:700,cursor:'pointer',textDecoration:'underline'}}>
+                  annuler
+                </button>
+              )}
+            </div>
+          ))}
         </div>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
-          <Stepper val={scorerH} onChange={setScorerH} />
-          <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
-          <Stepper val={scorerA} onChange={setScorerA} />
-        </div>
-        <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:10}}>Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt</div>
-      </div>
+      )}
 
-      {/* ── L1 MATCHS ── */}
-      <div className="section-lbl" style={{padding:'8px 20px'}}>🇫🇷 Ligue 1 — 8 matchs 1N2</div>
+      {/* ── SCORER — masqué pour CDM ── */}
+      {journee.type !== 'cdm' && journee.matchScorer?.dom && (
+        <div style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px'}}>
+          <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau</div>
+          <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
+            {journee.matchScorer?.dom||'?'} — {journee.matchScorer?.ext||'?'}
+            <span style={{marginLeft:8,fontSize:11,color:'var(--tx3)'}}>{journee.matchScorer?.jour} {journee.matchScorer?.heure}</span>
+          </div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+            <Stepper val={scorerH} onChange={setScorerH} />
+            <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
+            <Stepper val={scorerA} onChange={setScorerA} />
+          </div>
+          <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:10}}>Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt</div>
+        </div>
+      )}
+
+      {/* ── MATCHS ── */}
+      <div className="section-lbl" style={{padding:'8px 20px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {(journee.matchesL1||[]).length} matchs {journee.scorerOnly ? 'scorer' : '1N2'}</div>
       {(journee.matchesL1||[]).map((m, i) => {
         if (!m?.dom) return null
-        const key = `l1_${i}`
+        const key = journee.type === 'cdm' ? `cdm_${i}` : `l1_${i}`
         const sel = pronos.matchesL1?.[i]
-        const isJP = jackpotMatch === key
-        const isDC = dcMatch === key
+        const isJP = jackpotMatches.includes(key)
+        const isDC = dcSelections.some(d => d.matchKey === key)
+        const dcChoicesIci = dcSelections.find(d => d.matchKey === key)?.choices || []
         const isSelectingBonus = activeBonus?.type === 'jackpot' || activeBonus?.type === 'dc'
+
+        // Mode scorer uniquement
+        if (journee.scorerOnly || m.scorer) {
+          const parts = (sel || '').split('-')
+          const domScore = parts[0] || ''
+          const extScore = parts[1] || ''
+          return (
+            <div key={i} style={{
+              margin:'0 16px 8px',
+              background: sel ? 'rgba(155,226,45,.04)' : 'var(--bg2)',
+              border:`1px solid ${sel ? 'var(--g-b)' : 'var(--bd)'}`,
+              borderRadius:'var(--R)', padding:'13px 14px',
+            }}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <TeamLogo name={m.dom} size={22} />
+                  <div>
+                    <div style={{fontSize:14,fontWeight:600}}>{translateTeam(m.dom)} — {translateTeam(m.ext)}</div>
+                    <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{m.jour} {m.heure}</div>
+                  </div>
+                  <TeamLogo name={m.ext} size={22} />
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:10,justifyContent:'center'}}>
+                <input
+                  inputMode="numeric" pattern="[0-9]*" placeholder="0"
+                  value={domScore}
+                  onChange={e => {
+                    const v = e.target.value.replace(/[^0-9]/g,'').slice(0,2)
+                    setL1(i, `${v}-${extScore}`)
+                  }}
+                  style={{
+                    width:52, height:44, textAlign:'center', fontSize:22, fontWeight:900,
+                    background:'var(--bg3)', border:'1px solid var(--bd)', borderRadius:'var(--Rs)',
+                    color:'var(--tx)', fontFamily:'var(--D)',
+                  }}
+                />
+                <span style={{fontSize:22,fontWeight:900,color:'var(--tx3)'}}>-</span>
+                <input
+                  inputMode="numeric" pattern="[0-9]*" placeholder="0"
+                  value={extScore}
+                  onChange={e => {
+                    const v = e.target.value.replace(/[^0-9]/g,'').slice(0,2)
+                    setL1(i, `${domScore}-${v}`)
+                  }}
+                  style={{
+                    width:52, height:44, textAlign:'center', fontSize:22, fontWeight:900,
+                    background:'var(--bg3)', border:'1px solid var(--bd)', borderRadius:'var(--Rs)',
+                    color:'var(--tx)', fontFamily:'var(--D)',
+                  }}
+                />
+              </div>
+              <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:8}}>Score exact = 3pts · Bonne issue = 1pt</div>
+            </div>
+          )
+        }
 
         return (
           <div key={i} style={{
@@ -628,23 +882,21 @@ export default function Pronos() {
             borderRadius:'var(--R)',padding:'13px 14px',transition:'border-color .2s',
           }}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-              <div>
-                <div style={{fontSize:14,fontWeight:600}}>{m.dom} — {m.ext}</div>
-                <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{m.jour} {m.heure}</div>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <TeamLogo name={m.dom} size={22} />
+                <div>
+                  <div style={{fontSize:14,fontWeight:600}}>{translateTeam(m.dom)} — {translateTeam(m.ext)}</div>
+                  <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{m.jour} {m.heure}</div>
+                </div>
+                <TeamLogo name={m.ext} size={22} />
               </div>
               <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                {isJP && <span className="pill pill-a">🎰 Jackpot</span>}
-                {isDC && <span className="pill pill-p">2️⃣ DC</span>}
-                {isSelectingBonus && !isJP && !isDC && (
+                {isJP && <span className="pill pill-a" style={{cursor:'pointer'}} onClick={()=>toggleJackpot(key)}>🎰 Jackpot ✕</span>}
+                {isDC && <span className="pill pill-p" style={{cursor:'pointer'}} onClick={()=>toggleDcMatch(key)}>2️⃣ DC ✕</span>}
+                {isSelectingBonus && !(activeBonus.type==='jackpot' && isJP) && !(activeBonus.type==='dc' && isDC) && (
                   <button onClick={()=>{
-                    if (activeBonus.type==='jackpot') {
-                      setJackpotMatch(key)
-                      setActiveBonus(null)
-                    }
-                    if (activeBonus.type==='dc') {
-                      setDcMatch(key)
-                      setActiveBonus(null)
-                    }
+                    if (activeBonus.type==='jackpot') toggleJackpot(key)
+                    if (activeBonus.type==='dc') toggleDcMatch(key)
                   }} style={{
                     padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
                     borderColor:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
@@ -660,7 +912,7 @@ export default function Pronos() {
             {isDC ? (
               // Double Chance — 3 boutons toggle
               <div style={{display:'flex',gap:7}}>
-                {['1','N','2'].map(v => <DcBtn key={v} val={v} selected={dcChoices} onClick={()=>toggleDc(v)} />)}
+                {['1','N','2'].map(v => <DcBtn key={v} val={v} selected={dcChoicesIci} onClick={()=>toggleDcChoice(key, v)} />)}
               </div>
             ) : (
               // Normal 1N2
@@ -676,11 +928,15 @@ export default function Pronos() {
 
       {/* ── EURO ── */}
       <div className="section-lbl" style={{padding:'8px 20px'}}>🌍 Match européen — 1N2</div>
-      {journee.matchEuro?.dom && (
+      {journee.matchEuro?.dom && (() => {
+        const isJPEuro = jackpotMatches.includes('euro')
+        const isDCEuro = dcSelections.some(d => d.matchKey === 'euro')
+        const dcChoicesEuro = dcSelections.find(d => d.matchKey === 'euro')?.choices || []
+        return (
         <div style={{
           margin:'0 16px 10px',
-          background: jackpotMatch==='euro'?'rgba(251,191,36,.04)':dcMatch==='euro'?'rgba(192,132,252,.04)':'rgba(249,115,22,.03)',
-          border:`1px solid ${jackpotMatch==='euro'?'var(--a-b)':dcMatch==='euro'?'var(--p-b)':pronos.matchEuro?'var(--g-b)':'var(--o-b)'}`,
+          background: isJPEuro?'rgba(251,191,36,.04)':isDCEuro?'rgba(192,132,252,.04)':'rgba(249,115,22,.03)',
+          border:`1px solid ${isJPEuro?'var(--a-b)':isDCEuro?'var(--p-b)':pronos.matchEuro?'var(--g-b)':'var(--o-b)'}`,
           borderRadius:'var(--R)',padding:'13px 14px',
         }}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
@@ -691,29 +947,27 @@ export default function Pronos() {
               </div>
               <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{journee.matchEuro.jour} {journee.matchEuro.heure}</div>
             </div>
-            {(activeBonus?.type==='jackpot'||activeBonus?.type==='dc') && jackpotMatch!=='euro' && dcMatch!=='euro' && (
-              <button onClick={()=>{
-                if (activeBonus.type==='jackpot') {
-                  setJackpotMatch('euro')
-                  setActiveBonus(null)
-                }
-                if (activeBonus.type==='dc') {
-                  setDcMatch('euro')
-                  setActiveBonus(null)
-                }
-              }} style={{
-                padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
-                borderColor:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
-                background:'none',cursor:'pointer',fontSize:11,fontWeight:700,
-                color:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
-              }}>
-                {activeBonus.type==='jackpot'?'🎰 Ici':'2️⃣ Ici'}
-              </button>
-            )}
+            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              {isJPEuro && <span className="pill pill-a" style={{cursor:'pointer'}} onClick={()=>toggleJackpot('euro')}>🎰 Jackpot ✕</span>}
+              {isDCEuro && <span className="pill pill-p" style={{cursor:'pointer'}} onClick={()=>toggleDcMatch('euro')}>2️⃣ DC ✕</span>}
+              {(activeBonus?.type==='jackpot'||activeBonus?.type==='dc') && !(activeBonus.type==='jackpot'&&isJPEuro) && !(activeBonus.type==='dc'&&isDCEuro) && (
+                <button onClick={()=>{
+                  if (activeBonus.type==='jackpot') toggleJackpot('euro')
+                  if (activeBonus.type==='dc') toggleDcMatch('euro')
+                }} style={{
+                  padding:'4px 10px',borderRadius:999,border:'1.5px dashed',
+                  borderColor:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
+                  background:'none',cursor:'pointer',fontSize:11,fontWeight:700,
+                  color:activeBonus.type==='jackpot'?'var(--a)':'var(--p)',
+                }}>
+                  {activeBonus.type==='jackpot'?'🎰 Ici':'2️⃣ Ici'}
+                </button>
+              )}
+            </div>
           </div>
-          {dcMatch==='euro' ? (
+          {isDCEuro ? (
             <div style={{display:'flex',gap:7}}>
-              {['1','N','2'].map(v => <DcBtn key={v} val={v} selected={dcChoices} onClick={()=>toggleDc(v)} />)}
+              {['1','N','2'].map(v => <DcBtn key={v} val={v} selected={dcChoicesEuro} onClick={()=>toggleDcChoice('euro', v)} />)}
             </div>
           ) : (
             <div style={{display:'flex',gap:7}}>
@@ -723,7 +977,8 @@ export default function Pronos() {
             </div>
           )}
         </div>
-      )}
+        )
+      })()}
 
       {/* CTA */}
       <div style={{padding:'4px 16px 24px'}}>
@@ -735,10 +990,12 @@ export default function Pronos() {
                 Confirmer l'envoi ?
               </div>
               <div style={{fontSize:13,color:'var(--tx2)',marginBottom:16,lineHeight:1.6}}>
-                {filled}/10 matchs renseignés
-                {jackpotMatch && <div style={{color:'var(--a)',fontWeight:700,marginTop:4}}>🎰 Jackpot activé</div>}
-                {dcMatch && dcChoices.length===2 && <div style={{color:'var(--p)',fontWeight:700}}>2️⃣ Double Chance activé</div>}
-                {missileUsed && <div style={{color:'var(--r)',fontWeight:700}}>🎯 Missile lancé</div>}
+                {filled}/{total} matchs renseignés
+                {jackpotMatches.map(k => <div key={k} style={{color:'var(--a)',fontWeight:700,marginTop:4}}>🎰 Jackpot → {matchLabel(k)}</div>)}
+                {dcSelections.filter(d=>d.choices.length===2).map(d => <div key={d.matchKey} style={{color:'var(--p)',fontWeight:700}}>2️⃣ DC → {matchLabel(d.matchKey)}</div>)}
+                {mesMissiles.length > 0 && mesMissiles.map(m => (
+                  <div key={m.id} style={{color:'var(--r)',fontWeight:700}}>🚀 Missile sur {m.cibleNom || 'un joueur'}</div>
+                ))}
               </div>
               <div style={{display:'flex',gap:10}}>
                 <button className="btn btn-primary" style={{flex:1,height:46}} onClick={()=>{setShowConfirm(false);handleSubmit()}}>
@@ -750,14 +1007,16 @@ export default function Pronos() {
           </div>
         )}
 
-        <button className="btn btn-primary" onClick={()=>setShowConfirm(true)} disabled={saving||filled<10}>
+        <button className="btn btn-primary" onClick={()=>setShowConfirm(true)} disabled={saving||filled<total}>
           {saving
             ? <><div className="spinner" style={{width:18,height:18,borderTopColor:'#000'}}></div> Envoi...</>
-            : existingProno ? '🔄 Mettre à jour' : `📤 Envoyer mes pronos (${filled}/10)`
+            : existingProno ? '🔄 Mettre à jour' : `📤 Envoyer mes pronos (${filled}/${total})`
           }
         </button>
-        {filled < 10 && <div style={{textAlign:'center',fontSize:12,color:'var(--tx3)',marginTop:8}}>Renseigne les {10-filled} matchs restants</div>}
+        {filled < total && <div style={{textAlign:'center',fontSize:12,color:'var(--tx3)',marginTop:8}}>Renseigne les {total-filled} matchs restants</div>}
       </div>
+
+      {showConfetti && <Confetti />}
     </div>
   )
 }
@@ -777,3 +1036,14 @@ function deadlineFmt(j) {
   const dl = new Date(j.deadline.seconds*1000)
   return `Fermeture ${dl.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`
 }
+
+
+
+
+
+
+
+
+
+
+

@@ -1,7 +1,24 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, onSnapshot, query, orderBy, limit } from 'firebase/firestore'
+import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
+import JerseyAvatar from '../components/JerseyAvatar'
+
+const BAREME_CDM = [24, 16, 12, 9, 7, 5, 4, 3]
+
+function issueMatch(h, a) {
+  if (h > a) return '1'
+  if (h < a) return '2'
+  return 'N'
+}
+
+function calcPointsScorer(prono, rh, ra) {
+  if (!prono || !/^\d+-\d+$/.test(prono)) return 0
+  const [ph, pa] = prono.split('-').map(Number)
+  if (ph === rh && pa === ra) return 3
+  if ((ph - pa) === (rh - ra)) return 2
+  return Math.sign(ph - pa) === Math.sign(rh - ra) ? 1 : 0
+}
 
 const COLORS = [
   ['rgba(255,215,0,.14)','#FFD700'],['rgba(192,192,192,.12)','#C0C0C0'],
@@ -17,6 +34,7 @@ export default function Classement() {
   const [tab, setTab] = useState('journee')
   const [historiqueList, setHistoriqueList] = useState([])
   const [loadingHistorique, setLoadingHistorique] = useState(false)
+  const [selectedHistJ, setSelectedHistJ] = useState(null)
   const [joueursMap, setJoueursMap] = useState({})
   const [journee, setJournee] = useState(null)
   const [classJ, setClassJ] = useState([])
@@ -25,36 +43,150 @@ export default function Classement() {
   const [lastUpdate, setLastUpdate] = useState(null)
 
   useEffect(() => {
-    let unsub = null
+    let unsubJournee = null, unsubPronos = null, unsubMissiles = null
+    let map = {}
+    let journeeData = null
+    let pronosMap = {}
+    let missiles = []
+
+    const recalc = () => {
+      if (!journeeData) return
+      const data = journeeData
+      const isCDM = data.type === 'cdm'
+      const matches = isCDM ? (data.matchesCDM || []) : (data.matchesL1 || [])
+      const resultats = data.resultats || {}
+      const penalites = data.penalites || {}
+      const pointsParJoueur = {}
+      Object.keys(map).forEach(uid => { pointsParJoueur[uid] = penalites[uid] || 0 })
+
+      const pronosAvecMissiles = JSON.parse(JSON.stringify(pronosMap))
+      missiles.forEach(m => {
+        if (!m.applique) return
+        const arrKey = isCDM ? 'matchesCDM' : 'matchesL1'
+        const prefix = isCDM ? 'cdm_' : 'l1_'
+        if (m.matchKey?.startsWith(prefix) && pronosAvecMissiles[m.cible]) {
+          const i = parseInt(m.matchKey.replace(prefix,''))
+          if (!pronosAvecMissiles[m.cible][arrKey]) pronosAvecMissiles[m.cible][arrKey] = []
+          pronosAvecMissiles[m.cible][arrKey][i] = m.pronoImpose
+        }
+        // DC annulée par le missile sur ce match (jackpot conservé) —
+        // même règle que côté serveur : le missile prévaut sur la DC.
+        const cibleData = pronosAvecMissiles[m.cible]
+        if (cibleData && m.matchKey) {
+          if (Array.isArray(cibleData.dcSelections)) {
+            cibleData.dcSelections = cibleData.dcSelections.filter(d => d.matchKey !== m.matchKey)
+          }
+          if (cibleData.dcMatch === m.matchKey) {
+            cibleData.dcMatch = null
+            cibleData.dcChoices = null
+          }
+        }
+      })
+
+      Object.keys(pronosMap).forEach(uid => {
+        const p = pronosAvecMissiles[uid]
+        const jackpotMatchesArr = Array.isArray(p?.jackpotMatches) ? p.jackpotMatches : (p?.jackpotMatch ? [p.jackpotMatch] : [])
+        const dcSelectionsArr = Array.isArray(p?.dcSelections) ? p.dcSelections : (p?.dcMatch ? [{ matchKey: p.dcMatch, choices: p.dcChoices||[] }] : [])
+        matches.forEach((m, i) => {
+          const key = isCDM ? `cdm_${i}` : `l1_${i}`
+          const res = resultats[key]
+          if (!res || (res.status!=='FINISHED'&&res.status!=='IN_PLAY'&&res.status!=='PAUSED') || res.h===null) return
+          const rh = parseInt(res.h), ra = parseInt(res.a)
+          const arrKey = isCDM ? 'matchesCDM' : 'matchesL1'
+          const prono = p?.[arrKey]?.[i]
+          if (!prono) return
+          const isScorer = data.scorerOnly || m.scorer
+          if (isScorer) {
+            pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + calcPointsScorer(prono, rh, ra)
+          } else {
+            const issue = issueMatch(rh, ra)
+            const dcChoicesIci = dcSelectionsArr.find(d => d.matchKey === key)?.choices
+            if (dcChoicesIci?.length === 2) {
+              // DC active sur ce match : exclusive — gagne (1 ou 2pts si jackpot) ou 0, jamais de repli sur le prono brut
+              if (dcChoicesIci.includes(issue)) {
+                pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + (jackpotMatchesArr.includes(key) ? 2 : 1)
+              }
+            } else if (prono === issue) {
+              const total = Object.values(pronosAvecMissiles).filter(pp => pp?.[arrKey]?.[i] === issue).length
+              const nb = Object.keys(pronosMap).length
+              let pts = (nb>0 && total/nb<=0.25) ? 2 : 1
+              if (jackpotMatchesArr.includes(key)) pts *= 2
+              pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + pts
+            }
+          }
+        })
+      })
+
+      const auMoinsUnMatch = Object.values(resultats).some(r => ['FINISHED','IN_PLAY','PAUSED'].includes(r?.status))
+      const gains = {}
+      if (auMoinsUnMatch && isCDM) {
+        const classement = Object.entries(pointsParJoueur).sort((a,b)=>b[1]-a[1])
+        let i = 0
+        while (i < classement.length) {
+          const pts = classement[i][1]
+          let j = i
+          while (j < classement.length && classement[j][1] === pts) j++
+          let gainPartage = 0
+          for (let r = i+1; r <= j; r++) gainPartage += BAREME_CDM[r-1] || 0
+          const gainParJoueur = Math.round(gainPartage/(j-i)*100)/100
+          for (let k = i; k < j; k++) gains[classement[k][0]] = gainParJoueur
+          i = j
+        }
+      } else if (data.gainsJoueurs) {
+        Object.assign(gains, data.gainsJoueurs)
+      }
+
+      setLastUpdate(new Date())
+      setClassJ(applyDenseRank(Object.values(map).map(j=>({...j,ptsJ:pointsParJoueur[j.id]||0,gainJ:gains[j.id]||0})).sort((a,b)=>b.gainJ-a.gainJ||b.ptsJ-a.ptsJ)))
+    }
+
     const load = async () => {
       const snap = await getDocs(collection(db,'joueurs'))
-      const map = {}
+      map = {}
       snap.docs.forEach((d,i) => { map[d.id] = { id:d.id, idx:i, ...d.data() } })
       setJoueursMap(map)
-      setClassG(Object.values(map).sort((a,b)=>(b.pointsTotal||0)-(a.pointsTotal||0)).map((j,i)=>({...j,rank:i+1})))
+      setClassG(applyDenseRank(Object.values(map).sort((a,b)=>{
+        const netA = (a.gainsTotal||0) - (a.journeesJouees||0)*5
+        const netB = (b.gainsTotal||0) - (b.journeesJouees||0)*5
+        return netB - netA
+      }), (j) => (j.gainsTotal||0) - (j.journeesJouees||0)*5))
 
-      const jSnap = await getDocs(query(collection(db,'journees'),orderBy('numero','desc'),limit(1)))
-      if (!jSnap.empty) {
-        const jDoc = jSnap.docs[0]
-        setJournee({ id:jDoc.id, ...jDoc.data() })
-        unsub = onSnapshot(doc(db,'journees',jDoc.id), d => {
+      const allJ = await getDocs(query(collection(db,'journees'),orderBy('numero','asc')))
+      const openJ = allJ.docs.find(d => ['ouverte','fermee'].includes(d.data().statut))
+      const jDoc = openJ || allJ.docs[allJ.docs.length-1]
+      if (jDoc) {
+        // Listener journée (résultats, statut)
+        unsubJournee = onSnapshot(doc(db,'journees',jDoc.id), d => {
           if (!d.exists()) return
-          const data = d.data()
-          setJournee({ id:d.id, ...data })
-          setLastUpdate(new Date())
-          const pts = data.pointsJoueurs||{}
-          const gains = data.gainsJoueurs||{}
-          setClassJ(Object.values(map).map(j=>({...j,ptsJ:pts[j.id]||0,gainJ:gains[j.id]||0})).sort((a,b)=>b.ptsJ-a.ptsJ).map((j,i)=>({...j,rank:i+1})))
+          journeeData = d.data()
+          setJournee({ id:d.id, ...journeeData })
+          recalc()
+        })
+        // Listener pronos (au cas où un joueur soumet/modifie après coup)
+        unsubPronos = onSnapshot(collection(db,'journees',jDoc.id,'pronos'), snap => {
+          pronosMap = {}
+          snap.docs.forEach(d => { pronosMap[d.id] = d.data() })
+          recalc()
+        })
+        // Listener missiles (dès qu'un missile est appliqué)
+        unsubMissiles = onSnapshot(collection(db,'journees',jDoc.id,'missiles'), snap => {
+          missiles = snap.docs.map(d => d.data())
+          recalc()
         })
       }
       setLoading(false)
     }
     load()
-    return () => { if (unsub) unsub() }
+    return () => {
+      if (unsubJournee) unsubJournee()
+      if (unsubPronos) unsubPronos()
+      if (unsubMissiles) unsubMissiles()
+    }
   }, [])
 
   useEffect(() => {
     if (tab !== 'historique') return
+    setHistoriqueList([])
     setLoadingHistorique(true)
     const loadHist = async () => {
       const snap = await getDocs(query(collection(db,'journees'), orderBy('numero','desc')))
@@ -62,12 +194,23 @@ export default function Classement() {
         .map(d => ({ id: d.id, ...d.data() }))
         .filter(j => j.statut === 'resultats' && j.pointsJoueurs)
       setHistoriqueList(hist)
+      if (hist.length > 0) setSelectedHistJ(hist[0].id)
       setLoadingHistorique(false)
     }
     loadHist()
   }, [tab])
 
-  const Rank = ({rank}) => {
+  
+const applyDenseRank = (arr, keyFn = (j) => `${j.gainJ}_${j.ptsJ}`) => {
+  if (!arr.length) return arr
+  let rank = 1
+  return arr.map((j, i) => {
+    if (i > 0 && keyFn(arr[i]) !== keyFn(arr[i-1])) rank = i + 1
+    return { ...j, rank }
+  })
+}
+
+const Rank = ({rank}) => {
     if (rank===1) return <span style={{fontSize:18}}>🥇</span>
     if (rank===2) return <span style={{fontSize:18}}>🥈</span>
     if (rank===3) return <span style={{fontSize:18}}>🥉</span>
@@ -87,20 +230,18 @@ export default function Classement() {
         borderBottom:'1px solid rgba(155,226,45,.08)',
       }}>
         <Rank rank={j.rank} />
-        <div className="av" style={{ width:34, height:34, background:isMe?'var(--g-dim)':bg, color:isMe?'var(--g)':color, fontSize:11, border:`1px solid ${isMe?'var(--g-b)':'rgba(255,255,255,.08)'}` }}>
-          {j.initiales}
-        </div>
+        <JerseyAvatar club={j.clubCoeur} initials={j.initiales} size={34} />
         <div style={{ flex:1 }}>
           <div style={{ fontSize:13, fontWeight:isMe?900:700, color:isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', letterSpacing:'.02em' }}>
             {j.nom?.split(' ')[0]} {isLast?'💩':''} {isMe?<span style={{fontSize:10,color:'var(--tx3)',fontWeight:400,textTransform:'none'}}>(toi)</span>:''}
           </div>
-          {net!==undefined && <div style={{ fontSize:11, color:net>=0?'var(--g)':'var(--r)', fontWeight:900, marginTop:1 }}>{net>=0?'+':''}{net}€ net</div>}
+          {net!==undefined && false && <div style={{ fontSize:11, color:net>=0?'var(--g)':'var(--r)', fontWeight:900, marginTop:1 }}>{net>=0?'+':''}{net.toFixed(2)}€ net</div>}
         </div>
         <div style={{ textAlign:'right' }}>
-          <div style={{ fontFamily:'var(--D)', fontSize:24, letterSpacing:'.03em', color:isMe?'var(--g)':'var(--tx)', lineHeight:1, textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
-            {pts}
+          <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em', marginBottom:2 }}>Plus-value</div>
+          <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.03em', color:net>=0?'var(--g)':'var(--r)', lineHeight:1, textShadow:isMe?'0 0 10px rgba(155,226,45,.3)':'none' }}>
+            {net>=0?'+':''}{net.toFixed(2)}€
           </div>
-          {gain>0 && <div style={{ fontSize:11, color:'var(--g)', fontWeight:900 }}>+{gain}€</div>}
         </div>
       </div>
     )
@@ -113,7 +254,7 @@ export default function Classement() {
           <div className="page-title">Classement</div>
           <div className="page-sub">Saison 26/27</div>
         </div>
-        {lastUpdate && (
+        {journee && ['ouverte','fermee'].includes(journee.statut) && Object.values(journee.resultats||{}).some(r => r?.status === 'IN_PLAY' || r?.status === 'PAUSED') && (
           <div className="live">
             <div className="live-dot"></div>
             Live
@@ -125,8 +266,9 @@ export default function Classement() {
       <div style={{ margin:'14px 16px 0', background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--R)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
         <div style={{ display:'flex', borderBottom:'1px solid rgba(155,226,45,.1)', padding:'0 4px' }}>
           {[
-            { id:'journee', label:`⚡ J${journee?.numero||'?'}` },
+            { id:'journee', label: journee ? `⚡ J${journee.numero}${journee.statut==='ouverte'||journee.statut==='fermee' ? ' 🟢' : ''}` : '⚡ Journée' },
             { id:'general', label:'🏆 Général' },
+            { id:'historique', label:'📅 Historique' },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               flex:1, padding:'12px 8px', border:'none', background:'none',
@@ -159,74 +301,146 @@ export default function Classement() {
             <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13, fontWeight:700, textTransform:'uppercase', letterSpacing:'.05em' }}>
               Aucun prono soumis pour cette journée
             </div>
-          ) : classJ.map((j,i) => <PlayerRow key={j.id} j={j} idx={i} pts={j.ptsJ} gain={j.gainJ} />)
+          ) : (
+            classJ.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">⚡</div>
+                <div className="empty-state-title">Aucun prono soumis</div>
+                <div className="empty-state-sub">Les points apparaîtront dès que les matchs seront joués</div>
+              </div>
+            ) : (
+              <table className="table" style={{ fontSize:13 }}>
+                <thead>
+                  <tr>
+                    <th style={{width:40}}>#</th>
+                    <th>Joueur</th>
+                    <th style={{textAlign:'right'}}>Pts</th>
+                    <th style={{textAlign:'right'}}>Gain</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {classJ.map((j,i) => {
+                    const [bg,color] = getC(i)
+                    const isMe = j.id === profil?.id
+                    return (
+                      <tr key={j.id} style={{ background: isMe ? 'rgba(155,226,45,.06)' : 'transparent' }}>
+                        <td>
+                          <span style={{ fontFamily:'var(--D)', fontSize:20, color: j.rank===1?'#FFD700':j.rank===2?'#C0C0C0':j.rank===3?'#CD7F32':'var(--tx3)' }}>
+                            {j.rank===1?'🥇':j.rank===2?'🥈':j.rank===3?'🥉':j.rank}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                            <JerseyAvatar club={j.clubCoeur} initials={j.initiales} size={28} />
+                            <span style={{ fontWeight:isMe?900:700, color:isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', fontSize:12 }}>
+                              {j.nom?.split(' ')[0]} {isMe && <span style={{fontSize:10,color:'var(--tx3)',fontWeight:400,textTransform:'none'}}>(toi)</span>}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ textAlign:'right', fontFamily:'var(--D)', fontSize:22, color:isMe?'var(--g)':'var(--tx)' }}>{j.ptsJ}</td>
+                        <td style={{ textAlign:'right', color:'var(--g)', fontWeight:900, fontSize:12 }}>{j.gainJ > 0 ? `+${j.gainJ.toFixed(2)}€` : '—'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )
+          )
+        ) : tab==='historique' ? (
+          <div style={{ padding:'10px 16px 16px' }}>
+            {loadingHistorique ? (
+              <div style={{ display:'flex', justifyContent:'center', padding:40 }}>
+                <div className="spinner" style={{ width:24, height:24 }}></div>
+              </div>
+            ) : historiqueList.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">📅</div>
+                <div className="empty-state-title">Aucune journée finalisée</div>
+                <div className="empty-state-sub">L'historique apparaîtra ici après chaque journée</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:14 }}>
+                  {historiqueList.map(j => (
+                    <button key={j.id} onClick={() => setSelectedHistJ(j.id)} style={{
+                      padding:'6px 12px', borderRadius:'var(--Rs)', fontSize:12, fontWeight:900,
+                      textTransform:'uppercase', letterSpacing:'.04em', cursor:'pointer',
+                      background: selectedHistJ===j.id ? 'linear-gradient(180deg, #B9F84F, #75B91D)' : 'rgba(255,255,255,.05)',
+                      color: selectedHistJ===j.id ? '#07100C' : 'var(--tx3)',
+                      border: `1px solid ${selectedHistJ===j.id ? 'rgba(155,226,45,.4)' : 'var(--bd2)'}`,
+                    }}>
+                      J{j.numero}
+                    </button>
+                  ))}
+                </div>
+                {(() => {
+                  const j = historiqueList.find(j => j.id === selectedHistJ)
+                  if (!j) return null
+                  const sortedRaw = Object.entries(j.pointsJoueurs || {}).sort((a,b) => b[1]-a[1])
+                  let rank = 1
+                  const sorted = sortedRaw.map(([uid, pts], i) => {
+                    if (i > 0 && pts !== sortedRaw[i-1][1]) rank = i + 1
+                    return [uid, pts, rank]
+                  })
+                  return (
+                    <table className="table" style={{ fontSize:13 }}>
+                      <thead>
+                        <tr>
+                          <th style={{width:40}}>#</th>
+                          <th>Joueur</th>
+                          <th style={{textAlign:'right'}}>Pts J{j.numero}</th>
+                          <th style={{textAlign:'right'}}>Gain</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sorted.map(([uid, pts, rank], i) => {
+                          const jj = joueursMap[uid]
+                          const gain = j.gainsJoueurs?.[uid] || 0
+                          const isMe = uid === profil?.id
+                          const [bg, color] = getC(i)
+                          return (
+                            <tr key={uid} style={{ background: isMe ? 'rgba(155,226,45,.06)' : 'transparent' }}>
+                              <td>
+                                <span style={{ fontFamily:'var(--D)', fontSize:20, color: rank===1?'#FFD700':rank===2?'#C0C0C0':rank===3?'#CD7F32':'var(--tx3)' }}>
+                                  {rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                                  <JerseyAvatar club={jj?.clubCoeur} initials={jj?.initiales || '?'} size={28} />
+                                  <span style={{ fontWeight:isMe?900:700, color:isMe?'var(--g)':'var(--tx)', textTransform:'uppercase', fontSize:12 }}>
+                                    {jj?.nom?.split(' ')[0] || uid} {isMe && <span style={{fontSize:10,color:'var(--tx3)',fontWeight:400,textTransform:'none'}}>(toi)</span>}
+                                  </span>
+                                </div>
+                              </td>
+                              <td style={{ textAlign:'right', fontFamily:'var(--D)', fontSize:22, color:isMe?'var(--g)':'var(--tx)' }}>{pts}</td>
+                              <td style={{ textAlign:'right', color:'var(--g)', fontWeight:900, fontSize:12 }}>{gain > 0 ? `+${gain.toFixed(2)}€` : '—'}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  )
+                })()}
+              </>
+            )}
+          </div>
         ) : (
           classG.length===0 ? (
             <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13 }}>Aucun joueur enregistré</div>
           ) : classG.map((j,i) => {
-            const net = (j.gainsTotal||0) - (j.journeesJouees||0)*5
-            return <PlayerRow key={j.id} j={j} idx={i} pts={j.pointsTotal||0} gain={j.gainsTotal||0} net={net} />
+            const penalite = journee?.penalites?.[j.id] || 0
+            const net = Math.round(((j.gainsTotal||0) - (j.journeesJouees||0)*5) * 100) / 100
+            return <PlayerRow key={j.id} j={j} idx={i} pts={(j.pointsTotal||0) + penalite} gain={j.gainsTotal||0} net={net} />
           })
         )}
       </div>
-
-      {/* Historique */}
-      {tab === 'historique' && (
-        <div style={{ margin:'10px 0 24px', marginLeft:16, marginRight:16 }}>
-          {loadingHistorique ? (
-            <div style={{ display:'flex', justifyContent:'center', padding:40 }}>
-              <div className="spinner" style={{ width:24, height:24 }}></div>
-            </div>
-          ) : historiqueList.length === 0 ? (
-            <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--tx3)', fontSize:13, fontWeight:700, textTransform:'uppercase' }}>
-              Aucune journée finalisée
-            </div>
-          ) : historiqueList.map(j => {
-            const myPts = j.pointsJoueurs?.[profil?.id]
-            const myGain = j.gainsJoueurs?.[profil?.id] || 0
-            const sorted = Object.entries(j.pointsJoueurs).sort((a,b) => b[1]-a[1])
-            const myRank = sorted.findIndex(([uid]) => uid === profil?.id) + 1
-
-            return (
-              <div key={j.id} style={{ background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--R)', padding:16, marginBottom:12, boxShadow:'var(--shadow)' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-                  <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.04em', textTransform:'uppercase' }}>
-                    Journée {j.numero}
-                  </div>
-                  <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                    {myRank <= 3 && <span style={{ fontSize:18 }}>{myRank===1?'🥇':myRank===2?'🥈':'🥉'}</span>}
-                    {myRank > 3 && <span style={{ fontSize:13, fontWeight:900, color:'var(--tx3)' }}>#{myRank}</span>}
-                    <span style={{ fontFamily:'var(--D)', fontSize:24, color:'var(--g)', letterSpacing:'.03em' }}>{myPts ?? '—'}</span>
-                    <span style={{ fontSize:11, color:'var(--tx3)' }}>pts</span>
-                    {myGain > 0 && <span style={{ fontSize:12, color:'var(--g)', fontWeight:900 }}>+{myGain}€</span>}
-                  </div>
-                </div>
-                {/* Top 3 de la journée */}
-                <div style={{ display:'flex', gap:8 }}>
-                  {sorted.slice(0,3).map(([uid, pts], i) => {
-                    const j2 = joueursMap[uid]
-                    return (
-                      <div key={uid} style={{ flex:1, background:'rgba(255,255,255,.04)', borderRadius:'var(--Rs)', padding:'6px 8px', textAlign:'center' }}>
-                        <div style={{ fontSize:14 }}>{i===0?'🥇':i===1?'🥈':'🥉'}</div>
-                        <div style={{ fontSize:11, fontWeight:700, color: uid===profil?.id?'var(--g)':'var(--tx)', marginTop:2 }}>
-                          {j2?.nom?.split(' ')[0] || '?'}
-                        </div>
-                        <div style={{ fontFamily:'var(--D)', fontSize:16, color:'var(--g)' }}>{pts}</div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
 
       {/* Barème */}
       <div style={{ margin:'12px 16px 24px', padding:'12px 14px', background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--Rs)', boxShadow:'var(--shadow)' }}>
         <div style={{ fontSize:10, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>💰 Barème gains / journée</div>
         <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 12px', fontSize:12, color:'var(--tx2)', fontWeight:700 }}>
-          {[[1,24],[2,18],[3,14],[4,11],[5,8],[6,5]].map(([r,g]) => (
+          {[[1,24],[2,16],[3,12],[4,9],[5,7],[6,5],[7,4],[8,3]].map(([r,g]) => (
             <span key={r}>{r===1?'🥇':r===2?'🥈':r===3?'🥉':`${r}e`} → <span style={{color:'var(--g)'}}>{g}€</span></span>
           ))}
         </div>
@@ -234,3 +448,13 @@ export default function Classement() {
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
+

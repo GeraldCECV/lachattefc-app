@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, doc, getDoc, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
+import { translateTeam } from '../utils/teamName'
 
 export default function Bonus() {
   const { profil, user } = useUser()
@@ -15,10 +16,11 @@ export default function Bonus() {
     const load = async () => {
       if (user) {
         const snap = await getDoc(doc(db,'joueurs',user.uid))
-        if (snap.exists()) setBonus(snap.data().bonus || { missile:5, jackpot:3, doubleChance:4 })
+        if (snap.exists()) setBonus(snap.data().bonus || { missile:3, jackpot:3, doubleChance:4 })
       }
       const jSnap = await getDocs(collection(db,'joueurs'))
-      setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user?.uid))
+      const joueursLocaux = jSnap.docs.map(d=>({id:d.id,...d.data()}))
+      setJoueurs(joueursLocaux.filter(j=>j.id!==user?.uid))
       // Charger historique bonus - uniquement journées avec statut resultats ou fermee
       if (user) {
         const journeesSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
@@ -29,6 +31,18 @@ export default function Bonus() {
 
         // Charger pronos et missiles en parallèle
         const hist = []
+        const matchLabelFor = (j, key) => {
+          if (key === 'scorer') return j.matchScorer?.dom ? `${translateTeam(j.matchScorer.dom)} — ${translateTeam(j.matchScorer.ext)}` : 'Scorer'
+          if (key === 'euro') return j.matchEuro?.dom ? `${translateTeam(j.matchEuro.dom)} — ${translateTeam(j.matchEuro.ext)}` : 'Euro'
+          if (key.startsWith('cdm_')) {
+            const i = parseInt(key.replace('cdm_',''))
+            const m = j.matchesCDM?.[i]
+            return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
+          }
+          const i = parseInt(key.replace('l1_',''))
+          const m = j.matchesL1?.[i]
+          return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
+        }
         await Promise.all(journeesActives.map(async jDoc => {
           const j = jDoc.data()
           const [pronoDoc, missilesSnap] = await Promise.all([
@@ -37,13 +51,17 @@ export default function Bonus() {
           ])
           if (pronoDoc.exists()) {
             const p = pronoDoc.data()
-            if (p.jackpotMatch) hist.push({ journee: j.numero, type:'jackpot', match: p.jackpotMatch })
-            if (p.dcMatch) hist.push({ journee: j.numero, type:'dc', match: p.dcMatch, choix: p.dcChoices })
+            const jackpotMatchesArr = Array.isArray(p.jackpotMatches) ? p.jackpotMatches : (p.jackpotMatch ? [p.jackpotMatch] : [])
+            const dcSelectionsArr = Array.isArray(p.dcSelections) ? p.dcSelections : (p.dcMatch ? [{ matchKey: p.dcMatch, choices: p.dcChoices||[] }] : [])
+            jackpotMatchesArr.forEach(key => hist.push({ journee: j.numero, type:'jackpot', match: matchLabelFor(j, key) }))
+            dcSelectionsArr.forEach(d => hist.push({ journee: j.numero, type:'dc', match: matchLabelFor(j, d.matchKey), choix: d.choices }))
           }
           missilesSnap.docs.forEach(d => {
             const m = d.data()
             if (m.lanceur === user.uid) {
-              hist.push({ journee: j.numero, type:'missile', match: m.matchKey, pronoImpose: m.pronoImpose, applique: m.applique })
+              const cibleJoueur = joueursLocaux.find(j => j.id === m.cible)
+              const cibleNom = cibleJoueur?.nom?.split(' ')[0] || null
+              hist.push({ journee: j.numero, type:'missile', match: matchLabelFor(j, m.matchKey), pronoImpose: m.pronoImpose, applique: m.applique, cibleNom })
             }
           })
         }))
@@ -61,7 +79,7 @@ export default function Bonus() {
   ]
 
   const BONUS_INFO = [
-    { key:'missile', ico:'🎯', lbl:'Missiles', color:'var(--r)', dim:'var(--r-dim)', border:'var(--r-b)' },
+    { key:'missile', ico:'🚀', lbl:'Missiles', color:'var(--r)', dim:'var(--r-dim)', border:'var(--r-b)' },
     { key:'jackpot', ico:'🎰', lbl:'Jackpots', color:'var(--a)', dim:'var(--a-dim)', border:'var(--a-b)' },
     { key:'doubleChance', ico:'2️⃣', lbl:'Doubles', color:'var(--p)', dim:'var(--p-dim)', border:'var(--p-b)' },
   ]
@@ -100,7 +118,7 @@ export default function Bonus() {
           <div className="section-lbl">📖 Règles</div>
           <div style={{ margin:'0 16px 14px', display:'flex', flexDirection:'column', gap:8 }}>
             {[
-              { ico:'🎯', title:'Missile', color:'var(--r)', dim:'var(--r-dim)', border:'var(--r-b)', desc:'Le plus puissant. Tu choisis un adversaire + un match et tu REMPLACES son prono par le résultat de ton choix. Prévaut sur tous les autres bonus.' },
+              { ico:'🚀', title:'Missile', color:'var(--r)', dim:'var(--r-dim)', border:'var(--r-b)', desc:'Le plus puissant. Tu choisis un adversaire + un match et tu REMPLACES son prono par le résultat de ton choix. Prévaut sur tous les autres bonus.' },
               { ico:'🎰', title:'Jackpot', color:'var(--a)', dim:'var(--a-dim)', border:'var(--a-b)', desc:'Double tes points sur le match de ton choix. Non utilisable sur le scorer.' },
               { ico:'2️⃣', title:'Double Chance', color:'var(--p)', dim:'var(--p-dim)', border:'var(--p-b)', desc:'Joue 2 résultats sur 1 match (ex: 1/N). Si l\'un des deux est bon → 1pt.' },
             ].map(b => (
@@ -126,7 +144,7 @@ export default function Bonus() {
                   const color = isMS ? 'var(--r)' : isJP ? 'var(--a)' : 'var(--p)'
                   const dim = isMS ? 'var(--r-dim)' : isJP ? 'var(--a-dim)' : 'var(--p-dim)'
                   const border = isMS ? 'var(--r-b)' : isJP ? 'var(--a-b)' : 'var(--p-b)'
-                  const ico = isMS ? '🎯' : isJP ? '🎰' : '2️⃣'
+                  const ico = isMS ? '🚀' : isJP ? '🎰' : '2️⃣'
                   const label = isMS ? 'Missile' : isJP ? 'Jackpot' : 'Double Chance'
 
                   return (
@@ -138,7 +156,8 @@ export default function Bonus() {
                           <span style={{ fontSize:11, color:'var(--tx3)', fontWeight:700 }}>J{h.journee}</span>
                         </div>
                         <div style={{ fontSize:12, color:'var(--tx2)', marginTop:3, lineHeight:1.5 }}>
-                          📍 {h.match?.replace('l1_','#').replace('scorer','Scorer').replace('euro','Euro')}
+                          {isMS && h.cibleNom && <span>🎯 <strong style={{color}}>{h.cibleNom}</strong> · </span>}
+                          📍 {h.match}
                           {isMS && h.pronoImpose && <span> → <strong style={{color}}>{h.pronoImpose}</strong></span>}
                           {isDC && h.choix && <span> → <strong style={{color}}>{h.choix.join(' ou ')}</strong></span>}
                         </div>
@@ -159,3 +178,5 @@ export default function Bonus() {
     </div>
   )
 }
+
+

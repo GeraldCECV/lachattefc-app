@@ -23,16 +23,33 @@ export const JOUEURS = [
 
 // Bonus de départ par saison (selon le règlement)
 export const BONUS_DEPART = {
-  missile: 5,
+  missile: 3,
   jackpot: 3,
   doubleChance: 4,
 };
 
 // Barème des gains par journée (règlement Article 8) — 16 joueurs, pot 80€
 export const GAINS_JOURNEE = {
-  1: 24, 2: 18, 3: 14, 4: 11, 5: 8, 6: 5
+  1: 24, 2: 16, 3: 12, 4: 9, 5: 7, 6: 5, 7: 4, 8: 3
 };
 export const GAIN_TOTAL_J = 80;
+
+// Les 18 clubs de Ligue 1 saison 2026/27
+export const CLUBS_L1_2627 = [
+  'Angers SCO', 'AJ Auxerre', 'Stade Brestois 29', 'Le Havre AC', 'Le Mans FC',
+  'RC Lens', 'LOSC Lille', 'FC Lorient', 'Olympique Lyonnais', 'Olympique de Marseille',
+  'AS Monaco', 'OGC Nice', 'Paris FC', 'Paris Saint-Germain', 'Stade Rennais FC',
+  'RC Strasbourg', 'Toulouse FC', 'ESTAC Troyes',
+];
+
+// Paris Annexe — mises par catégorie (Article à définir dans le règlement)
+export const MISES_PARIS_ANNEXE = {
+  podium: 2,
+  ldc: 1,
+  europa: 1,
+  buteur: 1,
+  passeur: 1,
+};
 
 // Règles de points
 export const POINTS = {
@@ -50,3 +67,4 @@ export const POINTS = {
   // Seuil surprise
   seuilSurprise: 0.25,
 };
+
