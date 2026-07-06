@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { doc, getDoc, getDocs, collection, query, orderBy } from 'firebase/firestore'
+import { doc, getDoc, getDocs, collection, query, orderBy, updateDoc } from 'firebase/firestore'
 import { signOut, updatePassword } from 'firebase/auth'
 import { httpsCallable, getFunctions } from 'firebase/functions'
 import { db, auth } from '../firebase/config'
 import { CLUBS_L1_2627 } from '../firebase/constants'
+import JerseyAvatar from '../components/JerseyAvatar'
 import { useUser } from '../App'
 import logo from '../assets/logo-lachattefc.png'
 
@@ -26,6 +27,13 @@ export default function Profil() {
   const [paButeur, setPaButeur] = useState('')
   const [paPasseur, setPaPasseur] = useState('')
   const [paSaving, setPaSaving] = useState(false)
+  const [showClubPicker, setShowClubPicker] = useState(false)
+  const [savingClub, setSavingClub] = useState(false)
+  const [clubCoeur, setClubCoeur] = useState(null)
+
+  useEffect(() => {
+    if (profil?.clubCoeur) setClubCoeur(profil.clubCoeur)
+  }, [profil?.clubCoeur])
   const [paMsg, setPaMsg] = useState('')
 
   useEffect(() => {
@@ -56,6 +64,16 @@ export default function Profil() {
     }
     load()
   }, [user])
+
+  const choisirClub = async (club) => {
+    setSavingClub(true)
+    try {
+      await updateDoc(doc(db, 'joueurs', user.uid), { clubCoeur: club })
+      setClubCoeur(club)
+      setShowClubPicker(false)
+    } catch(e) { alert('Erreur : ' + e.message) }
+    setSavingClub(false)
+  }
 
   const ouvrirParisAnnexe = () => {
     if (paMonProno) {
@@ -140,8 +158,11 @@ export default function Profil() {
           <div style={{ margin:'14px 16px', background:'linear-gradient(135deg, rgba(17,31,23,.96), rgba(5,12,8,.98))', border:'1px solid var(--g-b)', borderRadius:'var(--R)', padding:20, boxShadow:'var(--shadow)', position:'relative', overflow:'hidden' }}>
             <div style={{ position:'absolute', top:0, right:0, width:120, height:120, background:'radial-gradient(circle at top right, rgba(155,226,45,.12), transparent)', pointerEvents:'none' }}/>
             <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-              <div className="av" style={{ width:56, height:56, fontSize:18, background:'var(--g-dim)', color:'var(--g)', border:'2px solid var(--g-b)', boxShadow:'0 0 20px rgba(155,226,45,.2)' }}>
-                {profil?.initiales}
+              <div onClick={() => setShowClubPicker(true)} style={{ cursor:'pointer', position:'relative' }}>
+                <JerseyAvatar club={clubCoeur} initials={profil?.initiales} size={56} />
+                <div style={{ position:'absolute', bottom:-2, right:-2, width:20, height:20, borderRadius:'50%', background:'var(--g)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, border:'2px solid var(--bg)' }}>
+                  ✏️
+                </div>
               </div>
               <div>
                 <div style={{ fontFamily:'var(--D)', fontSize:26, letterSpacing:'.04em', textTransform:'uppercase', color:'var(--tx)', textShadow:'0 0 12px rgba(155,226,45,.15)' }}>{profil?.nom}</div>
@@ -344,9 +365,36 @@ export default function Profil() {
           </div>
         </div>
       )}
+
+      {/* Modal choix du club de cœur */}
+      {showClubPicker && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.8)', zIndex:500 }}>
+          <div style={{ position:'fixed', top:'8dvh', left:0, right:0, bottom:0, overflowY:'scroll', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', borderRadius:'20px 20px 0 0', padding:'20px 20px calc(20px + env(safe-area-inset-bottom))', background:'linear-gradient(180deg, rgba(20,36,27,.99), rgba(9,17,12,.995))', border:'1px solid var(--bd)', borderBottom:'none', boxShadow:'var(--shadow)' }}>
+            <div className="page-title" style={{ fontSize:22, marginBottom:4 }}>👕 Ton club de cœur</div>
+            <div style={{ fontSize:12, color:'var(--tx3)', marginBottom:16 }}>Ton avatar prend les couleurs du club choisi, visible par tout le monde.</div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              {CLUBS_L1_2627.map(c => (
+                <button key={c} onClick={() => choisirClub(c)} disabled={savingClub} style={{
+                  display:'flex', alignItems:'center', gap:10, padding:'10px 12px',
+                  borderRadius:'var(--Rs)', cursor:'pointer', textAlign:'left',
+                  background: clubCoeur === c ? 'var(--g-dim)' : 'rgba(255,255,255,.04)',
+                  border: `1px solid ${clubCoeur === c ? 'var(--g-b)' : 'rgba(255,255,255,.1)'}`,
+                }}>
+                  <JerseyAvatar club={c} initials="?" size={32} />
+                  <span style={{ fontSize:12, fontWeight:700, color: clubCoeur === c ? 'var(--g)' : 'var(--tx2)' }}>{c}</span>
+                </button>
+              ))}
+            </div>
+            <button className="btn btn-secondary" style={{ width:'100%', justifyContent:'center', marginTop:16 }} onClick={() => setShowClubPicker(false)}>
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+
 
 
 
