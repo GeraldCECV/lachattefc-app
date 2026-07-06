@@ -150,6 +150,7 @@ const FILE_SLUGS = {
 }
 
 function getFileCandidates(name) {
+  if (!name) return []
   const n = normalize(name)
   const slugs = FILE_SLUGS[n] || Object.entries(FILE_SLUGS).find(([key]) => n.includes(key) || key.includes(n))?.[1]
   if (!slugs) return []
@@ -226,6 +227,7 @@ export default function JerseyAvatar({ club, initials, size = 40 }) {
     </div>
   )
 }
+
 
 
 
