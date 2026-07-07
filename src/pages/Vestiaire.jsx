@@ -17,11 +17,13 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
   const [topClassement, setTopClassement] = useState([])
   const [loading, setLoading] = useState(true)
   const [countdown, setCountdown] = useState('')
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     let unsubJ = null
     setMonProno(null)
     const load = async () => {
+      try {
       // Charger la première journée ouverte ou en cours
       const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
       const now = new Date()
@@ -35,6 +37,7 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
       if (!snap.empty) {
         const jDoc = snap.docs[0]
         unsubJ = onSnapshot(doc(db,'journees',jDoc.id), async d => {
+          try {
           if (!d.exists()) return
           const jData = { id:d.id, ...d.data() }
           setJournee(jData)
@@ -71,16 +74,21 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
           }
 
           setTopClassement(sorted.slice(0,5))
-        })
+          } catch (e) {
+            console.error('Erreur traitement journée (Vestiaire):', e)
+            setError('Erreur lors du calcul du classement live.')
+          }
+        }, e => { console.error('Erreur listener journée (Vestiaire):', e); setError('Connexion perdue, recharge la page.') })
         if (profil) {
           setMonProno(null)
           const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
-          console.log('🔍 pronos J docs:', pronosSnap.docs.map(d => d.id))
-          console.log('🔍 profil.id:', profil.id)
           const monDoc = pronosSnap.docs.find(d => d.id === profil.id)
-          console.log('🔍 monDoc trouvé:', !!monDoc)
           if (monDoc) setMonProno(monDoc.data())
         }
+      }
+      } catch (e) {
+        console.error('Erreur chargement vestiaire:', e)
+        setError('Impossible de charger la page. Vérifie ta connexion et réessaie.')
       }
       setLoading(false)
     }
@@ -109,6 +117,11 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
 
   return (
     <div className="scroll-area">
+      {error && (
+        <div className="alert alert-r" style={{ margin:'12px 16px 0' }}>
+          {error}
+        </div>
+      )}
       {/* Header */}
       <div style={{ padding:'16px 20px 12px', display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
         <div>
