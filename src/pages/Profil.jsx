@@ -305,6 +305,11 @@ export default function Profil() {
               🚪 Déconnexion
             </button>
           </div>
+
+          {/* Version — utile pour vérifier rapidement si un déploiement est bien passé */}
+          <div style={{ textAlign:'center', paddingBottom:24, fontSize:10, color:'var(--tx3)', opacity:.5 }}>
+            v{import.meta.env.VITE_COMMIT_SHA || 'dev'}
+          </div>
         </>
       )}
 
