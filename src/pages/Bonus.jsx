@@ -11,9 +11,11 @@ export default function Bonus() {
   const [targeted, setTargeted] = useState(null)
   const [loading, setLoading] = useState(true)
   const [historique, setHistorique] = useState([])
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const load = async () => {
+      try {
       if (user) {
         const snap = await getDoc(doc(db,'joueurs',user.uid))
         if (snap.exists()) setBonus(snap.data().bonus || { missile:3, jackpot:3, doubleChance:4 })
@@ -67,6 +69,10 @@ export default function Bonus() {
         }))
         setHistorique(hist.sort((a,b) => b.journee - a.journee))
       }
+      } catch (e) {
+        console.error('Erreur chargement bonus:', e)
+        setError('Impossible de charger tes bonus. Vérifie ta connexion et réessaie.')
+      }
       setLoading(false)
     }
     load()
@@ -90,6 +96,12 @@ export default function Bonus() {
         <div className="page-title">Bonus</div>
         <div className="page-sub">Saison 26/27 · {profil?.nom?.split(' ')[0]}</div>
       </div>
+
+      {error && (
+        <div className="alert alert-r" style={{ margin:'0 16px 14px' }}>
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ display:'flex', justifyContent:'center', padding:40 }}>
