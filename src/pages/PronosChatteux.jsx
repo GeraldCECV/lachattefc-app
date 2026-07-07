@@ -144,14 +144,15 @@ export default function PronosChatteux() {
     if (!p) return null
     const missile = missiles.find(m => m.cible === uid && m.matchKey === key && m.applique)
     if (missile) return { val: missile.pronoImpose, isMissile: true }
+    // DC active sur ce match : toujours afficher les 2 choix, même si un prono
+    // de base existe aussi en dessous (même logique que l'admin — voir Pronos.jsx)
+    const dcChoicesIci = getDcChoicesFor(p, key)
+    if (dcChoicesIci?.length === 2) return { val: dcChoicesIci.join('/'), isDC: true }
     if (key === 'scorer') return p.matchScorer ? { val: p.matchScorer } : null
     if (key === 'euro') return p.matchEuro ? { val: p.matchEuro } : null
     const idx = parseInt(key.replace(isCDM ? 'cdm_' : 'l1_', ''))
     const arr = isCDM ? p.matchesCDM : p.matchesL1
     if (arr?.[idx]) return { val: arr[idx] }
-    // Pas de prono de base mais DC active sur ce match — afficher les choix DC
-    const dcChoicesIci = getDcChoicesFor(p, key)
-    if (dcChoicesIci?.length > 0) return { val: dcChoicesIci.join('/'), isDcOnly: true }
     return null
   }
 
