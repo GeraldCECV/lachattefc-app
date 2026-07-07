@@ -126,6 +126,22 @@ export default function PronosChatteux() {
   const getDcSelections = (p) => Array.isArray(p?.dcSelections) ? p.dcSelections : (p?.dcMatch ? [{ matchKey: p.dcMatch, choices: p.dcChoices||[] }] : [])
   const isJackpotOn = (p, key) => getJackpotMatches(p).includes(key)
   const getDcChoicesFor = (p, key) => getDcSelections(p).find(d => d.matchKey === key)?.choices
+
+  // Miroir du helper serveur (index.js) — un joueur en DC est compté comme
+  // ayant deviné juste si l'issue fait partie de ses 2 choix, pas seulement
+  // si sa valeur brute stockée correspond (fix bug bonCount/ratio surprise, J12).
+  const joueurADevineIssue = (u, key, issue) => {
+    const p = pronos[u]
+    if (!p) return false
+    const missile = missiles.find(m => m.cible === u && m.matchKey === key && m.applique)
+    if (missile) return missile.pronoImpose === issue
+    const dc = getDcChoicesFor(p, key)
+    if (dc?.length === 2) return dc.includes(issue)
+    if (key === 'euro') return p.matchEuro === issue
+    const idx = parseInt(key.replace(isCDM ? 'cdm_' : 'l1_', ''))
+    const arr = isCDM ? p.matchesCDM : p.matchesL1
+    return arr?.[idx] === issue
+  }
   const scorer = journee.matchScorer
   const matchesMain = isCDM
     ? (journee.matchesCDM || []).filter(m => m?.dom)
@@ -198,7 +214,7 @@ export default function PronosChatteux() {
       return isJackpotOn(p, key) ? 2 : 1
     }
     if (prono.val !== issue) return 0
-    const bonCount = Object.keys(pronos).filter(u => getProno(u, key)?.val === issue).length
+    const bonCount = Object.keys(pronos).filter(u => joueurADevineIssue(u, key, issue)).length
     const allTotal = Object.keys(pronos).length
     const ratio = allTotal > 0 ? bonCount / allTotal : 1
     let pts = ratio <= 0.25 ? 2 : 1
