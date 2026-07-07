@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '../App'
+import ErrorBoundary from './ErrorBoundary'
 import Pronos from '../pages/Pronos'
 import PronosChatteux from '../pages/PronosChatteux'
 import Classement from '../pages/Classement'
@@ -77,7 +78,9 @@ export default function AppShell() {
     <div className="app-shell">
 
       <div className="screen-content">
-        {pages[tab]}
+        <ErrorBoundary key={tab}>
+          {pages[tab]}
+        </ErrorBoundary>
       </div>
 
       <div className="tab-bar">
