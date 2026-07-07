@@ -2,6 +2,7 @@ import { translateTeam } from '../utils/teamName'
 import { useState, useEffect } from 'react'
 import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
+import { issueMatch, calcPoints1N2, calcPointsScorer, isJackpotOn, getDcChoicesFor, joueurADevineIssue as joueurADevineIssuePure } from '../scoring'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
 import JerseyAvatar from '../components/JerseyAvatar'
@@ -121,26 +122,21 @@ export default function PronosChatteux() {
   )
 
   const isCDM = journee.type === 'cdm'
-  // Helpers jackpot/DC multi-instances, retro-compatibles avec l'ancien format à champ unique
-  const getJackpotMatches = (p) => Array.isArray(p?.jackpotMatches) ? p.jackpotMatches : (p?.jackpotMatch ? [p.jackpotMatch] : [])
-  const getDcSelections = (p) => Array.isArray(p?.dcSelections) ? p.dcSelections : (p?.dcMatch ? [{ matchKey: p.dcMatch, choices: p.dcChoices||[] }] : [])
-  const isJackpotOn = (p, key) => getJackpotMatches(p).includes(key)
-  const getDcChoicesFor = (p, key) => getDcSelections(p).find(d => d.matchKey === key)?.choices
+  // getDcChoicesFor/isJackpotOn viennent maintenant de scoring.js (partagé
+  // avec les Cloud Functions) — plus de logique dupliquée à la main ici.
 
   // Miroir du helper serveur (index.js) — un joueur en DC est compté comme
   // ayant deviné juste si l'issue fait partie de ses 2 choix, pas seulement
   // si sa valeur brute stockée correspond (fix bug bonCount/ratio surprise, J12).
+  // Le seul ajout par rapport à la version serveur : la vérification missile,
+  // qui vit en dehors du doc prono côté app (server applique déjà le missile
+  // sur une copie avant d'appeler l'équivalent de joueurADevineIssuePure).
   const joueurADevineIssue = (u, key, issue) => {
     const p = pronos[u]
     if (!p) return false
     const missile = missiles.find(m => m.cible === u && m.matchKey === key && m.applique)
     if (missile) return missile.pronoImpose === issue
-    const dc = getDcChoicesFor(p, key)
-    if (dc?.length === 2) return dc.includes(issue)
-    if (key === 'euro') return p.matchEuro === issue
-    const idx = parseInt(key.replace(isCDM ? 'cdm_' : 'l1_', ''))
-    const arr = isCDM ? p.matchesCDM : p.matchesL1
-    return arr?.[idx] === issue
+    return joueurADevineIssuePure(p, key, issue)
   }
   const scorer = journee.matchScorer
   const matchesMain = isCDM
@@ -200,13 +196,24 @@ export default function PronosChatteux() {
     if (!prono || !res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY' && res.status !== 'PAUSED')) return null
     const rh = parseInt(res.h), ra = parseInt(res.a)
     const p = pronos[uid]
+    const allTotal = Object.keys(pronos).length
     if (isScorer || journee.scorerOnly || matchBlocks.find(b => b.key === key)?.isMatchScorer) {
-      const [ph, pa] = (prono.val || '').split('-').map(Number)
-      if (ph === rh && pa === ra) return 3
-      if ((ph - pa) === (rh - ra)) return 2
-      return Math.sign(ph - pa) === Math.sign(rh - ra) ? 1 : 0
+      // Aligné sur calcPointsScorer côté serveur (index.js) : applique aussi
+      // le bonus surprise (2pts au lieu de 1) sur le palier "bonne issue"
+      // si ≤25% des joueurs ont trouvé — l'ancienne version locale ne le
+      // faisait pas et sous-affichait certains points en live.
+      const bonCountScorer = Object.keys(pronos).filter(u => {
+        const pu = pronos[u]
+        const pr = key === 'scorer' ? pu?.matchScorer
+          : isCDM ? pu?.matchesCDM?.[parseInt(key.replace('cdm_', ''))]
+          : pu?.matchesL1?.[parseInt(key.replace('l1_', ''))]
+        if (!pr || !/^\d+-\d+$/.test(pr)) return false
+        const [ph, pa] = pr.split('-').map(Number)
+        return issueMatch(ph, pa) === issueMatch(rh, ra)
+      }).length
+      return calcPointsScorer(prono.val, rh, ra, bonCountScorer, allTotal)
     }
-    const issue = rh > ra ? '1' : rh < ra ? '2' : 'N'
+    const issue = issueMatch(rh, ra)
     const missileIci = missiles.find(m => m.cible === uid && m.matchKey === key && m.applique)
     const dcChoicesIci = missileIci ? null : getDcChoicesFor(p, key)
     if (dcChoicesIci?.length > 0) {
@@ -215,11 +222,7 @@ export default function PronosChatteux() {
     }
     if (prono.val !== issue) return 0
     const bonCount = Object.keys(pronos).filter(u => joueurADevineIssue(u, key, issue)).length
-    const allTotal = Object.keys(pronos).length
-    const ratio = allTotal > 0 ? bonCount / allTotal : 1
-    let pts = ratio <= 0.25 ? 2 : 1
-    if (isJackpotOn(p, key)) pts *= 2
-    return pts
+    return calcPoints1N2(p, prono.val, issue, bonCount, allTotal, key)
   }
 
   const getBonusLabels = (uid, key) => {
