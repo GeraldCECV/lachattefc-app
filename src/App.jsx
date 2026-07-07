@@ -5,6 +5,7 @@ import { doc, getDoc } from 'firebase/firestore'
 import { auth, db } from './firebase/config'
 import Login from './pages/Login'
 import AppShell from './components/AppShell'
+import ErrorBoundary from './components/ErrorBoundary'
 
 export const UserContext = createContext(null)
 export const useUser = () => useContext(UserContext)
@@ -13,13 +14,20 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [profil, setProfil] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [authError, setAuthError] = useState(null)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser(u)
-        const snap = await getDoc(doc(db, 'joueurs', u.uid))
-        if (snap.exists()) setProfil({ id: snap.id, ...snap.data() })
+        try {
+          const snap = await getDoc(doc(db, 'joueurs', u.uid))
+          if (snap.exists()) setProfil({ id: snap.id, ...snap.data() })
+          setAuthError(null)
+        } catch (e) {
+          console.error('Erreur chargement profil:', e)
+          setAuthError('Impossible de charger ton profil. Vérifie ta connexion et réessaie.')
+        }
       } else {
         setUser(null)
         setProfil(null)
@@ -36,14 +44,24 @@ export default function App() {
     </div>
   )
 
+  if (authError) return (
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, background: 'var(--bg)', padding: 24, textAlign: 'center' }}>
+      <div style={{ fontSize: 48 }}>😿</div>
+      <div style={{ fontSize: 14, color: 'var(--tx3)', maxWidth: 300, lineHeight: 1.5 }}>{authError}</div>
+      <button className="btn btn-primary" onClick={() => window.location.reload()}>🔄 Réessayer</button>
+    </div>
+  )
+
   return (
-    <UserContext.Provider value={{ user, profil }}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
-          <Route path="/*" element={user ? <AppShell /> : <Navigate to="/login" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </UserContext.Provider>
+    <ErrorBoundary onReset={() => window.location.reload()}>
+      <UserContext.Provider value={{ user, profil }}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
+            <Route path="/*" element={user ? <AppShell /> : <Navigate to="/login" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </UserContext.Provider>
+    </ErrorBoundary>
   )
 }
