@@ -41,6 +41,7 @@ export default function Classement() {
   const [classG, setClassG] = useState([])
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(null)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     let unsubJournee = null, unsubPronos = null, unsubMissiles = null
@@ -141,38 +142,56 @@ export default function Classement() {
     }
 
     const load = async () => {
-      const snap = await getDocs(collection(db,'joueurs'))
-      map = {}
-      snap.docs.forEach((d,i) => { map[d.id] = { id:d.id, idx:i, ...d.data() } })
-      setJoueursMap(map)
-      setClassG(applyDenseRank(Object.values(map).sort((a,b)=>{
-        const netA = (a.gainsTotal||0) - (a.journeesJouees||0)*5
-        const netB = (b.gainsTotal||0) - (b.journeesJouees||0)*5
-        return netB - netA
-      }), (j) => (j.gainsTotal||0) - (j.journeesJouees||0)*5))
+      try {
+        const snap = await getDocs(collection(db,'joueurs'))
+        map = {}
+        snap.docs.forEach((d,i) => { map[d.id] = { id:d.id, idx:i, ...d.data() } })
+        setJoueursMap(map)
+        setClassG(applyDenseRank(Object.values(map).sort((a,b)=>{
+          const netA = (a.gainsTotal||0) - (a.journeesJouees||0)*5
+          const netB = (b.gainsTotal||0) - (b.journeesJouees||0)*5
+          return netB - netA
+        }), (j) => (j.gainsTotal||0) - (j.journeesJouees||0)*5))
 
-      const allJ = await getDocs(query(collection(db,'journees'),orderBy('numero','asc')))
-      const openJ = allJ.docs.find(d => ['ouverte','fermee'].includes(d.data().statut))
-      const jDoc = openJ || allJ.docs[allJ.docs.length-1]
-      if (jDoc) {
-        // Listener journée (résultats, statut)
-        unsubJournee = onSnapshot(doc(db,'journees',jDoc.id), d => {
-          if (!d.exists()) return
-          journeeData = d.data()
-          setJournee({ id:d.id, ...journeeData })
-          recalc()
-        })
-        // Listener pronos (au cas où un joueur soumet/modifie après coup)
-        unsubPronos = onSnapshot(collection(db,'journees',jDoc.id,'pronos'), snap => {
-          pronosMap = {}
-          snap.docs.forEach(d => { pronosMap[d.id] = d.data() })
-          recalc()
-        })
-        // Listener missiles (dès qu'un missile est appliqué)
-        unsubMissiles = onSnapshot(collection(db,'journees',jDoc.id,'missiles'), snap => {
-          missiles = snap.docs.map(d => d.data())
-          recalc()
-        })
+        const allJ = await getDocs(query(collection(db,'journees'),orderBy('numero','asc')))
+        const openJ = allJ.docs.find(d => ['ouverte','fermee'].includes(d.data().statut))
+        const jDoc = openJ || allJ.docs[allJ.docs.length-1]
+        if (jDoc) {
+          // Listener journée (résultats, statut)
+          unsubJournee = onSnapshot(doc(db,'journees',jDoc.id), d => {
+            try {
+              if (!d.exists()) return
+              journeeData = d.data()
+              setJournee({ id:d.id, ...journeeData })
+              recalc()
+            } catch (e) {
+              console.error('Erreur traitement journée:', e)
+              setError('Erreur lors du calcul du classement, recharge la page.')
+            }
+          }, e => { console.error('Erreur listener journée:', e); setError('Connexion au classement perdue, recharge la page.') })
+          // Listener pronos (au cas où un joueur soumet/modifie après coup)
+          unsubPronos = onSnapshot(collection(db,'journees',jDoc.id,'pronos'), snap => {
+            try {
+              pronosMap = {}
+              snap.docs.forEach(d => { pronosMap[d.id] = d.data() })
+              recalc()
+            } catch (e) {
+              console.error('Erreur traitement pronos:', e)
+            }
+          }, e => console.error('Erreur listener pronos:', e))
+          // Listener missiles (dès qu'un missile est appliqué)
+          unsubMissiles = onSnapshot(collection(db,'journees',jDoc.id,'missiles'), snap => {
+            try {
+              missiles = snap.docs.map(d => d.data())
+              recalc()
+            } catch (e) {
+              console.error('Erreur traitement missiles:', e)
+            }
+          }, e => console.error('Erreur listener missiles:', e))
+        }
+      } catch (e) {
+        console.error('Erreur chargement classement:', e)
+        setError('Impossible de charger le classement. Vérifie ta connexion et réessaie.')
       }
       setLoading(false)
     }
@@ -189,12 +208,17 @@ export default function Classement() {
     setHistoriqueList([])
     setLoadingHistorique(true)
     const loadHist = async () => {
-      const snap = await getDocs(query(collection(db,'journees'), orderBy('numero','desc')))
-      const hist = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(j => j.statut === 'resultats' && j.pointsJoueurs)
-      setHistoriqueList(hist)
-      if (hist.length > 0) setSelectedHistJ(hist[0].id)
+      try {
+        const snap = await getDocs(query(collection(db,'journees'), orderBy('numero','desc')))
+        const hist = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(j => j.statut === 'resultats' && j.pointsJoueurs)
+        setHistoriqueList(hist)
+        if (hist.length > 0) setSelectedHistJ(hist[0].id)
+      } catch (e) {
+        console.error('Erreur chargement historique:', e)
+        setError('Impossible de charger l\'historique. Réessaie.')
+      }
       setLoadingHistorique(false)
     }
     loadHist()
@@ -261,6 +285,12 @@ const Rank = ({rank}) => {
           </div>
         )}
       </div>
+
+      {error && (
+        <div className="alert alert-r" style={{ margin:'10px 16px 0' }}>
+          {error}
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ margin:'14px 16px 0', background:'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))', border:'1px solid var(--bd)', borderRadius:'var(--R)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
