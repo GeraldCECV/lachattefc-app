@@ -3,6 +3,13 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  define: {
+    // Injecté au build par Vercel (VERCEL_GIT_COMMIT_SHA est fourni
+    // automatiquement si "Automatically expose System Environment Variables"
+    // est actif sur le projet Vercel — sinon fallback 'dev' en local).
+    'import.meta.env.VITE_COMMIT_SHA': JSON.stringify((process.env.VERCEL_GIT_COMMIT_SHA || 'dev').slice(0, 7)),
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
     VitePWA({
