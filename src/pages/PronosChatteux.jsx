@@ -346,8 +346,25 @@ export default function PronosChatteux() {
                 const counts = { '1': 0, 'N': 0, '2': 0 }
                 let total = 0
                 joueurs.forEach(j => {
-                  const v = getProno(j.id, match.key)?.val
-                  if (v === '1' || v === 'N' || v === '2') { counts[v]++; total++ }
+                  const p = pronos[j.id]
+                  if (!p) return
+                  const missile = missiles.find(m => m.cible === j.id && m.matchKey === match.key && m.applique)
+                  if (missile) {
+                    if (['1','N','2'].includes(missile.pronoImpose)) { counts[missile.pronoImpose] += 1; total++ }
+                    return
+                  }
+                  // DC active : le joueur mise sur 2 issues — on répartit son vote (0.5 + 0.5)
+                  // pour que le total reste cohérent avec le nombre de joueurs.
+                  const dcChoicesIci = getDcChoicesFor(p, match.key)
+                  if (dcChoicesIci?.length === 2) {
+                    dcChoicesIci.forEach(v => { if (counts[v] !== undefined) counts[v] += 0.5 })
+                    total++
+                    return
+                  }
+                  const idx = parseInt(match.key.replace(isCDM ? 'cdm_' : 'l1_', ''))
+                  const arr = isCDM ? p.matchesCDM : p.matchesL1
+                  const v = arr?.[idx]
+                  if (v === '1' || v === 'N' || v === '2') { counts[v] += 1; total++ }
                 })
                 if (total === 0) return null
                 const pct = v => Math.round((counts[v] / total) * 100)
