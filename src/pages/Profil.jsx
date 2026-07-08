@@ -340,7 +340,7 @@ export default function Profil() {
 
           {/* Logo + déco */}
           <div style={{ margin:'0 16px 12px', textAlign:'center' }}>
-            <img src={logo} alt="La Chatte FC" style={{ width:100, opacity:.4, filter:'drop-shadow(0 0 10px rgba(155,226,45,.2))' }} />
+            <img src={logo} alt="La Chatte FC" style={{ display:'block', width:100, height:'auto', maxWidth:'100%', margin:'0 auto', opacity:.4, filter:'drop-shadow(0 0 10px rgba(155,226,45,.2))' }} />
           </div>
 
           {/* Déconnexion */}
