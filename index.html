@@ -60,6 +60,20 @@
         });
       }
     </script>
+    <!-- OneSignal Web Push — service worker enregistré sur un scope séparé
+         (/push/onesignal/) pour ne jamais entrer en conflit avec le service
+         worker de la PWA (celui-ci reste seul maître du scope racine /). -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async function (OneSignal) {
+        await OneSignal.init({
+          appId: 'f336f95a-cd06-42cf-9989-5aef9ccc1205',
+          serviceWorkerPath: 'push/onesignal/OneSignalSDKWorker.js',
+          serviceWorkerParam: { scope: '/push/onesignal/' },
+        });
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
