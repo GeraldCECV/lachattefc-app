@@ -16,6 +16,32 @@ export default function Profil() {
   const [changingPwd, setChangingPwd] = useState(false)
   const [newPwd, setNewPwd] = useState('')
   const [pwdMsg, setPwdMsg] = useState('')
+  const [notifStatus, setNotifStatus] = useState('inconnu') // inconnu | accordee | refusee | non-supportee
+  const [notifLoading, setNotifLoading] = useState(false)
+
+  useEffect(() => {
+    if (typeof Notification === 'undefined') { setNotifStatus('non-supportee'); return }
+    if (Notification.permission === 'granted') setNotifStatus('accordee')
+    else if (Notification.permission === 'denied') setNotifStatus('refusee')
+    else setNotifStatus('a-activer')
+  }, [])
+
+  const activerNotifications = async () => {
+    // Doit rester dans le gestionnaire de clic (geste utilisateur requis par
+    // Safari/iOS — voir la note dans App.jsx sur OneSignal.login).
+    setNotifLoading(true)
+    try {
+      window.OneSignalDeferred = window.OneSignalDeferred || []
+      window.OneSignalDeferred.push(async (OneSignal) => {
+        await OneSignal.Notifications.requestPermission()
+        setNotifStatus(Notification.permission === 'granted' ? 'accordee' : 'refusee')
+        setNotifLoading(false)
+      })
+    } catch (e) {
+      console.error('Erreur activation notifications:', e)
+      setNotifLoading(false)
+    }
+  }
 
   // Paris Annexe
   const [paConfig, setPaConfig] = useState(null)
@@ -288,6 +314,29 @@ export default function Profil() {
               </div>
             )}
           </div>
+
+          {/* Notifications push */}
+          {notifStatus !== 'non-supportee' && (
+            <div style={{ margin:'0 16px 16px', padding:14, background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:'var(--R)' }}>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:8 }}>🔔 Notifications</div>
+              {notifStatus === 'accordee' && (
+                <div style={{ fontSize:12, color:'var(--g)' }}>✅ Activées</div>
+              )}
+              {notifStatus === 'refusee' && (
+                <div style={{ fontSize:12, color:'var(--tx3)' }}>
+                  Bloquées — à réactiver dans les réglages de ton navigateur/téléphone pour ce site.
+                </div>
+              )}
+              {notifStatus === 'a-activer' && (
+                <button onClick={activerNotifications} disabled={notifLoading} className="btn btn-primary" style={{ width:'100%' }}>
+                  {notifLoading ? 'Activation...' : '🔔 Activer les notifications'}
+                </button>
+              )}
+              <div style={{ fontSize:10, color:'var(--tx3)', marginTop:6 }}>
+                Sur iPhone : ouvre l'app depuis l'icône ajoutée à l'écran d'accueil pour que ça fonctionne.
+              </div>
+            </div>
+          )}
 
           {/* Logo + déco */}
           <div style={{ margin:'0 16px 12px', textAlign:'center' }}>
