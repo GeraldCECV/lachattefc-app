@@ -18,6 +18,7 @@ export default function Profil() {
   const [pwdMsg, setPwdMsg] = useState('')
   const [notifStatus, setNotifStatus] = useState('inconnu') // inconnu | accordee | refusee | non-supportee
   const [notifLoading, setNotifLoading] = useState(false)
+  const [notifError, setNotifError] = useState(null)
 
   useEffect(() => {
     if (typeof Notification === 'undefined') { setNotifStatus('non-supportee'); return }
@@ -27,18 +28,25 @@ export default function Profil() {
   }, [])
 
   const activerNotifications = async () => {
-    // Doit rester dans le gestionnaire de clic (geste utilisateur requis par
-    // Safari/iOS — voir la note dans App.jsx sur OneSignal.login).
+    // Appel direct sur window.OneSignal (déjà chargé et initialisé depuis
+    // index.html au moment où ce bouton est cliqué) plutôt que de repasser
+    // par la file OneSignalDeferred — cette dernière est prévue pour les
+    // appels faits AVANT que le SDK soit prêt et ajoute un détour asynchrone
+    // qui peut casser la chaîne "geste utilisateur" exigée par Safari/iOS
+    // pour autoriser la vraie popup de permission.
     setNotifLoading(true)
+    setNotifError(null)
     try {
-      window.OneSignalDeferred = window.OneSignalDeferred || []
-      window.OneSignalDeferred.push(async (OneSignal) => {
-        await OneSignal.Notifications.requestPermission()
-        setNotifStatus(Notification.permission === 'granted' ? 'accordee' : 'refusee')
-        setNotifLoading(false)
-      })
+      if (!window.OneSignal) {
+        setNotifError("Le service de notifications n'a pas fini de charger, réessaie dans quelques secondes.")
+        return
+      }
+      await window.OneSignal.Notifications.requestPermission()
+      setNotifStatus(Notification.permission === 'granted' ? 'accordee' : Notification.permission === 'denied' ? 'refusee' : 'a-activer')
     } catch (e) {
       console.error('Erreur activation notifications:', e)
+      setNotifError('Erreur : ' + (e?.message || 'impossible d\'activer les notifications.'))
+    } finally {
       setNotifLoading(false)
     }
   }
@@ -331,6 +339,9 @@ export default function Profil() {
                 <button onClick={activerNotifications} disabled={notifLoading} className="btn btn-primary" style={{ width:'100%' }}>
                   {notifLoading ? 'Activation...' : '🔔 Activer les notifications'}
                 </button>
+              )}
+              {notifError && (
+                <div style={{ fontSize:11, color:'#FCA5A5', marginTop:6 }}>{notifError}</div>
               )}
               <div style={{ fontSize:10, color:'var(--tx3)', marginTop:6 }}>
                 Sur iPhone : ouvre l'app depuis l'icône ajoutée à l'écran d'accueil pour que ça fonctionne.
