@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/logos/:path*", "destination": "/logos/:path*" },
     { "source": "/maillots/:path*", "destination": "/maillots/:path*" },
+    { "source": "/push/onesignal/:path*", "destination": "/push/onesignal/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
