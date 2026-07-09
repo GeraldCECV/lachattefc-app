@@ -3,22 +3,9 @@ import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/f
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 import JerseyAvatar from '../components/JerseyAvatar'
+import { issueMatch, calcPointsScorer, calcPoints1N2, isJackpotOn, getDcChoicesFor, joueurADevineIssue } from '../scoring'
 
 const BAREME_CDM = [24, 16, 12, 9, 7, 5, 4, 3]
-
-function issueMatch(h, a) {
-  if (h > a) return '1'
-  if (h < a) return '2'
-  return 'N'
-}
-
-function calcPointsScorer(prono, rh, ra) {
-  if (!prono || !/^\d+-\d+$/.test(prono)) return 0
-  const [ph, pa] = prono.split('-').map(Number)
-  if (ph === rh && pa === ra) return 3
-  if ((ph - pa) === (rh - ra)) return 2
-  return Math.sign(ph - pa) === Math.sign(rh - ra) ? 1 : 0
-}
 
 const COLORS = [
   ['rgba(255,215,0,.14)','#FFD700'],['rgba(192,192,192,.12)','#C0C0C0'],
@@ -84,10 +71,10 @@ export default function Classement() {
         }
       })
 
+      const totalJoueurs = Object.keys(pronosMap).length
+
       Object.keys(pronosMap).forEach(uid => {
         const p = pronosAvecMissiles[uid]
-        const jackpotMatchesArr = Array.isArray(p?.jackpotMatches) ? p.jackpotMatches : (p?.jackpotMatch ? [p.jackpotMatch] : [])
-        const dcSelectionsArr = Array.isArray(p?.dcSelections) ? p.dcSelections : (p?.dcMatch ? [{ matchKey: p.dcMatch, choices: p.dcChoices||[] }] : [])
         matches.forEach((m, i) => {
           const key = isCDM ? `cdm_${i}` : `l1_${i}`
           const res = resultats[key]
@@ -98,21 +85,24 @@ export default function Classement() {
           if (!prono) return
           const isScorer = data.scorerOnly || m.scorer
           if (isScorer) {
-            pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + calcPointsScorer(prono, rh, ra)
+            const bonCountScorer = Object.values(pronosAvecMissiles).filter(pp => {
+              const pr = pp?.[arrKey]?.[i]
+              if (!pr || !/^\d+-\d+$/.test(pr)) return false
+              const [ph, pa] = pr.split('-').map(Number)
+              return issueMatch(ph, pa) === issueMatch(rh, ra)
+            }).length
+            pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + calcPointsScorer(prono, rh, ra, bonCountScorer, totalJoueurs)
           } else {
             const issue = issueMatch(rh, ra)
-            const dcChoicesIci = dcSelectionsArr.find(d => d.matchKey === key)?.choices
+            const dcChoicesIci = getDcChoicesFor(p, key)
             if (dcChoicesIci?.length === 2) {
               // DC active sur ce match : exclusive — gagne (1 ou 2pts si jackpot) ou 0, jamais de repli sur le prono brut
               if (dcChoicesIci.includes(issue)) {
-                pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + (jackpotMatchesArr.includes(key) ? 2 : 1)
+                pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + (isJackpotOn(p, key) ? 2 : 1)
               }
             } else if (prono === issue) {
-              const total = Object.values(pronosAvecMissiles).filter(pp => pp?.[arrKey]?.[i] === issue).length
-              const nb = Object.keys(pronosMap).length
-              let pts = (nb>0 && total/nb<=0.25) ? 2 : 1
-              if (jackpotMatchesArr.includes(key)) pts *= 2
-              pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + pts
+              const bonCount = Object.keys(pronosMap).filter(u => joueurADevineIssue(pronosAvecMissiles[u], key, issue)).length
+              pointsParJoueur[uid] = (pointsParJoueur[uid]||0) + calcPoints1N2(p, prono, issue, bonCount, totalJoueurs, key)
             }
           }
         })
@@ -139,6 +129,28 @@ export default function Classement() {
 
       setLastUpdate(new Date())
       setClassJ(applyDenseRank(Object.values(map).map(j=>({...j,ptsJ:pointsParJoueur[j.id]||0,gainJ:gains[j.id]||0})).sort((a,b)=>b.gainJ-a.gainJ||b.ptsJ-a.ptsJ)))
+
+      // Classement Général en live : si la journée courante n'est pas encore
+      // officiellement clôturée (statut !== 'resultats'), on ajoute ses points
+      // en cours par-dessus les totaux déjà clôturés stockés sur chaque joueur
+      // (gainsTotal/journeesJouees). Une fois la journée clôturée côté serveur,
+      // ces champs stockés incluent déjà cette journée — on n'additionne alors
+      // plus rien pour éviter un double comptage.
+      if (data.statut !== 'resultats') {
+        const classGLive = Object.values(map).map(j => {
+          const enJeu = !!pronosMap[j.id]
+          return {
+            ...j,
+            gainsTotal: (j.gainsTotal||0) + (enJeu ? (gains[j.id]||0) : 0),
+            journeesJouees: (j.journeesJouees||0) + (enJeu ? 1 : 0),
+          }
+        })
+        setClassG(applyDenseRank(classGLive.sort((a,b)=>{
+          const netA = (a.gainsTotal||0) - (a.journeesJouees||0)*5
+          const netB = (b.gainsTotal||0) - (b.journeesJouees||0)*5
+          return netB - netA
+        }), (j) => (j.gainsTotal||0) - (j.journeesJouees||0)*5))
+      }
     }
 
     const load = async () => {
@@ -317,7 +329,9 @@ const Rank = ({rank}) => {
           <span style={{ fontSize:11, color:'var(--tx3)', fontWeight:700 }}>
             {tab==='journee'
               ? `${journee?.statut==='ouverte'?'⏰ En cours':journee?.statut==='fermee'?'🔒 Fermée':'🏁 Finalisée'} · reset chaque journée`
-              : 'Cumulatif depuis J1 · màj chaque lundi'
+              : journee && journee.statut !== 'resultats'
+                ? '🔴 En direct · inclut la journée en cours (provisoire)'
+                : 'Cumulatif depuis J1'
             }
           </span>
         </div>
