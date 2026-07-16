@@ -36,11 +36,6 @@ export default function Bonus() {
         const matchLabelFor = (j, key) => {
           if (key === 'scorer') return j.matchScorer?.dom ? `${translateTeam(j.matchScorer.dom)} — ${translateTeam(j.matchScorer.ext)}` : 'Scorer'
           if (key === 'euro') return j.matchEuro?.dom ? `${translateTeam(j.matchEuro.dom)} — ${translateTeam(j.matchEuro.ext)}` : 'Euro'
-          if (key.startsWith('cdm_')) {
-            const i = parseInt(key.replace('cdm_',''))
-            const m = j.matchesCDM?.[i]
-            return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
-          }
           const i = parseInt(key.replace('l1_',''))
           const m = j.matchesL1?.[i]
           return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
