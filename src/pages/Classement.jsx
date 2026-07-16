@@ -5,7 +5,7 @@ import { useUser } from '../App'
 import JerseyAvatar from '../components/JerseyAvatar'
 import { issueMatch, calcPointsScorer, calcPoints1N2, isJackpotOn, getDcChoicesFor, joueurADevineIssue } from '../scoring'
 
-const BAREME_CDM = [24, 16, 12, 9, 7, 5, 4, 3]
+const BAREME = [24, 16, 12, 9, 7, 5, 4, 3]
 
 const COLORS = [
   ['rgba(255,215,0,.14)','#FFD700'],['rgba(192,192,192,.12)','#C0C0C0'],
@@ -40,8 +40,7 @@ export default function Classement() {
     const recalc = () => {
       if (!journeeData) return
       const data = journeeData
-      const isCDM = data.type === 'cdm'
-      const matches = isCDM ? (data.matchesCDM || []) : (data.matchesL1 || [])
+      const matches = data.matchesL1 || []
       const resultats = data.resultats || {}
       const penalites = data.penalites || {}
       const pointsParJoueur = {}
@@ -50,12 +49,10 @@ export default function Classement() {
       const pronosAvecMissiles = JSON.parse(JSON.stringify(pronosMap))
       missiles.forEach(m => {
         if (!m.applique) return
-        const arrKey = isCDM ? 'matchesCDM' : 'matchesL1'
-        const prefix = isCDM ? 'cdm_' : 'l1_'
-        if (m.matchKey?.startsWith(prefix) && pronosAvecMissiles[m.cible]) {
-          const i = parseInt(m.matchKey.replace(prefix,''))
-          if (!pronosAvecMissiles[m.cible][arrKey]) pronosAvecMissiles[m.cible][arrKey] = []
-          pronosAvecMissiles[m.cible][arrKey][i] = m.pronoImpose
+        if (m.matchKey?.startsWith('l1_') && pronosAvecMissiles[m.cible]) {
+          const i = parseInt(m.matchKey.replace('l1_',''))
+          if (!pronosAvecMissiles[m.cible].matchesL1) pronosAvecMissiles[m.cible].matchesL1 = []
+          pronosAvecMissiles[m.cible].matchesL1[i] = m.pronoImpose
         }
         // DC annulée par le missile sur ce match (jackpot conservé) —
         // même règle que côté serveur : le missile prévaut sur la DC.
@@ -76,17 +73,16 @@ export default function Classement() {
       Object.keys(pronosMap).forEach(uid => {
         const p = pronosAvecMissiles[uid]
         matches.forEach((m, i) => {
-          const key = isCDM ? `cdm_${i}` : `l1_${i}`
+          const key = `l1_${i}`
           const res = resultats[key]
           if (!res || (res.status!=='FINISHED'&&res.status!=='IN_PLAY'&&res.status!=='PAUSED') || res.h===null) return
           const rh = parseInt(res.h), ra = parseInt(res.a)
-          const arrKey = isCDM ? 'matchesCDM' : 'matchesL1'
-          const prono = p?.[arrKey]?.[i]
+          const prono = p?.matchesL1?.[i]
           if (!prono) return
           const isScorer = data.scorerOnly || m.scorer
           if (isScorer) {
             const bonCountScorer = Object.values(pronosAvecMissiles).filter(pp => {
-              const pr = pp?.[arrKey]?.[i]
+              const pr = pp?.matchesL1?.[i]
               if (!pr || !/^\d+-\d+$/.test(pr)) return false
               const [ph, pa] = pr.split('-').map(Number)
               return issueMatch(ph, pa) === issueMatch(rh, ra)
@@ -110,7 +106,7 @@ export default function Classement() {
 
       const auMoinsUnMatch = Object.values(resultats).some(r => ['FINISHED','IN_PLAY','PAUSED'].includes(r?.status))
       const gains = {}
-      if (auMoinsUnMatch && isCDM) {
+      if (auMoinsUnMatch) {
         const classement = Object.entries(pointsParJoueur).sort((a,b)=>b[1]-a[1])
         let i = 0
         while (i < classement.length) {
@@ -118,7 +114,7 @@ export default function Classement() {
           let j = i
           while (j < classement.length && classement[j][1] === pts) j++
           let gainPartage = 0
-          for (let r = i+1; r <= j; r++) gainPartage += BAREME_CDM[r-1] || 0
+          for (let r = i+1; r <= j; r++) gainPartage += BAREME[r-1] || 0
           const gainParJoueur = Math.round(gainPartage/(j-i)*100)/100
           for (let k = i; k < j; k++) gains[classement[k][0]] = gainParJoueur
           i = j
