@@ -1,4 +1,4 @@
-export const CDM_FR = {
+export const PAYS_FR = {
   'Algeria': 'Algérie', 'Argentina': 'Argentine', 'Australia': 'Australie',
   'Austria': 'Autriche', 'Belgium': 'Belgique', 'Bosnia-H.': 'Bosnie',
   'Bosnia Herzegovina': 'Bosnie-Herzégovine', 'Brazil': 'Brésil',
@@ -21,5 +21,5 @@ export const CDM_FR = {
 
 export function translateTeam(name) {
   if (!name) return name
-  return CDM_FR[name] || name
+  return PAYS_FR[name] || name
 }
