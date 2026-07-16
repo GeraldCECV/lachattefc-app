@@ -129,11 +129,7 @@ export default function Pronos() {
       snap = { docs: [openDocs[0]], empty: false }
       if (snap.empty) { setLoading(false); return }
       const jDoc = snap.docs[0]
-      const jRaw = { id:jDoc.id, ...jDoc.data() }
-      // Normaliser CDM : mapper matchesCDM → matchesL1 pour compatibilité
-      const j = jRaw.type === 'cdm'
-        ? { ...jRaw, matchesL1: (jRaw.matchesCDM || []).map(m => ({ ...m, type: 'cdm' })), matchScorer: null, matchEuro: null }
-        : jRaw
+      const j = { id:jDoc.id, ...jDoc.data() }
       setJournee(j)
       if (j.deadline) setDeadlinePassed(new Date() > new Date(j.deadline.seconds*1000))
 
@@ -231,21 +227,6 @@ export default function Pronos() {
 
   const countFilled = () => {
     let n = 0
-    if (journee?.type === 'cdm') {
-      ;(pronos.matchesL1||[]).forEach((p, i) => {
-        const m = journee.matchesL1?.[i]
-        const isMatchScorer = journee.scorerOnly || m?.scorer
-        const key = journee.type === 'cdm' ? `cdm_${i}` : `l1_${i}`
-        const dcSel = dcSelections.find(d => d.matchKey === key)
-        const isDcOnThisMatch = dcSel && dcSel.choices.length === 2
-        if (isMatchScorer) {
-          if (p && /^\d+-\d+$/.test(p)) n++
-        } else {
-          if (p || isDcOnThisMatch) n++
-        }
-      })
-      return n
-    }
     if (pronos.matchScorer || (scorerH !== null)) n++
     if (pronos.matchEuro) n++
     ;(pronos.matchesL1||[]).forEach((p, i) => {
@@ -257,7 +238,7 @@ export default function Pronos() {
     return n
   }
 
-  const total = journee?.type === 'cdm' ? (journee.matchesCDM?.length || journee.matchesL1?.length || 6) : 10
+  const total = 10
 
   const handleSubmit = async () => {
     if (!user || !journee) return
@@ -274,13 +255,7 @@ export default function Pronos() {
         .map(d => ({ id:d.id, ...d.data() }))
         .filter(m => m.cible === user.uid && !m.applique)
 
-      const isCDM = journee.type === 'cdm'
-      const pronosFinaux = isCDM ? {
-        ...pronos,
-        matchesCDM: [...(pronos.matchesL1 || Array(journee.matchesCDM?.length || 8).fill(null))],
-        matchScorer: null,
-        matchEuro: null,
-      } : {
+      const pronosFinaux = {
         ...pronos,
         matchScorer: `${scorerH}-${scorerA}`,
         matchesL1: [...(pronos.matchesL1 || Array(8).fill(null))],
@@ -289,9 +264,8 @@ export default function Pronos() {
       // Appliquer les missiles reçus
       for (const missile of missilesSurMoi) {
         const { matchKey, pronoImpose } = missile
-        if (matchKey.startsWith('l1_') || matchKey.startsWith('cdm_')) {
-          const prefix = matchKey.startsWith('cdm_') ? 'cdm_' : 'l1_'
-          const i = parseInt(matchKey.replace(prefix, ''))
+        if (matchKey.startsWith('l1_')) {
+          const i = parseInt(matchKey.replace('l1_', ''))
           pronosFinaux.matchesL1[i] = pronoImpose
         } else if (matchKey === 'euro') {
           pronosFinaux.matchEuro = pronoImpose
@@ -344,8 +318,7 @@ export default function Pronos() {
             joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
             joueurEmail: joueurData.email,
             pronos: [...(pronos.matchesL1 || [])],
-            matchesCDM: journee.type === 'cdm' ? (journee.matchesCDM || []) : null,
-            matchesL1: journee.type !== 'cdm' ? (journee.matchesL1 || []) : null,
+            matchesL1: journee.matchesL1 || [],
             matchScorer: journee.matchScorer || null,
             matchEuro: journee.matchEuro || null,
             scorerOnly: journee.scorerOnly || false,
@@ -430,11 +403,6 @@ export default function Pronos() {
     if (!journee) return key
     if (key === 'scorer') return `⚽ ${journee.matchScorer?.dom||'?'} — ${journee.matchScorer?.ext||'?'}`
     if (key === 'euro') return `🌍 ${journee.matchEuro?.dom||'?'} — ${journee.matchEuro?.ext||'?'}`
-    if (key.startsWith('cdm_')) {
-      const i = parseInt(key.replace('cdm_',''))
-      const m = journee.matchesCDM?.[i]
-      return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
-    }
     const i = parseInt(key.replace('l1_',''))
     const m = journee.matchesL1?.[i]
     return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
@@ -484,7 +452,7 @@ export default function Pronos() {
         <div style={{margin:'12px 16px 0',padding:'10px 14px',background:'rgba(155,226,45,.06)',border:'1px solid var(--g-b)',borderRadius:'var(--Rs)',fontSize:12,color:'var(--g)',fontWeight:700}}>
           ⚽ Multiplex — tous les matchs débutent en même temps. Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt
         </div>
-        <div className="section-lbl" style={{padding:'14px 20px 8px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {matchesL1.length} matchs à scorer</div>
+        <div className="section-lbl" style={{padding:'14px 20px 8px'}}>🇫🇷 Ligue 1 — {matchesL1.length} matchs à scorer</div>
         {matchesL1.map((m, i) => (
           <div key={i} style={{margin:'0 16px 8px',background:'rgba(155,226,45,.04)',border:'1px solid var(--g-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
@@ -630,7 +598,7 @@ export default function Pronos() {
               <>
                 <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
                   {[
-                    ...(journee.matchesL1||[]).map((m,i)=>m?.dom && !(journee.scorerOnly || m.scorer) ?{key: journee.type==='cdm'?`cdm_${i}`:`l1_${i}`,label:`${translateTeam(m.dom)} — ${translateTeam(m.ext)}`}:null).filter(Boolean),
+                    ...(journee.matchesL1||[]).map((m,i)=>m?.dom && !(journee.scorerOnly || m.scorer) ?{key: `l1_${i}`,label:`${translateTeam(m.dom)} — ${translateTeam(m.ext)}`}:null).filter(Boolean),
                     journee.matchEuro?.dom ? {key:'euro',label:`🌍 ${journee.matchEuro.dom} — ${journee.matchEuro.ext}`} : null,
                   ].filter(Boolean).map(m => (
                     <button key={m.key} onClick={()=>setMissileData(p=>({...p,matchKey:m.key}))} style={{
@@ -790,8 +758,7 @@ export default function Pronos() {
         </div>
       )}
 
-      {/* ── SCORER — masqué pour CDM ── */}
-      {journee.type !== 'cdm' && journee.matchScorer?.dom && (
+      {journee.matchScorer?.dom && (
         <div style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px'}}>
           <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau</div>
           <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
@@ -808,10 +775,10 @@ export default function Pronos() {
       )}
 
       {/* ── MATCHS ── */}
-      <div className="section-lbl" style={{padding:'8px 20px'}}>{journee.type==='cdm'?'🌍 CDM 2026':'🇫🇷 Ligue 1'} — {(journee.matchesL1||[]).length} matchs {journee.scorerOnly ? 'scorer' : '1N2'}</div>
+      <div className="section-lbl" style={{padding:'8px 20px'}}>🇫🇷 Ligue 1 — {(journee.matchesL1||[]).length} matchs {journee.scorerOnly ? 'scorer' : '1N2'}</div>
       {(journee.matchesL1||[]).map((m, i) => {
         if (!m?.dom) return null
-        const key = journee.type === 'cdm' ? `cdm_${i}` : `l1_${i}`
+        const key = `l1_${i}`
         const sel = pronos.matchesL1?.[i]
         const isJP = jackpotMatches.includes(key)
         const isDC = dcSelections.some(d => d.matchKey === key)
