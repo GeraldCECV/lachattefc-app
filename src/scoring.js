@@ -81,12 +81,11 @@ function getDcChoicesFor(p, matchKey) {
 // compte de la Double Chance (2 choix possibles) — utilisé pour le calcul
 // du ratio du bonus surprise (bonCount/totalJoueurs), pour que les joueurs
 // en DC soient comptés correctement s'ils ont deviné via l'un de leurs 2
-// choix, plutôt que via la seule valeur brute stockée dans matchesL1/CDM.
+// choix, plutôt que via la seule valeur brute stockée dans matchesL1.
 function joueurADevineIssue(p, key, result) {
   const dc = getDcChoicesFor(p, key);
   if (dc) return dc.includes(result);
   if (key.startsWith('l1_')) return p?.matchesL1?.[parseInt(key.replace('l1_', ''))] === result;
-  if (key.startsWith('cdm_')) return p?.matchesCDM?.[parseInt(key.replace('cdm_', ''))] === result;
   if (key === 'euro') return p?.matchEuro === result;
   return false;
 }
