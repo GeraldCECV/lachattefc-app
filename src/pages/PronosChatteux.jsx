@@ -121,10 +121,6 @@ export default function PronosChatteux() {
     </div>
   )
 
-  const isCDM = journee.type === 'cdm'
-  // getDcChoicesFor/isJackpotOn viennent maintenant de scoring.js (partagé
-  // avec les Cloud Functions) — plus de logique dupliquée à la main ici.
-
   // Miroir du helper serveur (index.js) — un joueur en DC est compté comme
   // ayant deviné juste si l'issue fait partie de ses 2 choix, pas seulement
   // si sa valeur brute stockée correspond (fix bug bonCount/ratio surprise, J12).
@@ -139,15 +135,13 @@ export default function PronosChatteux() {
     return joueurADevineIssuePure(p, key, issue)
   }
   const scorer = journee.matchScorer
-  const matchesMain = isCDM
-    ? (journee.matchesCDM || []).filter(m => m?.dom)
-    : (journee.matchesL1 || []).filter(m => m?.dom)
+  const matchesMain = (journee.matchesL1 || []).filter(m => m?.dom)
   const euro = journee.matchEuro?.dom ? journee.matchEuro : null
 
   // Construire la liste des matchs à afficher
   const matchBlocks = [
     scorer?.dom ? { key:'scorer', dom: scorer.dom, ext: scorer.ext, jour: scorer.jour, heure: scorer.heure, isScorer: true, label: '⚽ Match Scorer' } : null,
-    ...matchesMain.map((m, i) => ({ key: isCDM ? `cdm_${i}` : `l1_${i}`, dom: m.dom, ext: m.ext, jour: m.jour, heure: m.heure, label: `Match ${i+1}`, isMatchScorer: m.scorer === true })),
+    ...matchesMain.map((m, i) => ({ key: `l1_${i}`, dom: m.dom, ext: m.ext, jour: m.jour, heure: m.heure, label: `Match ${i+1}`, isMatchScorer: m.scorer === true })),
     euro ? { key:'euro', dom: euro.dom, ext: euro.ext, jour: euro.jour, heure: euro.heure, isEuro: true, label: '🌍 Match Euro' } : null,
   ].filter(Boolean)
 
@@ -162,8 +156,8 @@ export default function PronosChatteux() {
     if (dcChoicesIci?.length === 2) return { val: dcChoicesIci.join('/'), isDC: true }
     if (key === 'scorer') return p.matchScorer ? { val: p.matchScorer } : null
     if (key === 'euro') return p.matchEuro ? { val: p.matchEuro } : null
-    const idx = parseInt(key.replace(isCDM ? 'cdm_' : 'l1_', ''))
-    const arr = isCDM ? p.matchesCDM : p.matchesL1
+    const idx = parseInt(key.replace('l1_', ''))
+    const arr = p.matchesL1
     if (arr?.[idx]) return { val: arr[idx] }
     return null
   }
@@ -204,9 +198,7 @@ export default function PronosChatteux() {
       // faisait pas et sous-affichait certains points en live.
       const bonCountScorer = Object.keys(pronos).filter(u => {
         const pu = pronos[u]
-        const pr = key === 'scorer' ? pu?.matchScorer
-          : isCDM ? pu?.matchesCDM?.[parseInt(key.replace('cdm_', ''))]
-          : pu?.matchesL1?.[parseInt(key.replace('l1_', ''))]
+        const pr = key === 'scorer' ? pu?.matchScorer : pu?.matchesL1?.[parseInt(key.replace('l1_', ''))]
         if (!pr || !/^\d+-\d+$/.test(pr)) return false
         const [ph, pa] = pr.split('-').map(Number)
         return issueMatch(ph, pa) === issueMatch(rh, ra)
@@ -380,8 +372,8 @@ export default function PronosChatteux() {
                     total++
                     return
                   }
-                  const idx = parseInt(match.key.replace(isCDM ? 'cdm_' : 'l1_', ''))
-                  const arr = isCDM ? p.matchesCDM : p.matchesL1
+                  const idx = parseInt(match.key.replace('l1_', ''))
+                  const arr = p.matchesL1
                   const v = arr?.[idx]
                   if (v === '1' || v === 'N' || v === '2') { counts[v] += 1; total++ }
                 })
