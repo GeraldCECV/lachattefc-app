@@ -45,6 +45,11 @@ const LOCAL_LOGOS = {
   'stade rennais': '/logos/rennes.svg',
   'toulouse': '/logos/toulouse.svg',
   'toulouse fc': '/logos/toulouse.svg',
+  'troyes': '/logos/troyes.svg',
+  'estac troyes': '/logos/troyes.svg',
+  'estac': '/logos/troyes.svg',
+  'le mans': '/logos/le-mans.svg',
+  'le mans fc': '/logos/le-mans.svg',
   // Clubs sans logo local — Wikipedia
   'reims': 'https://upload.wikimedia.org/wikipedia/en/a/a4/Stade_de_Reims_logo.svg',
   'stade de reims': 'https://upload.wikimedia.org/wikipedia/en/a/a4/Stade_de_Reims_logo.svg',
