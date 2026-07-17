@@ -538,6 +538,16 @@ export default function Pronos() {
     )
   }
 
+  if (!journee.matchScorer?.dom && !existingProno) return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',padding:'24px 32px',textAlign:'center'}}>
+      <div style={{width:80,height:80,background:'var(--b-dim)',border:'1px solid var(--b-b)',borderRadius:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:36,marginBottom:20}}>⏳</div>
+      <div style={{fontFamily:'var(--D)',fontSize:28,letterSpacing:'.04em',color:'var(--tx)',marginBottom:8}}>Presque prêt !</div>
+      <div style={{fontSize:14,color:'var(--tx2)',lineHeight:1.6}}>
+        L'admin n'a pas encore choisi le match à scorer de J{journee.numero}.<br/>Reviens un peu plus tard pour soumettre tes pronos.
+      </div>
+    </div>
+  )
+
   if (deadlinePassed && !existingProno) return (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',padding:'24px 32px',textAlign:'center'}}>
       <div style={{width:80,height:80,background:'var(--r-dim)',border:'1px solid var(--r-b)',borderRadius:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:36,marginBottom:20}}>🔒</div>
