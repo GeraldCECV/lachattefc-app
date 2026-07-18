@@ -328,10 +328,12 @@ export default function Classement() {
     );
   };
 
-  const PlayerRow = ({ j, idx, pts, gain, net }) => {
+  const PlayerRow = ({ j, idx, pts, gain, net, isLiveGain }) => {
     const [bg, color] = getC(idx);
     const isMe = j.id === profil?.id;
     const isLast = idx === (tab === 'journee' ? classJ : classG).length - 1;
+    const displayValue = isLiveGain ? gain : net;
+    const displayLabel = isLiveGain ? 'GAINS' : 'PLUS-VALUE';
     return (
       <div
         style={{
@@ -401,20 +403,20 @@ export default function Classement() {
               marginBottom: 2,
             }}
           >
-            Plus-value
+            {displayLabel}
           </div>
           <div
             style={{
               fontFamily: 'var(--D)',
               fontSize: 22,
               letterSpacing: '.03em',
-              color: net >= 0 ? 'var(--g)' : 'var(--r)',
+              color: displayValue >= 0 ? 'var(--g)' : 'var(--r)',
               lineHeight: 1,
               textShadow: isMe ? '0 0 10px rgba(155,226,45,.3)' : 'none',
             }}
           >
-            {net >= 0 ? '+' : ''}
-            {net.toFixed(2)}€
+            {displayValue >= 0 ? '+' : ''}
+            {displayValue.toFixed(2)}€
           </div>
         </div>
       </div>
@@ -808,6 +810,7 @@ export default function Classement() {
                 pts={(j.pointsTotal || 0) + penalite}
                 gain={j.gainsTotal || 0}
                 net={net}
+                isLiveGain={journee && journee.statut !== 'resultats'}
               />
             );
           })
