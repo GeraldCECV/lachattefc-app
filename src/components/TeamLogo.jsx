@@ -174,10 +174,27 @@ const LOCAL_LOGOS = {
   'genoa cfc': '/logos/genoa.png',
   'lazio': '/logos/lazio.png',
   'ss lazio': '/logos/lazio.png',
-  // Serie A — fallback Wikipedia (pas encore de fichier local)
-  'milan': 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Logo_of_AC_Milan.svg',
-  'ac milan': 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Logo_of_AC_Milan.svg',
-  'napoli': 'https://upload.wikimedia.org/wikipedia/commons/2/2d/SSC_Napoli.svg',
+  // Serie A — fichiers locaux (20/20 clubs intégrés)
+  'milan': '/logos/milan.png',
+  'ac milan': '/logos/milan.png',
+  'napoli': '/logos/napoli.png',
+  'ssc napoli': '/logos/napoli.png',
+  'lecce': '/logos/lecce.png',
+  'us lecce': '/logos/lecce.png',
+  'monza': '/logos/monza.png',
+  'ac monza': '/logos/monza.png',
+  'parma': '/logos/parma.png',
+  'parma calcio': '/logos/parma.png',
+  'roma': '/logos/roma.png',
+  'as roma': '/logos/roma.png',
+  'sassuolo': '/logos/sassuolo.png',
+  'us sassuolo': '/logos/sassuolo.png',
+  'torino': '/logos/torino.png',
+  'torino fc': '/logos/torino.png',
+  'udinese': '/logos/udinese.png',
+  'udinese calcio': '/logos/udinese.png',
+  'venezia': '/logos/venezia.png',
+  'venezia fc': '/logos/venezia.png',
 }
 
 function normalize(name) {
