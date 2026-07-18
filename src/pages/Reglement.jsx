@@ -113,7 +113,7 @@ export default function Reglement() {
 
       <Section num="6" title="Déroulement d'une journée">
         <Li>Dimanche/lundi soir → annonce de la journée via l'app</Li>
-        <Li>Match à scorer + match européen communiqués par le bureau</Li>
+        <Li>Match à scorer + affiche européenne communiqués par le bureau</Li>
         <Li><Strong>Deadline : jeudi 23h00</Strong> — tout prono non envoyé = ABS → <Strong>−1pt</Strong> journée suivante</Li>
         <Li>Vendredi → pronos révélés à tous les chatteux</Li>
         <Li>Week-end → scores mis à jour <Strong>en live toutes les 5 min</Strong> automatiquement 🆕</Li>

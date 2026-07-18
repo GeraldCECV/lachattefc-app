@@ -904,7 +904,7 @@ export default function Pronos() {
       })}
 
       {/* ── EURO ── */}
-      <div className="section-lbl" style={{padding:'8px 20px'}}>🌍 Match européen — 1N2</div>
+      <div className="section-lbl" style={{padding:'8px 20px'}}>🌍 Affiche Européenne — 1N2</div>
       {journee.matchEuro?.dom && (() => {
         const isJPEuro = jackpotMatches.includes('euro')
         const isDCEuro = dcSelections.some(d => d.matchKey === 'euro')

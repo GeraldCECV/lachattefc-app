@@ -142,7 +142,7 @@ export default function PronosChatteux() {
   const matchBlocks = [
     scorer?.dom ? { key:'scorer', dom: scorer.dom, ext: scorer.ext, jour: scorer.jour, heure: scorer.heure, isScorer: true, label: '⚽ Match Scorer' } : null,
     ...matchesMain.map((m, i) => ({ key: `l1_${i}`, dom: m.dom, ext: m.ext, jour: m.jour, heure: m.heure, label: `Match ${i+1}`, isMatchScorer: m.scorer === true })),
-    euro ? { key:'euro', dom: euro.dom, ext: euro.ext, jour: euro.jour, heure: euro.heure, isEuro: true, label: '🌍 Match Euro' } : null,
+    euro ? { key:'euro', dom: euro.dom, ext: euro.ext, jour: euro.jour, heure: euro.heure, isEuro: true, label: '🌍 Affiche Européenne' } : null,
   ].filter(Boolean)
 
   const getProno = (uid, key) => {
