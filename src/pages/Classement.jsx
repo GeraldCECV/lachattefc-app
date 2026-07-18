@@ -176,7 +176,7 @@ export default function Classement() {
           return {
             ...j,
             gainsTotal: (j.gainsTotal || 0) + (enJeu ? gains[j.id] || 0 : 0),
-            journeesJouees: (j.journeesJouees || 0) + (enJeu ? 1 : 0),
+            journeesJouees: (j.journeesJouees || 0) + 1, // Tous les joueurs comptent pour cette journée (présents ou absents)
           };
         });
         setClassG(
