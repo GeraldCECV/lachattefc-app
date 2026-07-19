@@ -39,9 +39,9 @@ export default function Login() {
         src="/icon-512-transparent.png"
         alt="La Chatte FC"
         style={{
-          width: 140,
-          height: 140,
-          marginBottom: 30,
+          width: 200,
+          height: 200,
+          marginBottom: 40,
           filter: 'drop-shadow(0 0 24px rgba(155,226,45,.18))',
         }}
       />
