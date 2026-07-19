@@ -34,15 +34,15 @@ export default function Login() {
         linear-gradient(135deg, #060A07 0%, #0A140E 45%, #050806 100%)
       `,
     }}>
-      {/* Logo */}
+      {/* Logo SVG (fond transparent) */}
       <img
-        src="/icon-512.png"
+        src="/icon.svg"
         alt="La Chatte FC"
         style={{
-          width: 120,
-          height: 120,
+          width: 140,
+          height: 140,
           marginBottom: 30,
-          filter: 'drop-shadow(0 0 14px rgba(155,226,45,.12))',
+          filter: 'drop-shadow(0 0 24px rgba(155,226,45,.18))',
         }}
       />
 
