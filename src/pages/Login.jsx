@@ -34,16 +34,15 @@ export default function Login() {
         linear-gradient(135deg, #060A07 0%, #0A140E 45%, #050806 100%)
       `,
     }}>
-      {/* Logo PNG avec fond noir retiré via CSS */}
+      {/* Logo sans fond noir */}
       <img
-        src="/icon-512.png"
+        src="/icon-512-transparent.png"
         alt="La Chatte FC"
         style={{
           width: 140,
           height: 140,
           marginBottom: 30,
           filter: 'drop-shadow(0 0 24px rgba(155,226,45,.18))',
-          mixBlendMode: 'lighten', // Retire les pixels noirs, garde le reste
         }}
       />
 
