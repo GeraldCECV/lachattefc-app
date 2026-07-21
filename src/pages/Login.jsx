@@ -157,6 +157,32 @@ export default function Login() {
           >
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
+
+          {/* Bouton mot de passe oublié */}
+          <button
+            type="button"
+            onClick={() => {
+              // TODO: implémenter réinitialisation mot de passe
+              alert('Contacte Gérald pour réinitialiser ton mot de passe');
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'rgba(155,226,45,.6)',
+              fontSize: 13,
+              cursor: 'pointer',
+              marginTop: 12,
+              textDecoration: 'underline',
+              width: '100%',
+              textAlign: 'center',
+              fontFamily: 'Inter, sans-serif',
+              transition: 'color 0.16s',
+            }}
+            onMouseEnter={(e) => e.target.style.color = 'rgba(155,226,45,.8)'}
+            onMouseLeave={(e) => e.target.style.color = 'rgba(155,226,45,.6)'}
+          >
+            🔑 Mot de passe oublié ?
+          </button>
         </form>
 
         {error && (
@@ -173,6 +199,20 @@ export default function Login() {
             {error}
           </div>
         )}
+
+        {/* Message d'accès réservé */}
+        <div style={{
+          marginTop: 24,
+          textAlign: 'center',
+          fontSize: 12,
+          color: 'rgba(242,247,239,.5)',
+          lineHeight: 1.6,
+          fontWeight: 700,
+          letterSpacing: '0.01em',
+        }}>
+          ACCÈS RÉSERVÉ AUX 16 CHATTEUX<br />
+          <span style={{ color: 'rgba(242,247,239,.4)', fontWeight: 400 }}>Mot de passe fourni par Gérald</span>
+        </div>
       </div>
     </div>
   );
