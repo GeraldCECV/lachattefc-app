@@ -164,13 +164,15 @@ export default function Classement() {
         )
       );
 
-      // Classement Général en live : si la journée courante n'est pas encore
-      // officiellement clôturée (statut !== 'resultats'), on ajoute ses points
-      // en cours par-dessus les totaux déjà clôturés stockés sur chaque joueur
-      // (gainsTotal/journeesJouees). Une fois la journée clôturée côté serveur,
-      // ces champs stockés incluent déjà cette journée — on n'additionne alors
-      // plus rien pour éviter un double comptage.
-      if (data.statut !== 'resultats') {
+      // Classement Général en live : si la journée courante est en cours
+      // (ouverte ou fermee), on ajoute ses points provisoires par-dessus les
+      // totaux déjà clôturés stockés sur chaque joueur (gainsTotal/journeesJouees).
+      // Une fois la journée clôturée côté serveur (statut='resultats'), ces
+      // champs stockés incluent déjà cette journée — on n'additionne alors plus
+      // rien pour éviter un double comptage.
+      // IMPORTANT : ne pas incrémenter journeesJouees si la journée est 'a-venir'
+      // — elle ne compte que quand elle est réellement en jeu (ouverte/fermee).
+      if (data.statut === 'ouverte' || data.statut === 'fermee') {
         const classGLive = Object.values(map).map((j) => {
           const enJeu = !!pronosMap[j.id];
           return {
