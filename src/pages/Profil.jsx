@@ -28,19 +28,22 @@ export default function Profil() {
   }, [])
 
   const activerNotifications = async () => {
-    // Appel direct sur window.OneSignal (déjà chargé et initialisé depuis
-    // index.html au moment où ce bouton est cliqué) plutôt que de repasser
-    // par la file OneSignalDeferred — cette dernière est prévue pour les
-    // appels faits AVANT que le SDK soit prêt et ajoute un détour asynchrone
-    // qui peut casser la chaîne "geste utilisateur" exigée par Safari/iOS
-    // pour autoriser la vraie popup de permission.
     setNotifLoading(true)
     setNotifError(null)
     try {
+      // Attendre que OneSignal se charge (max 10 sec = 100 tentatives × 100ms)
+      let attempts = 0
+      while (!window.OneSignal && attempts < 100) {
+        await new Promise(r => setTimeout(r, 100))
+        attempts++
+      }
+      
       if (!window.OneSignal) {
-        setNotifError("Le service de notifications n'a pas fini de charger, réessaie dans quelques secondes.")
+        setNotifError("Notifications indisponibles. Vérifie ta connexion et réessaie.")
+        setNotifLoading(false)
         return
       }
+      
       await window.OneSignal.Notifications.requestPermission()
       setNotifStatus(Notification.permission === 'granted' ? 'accordee' : Notification.permission === 'denied' ? 'refusee' : 'a-activer')
     } catch (e) {
