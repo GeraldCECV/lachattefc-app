@@ -39,16 +39,21 @@ export default function Profil() {
       }
       
       if (!window.OneSignal) {
-        setNotifError("Notifications indisponibles. Vérifie ta connexion et réessaie.")
+        // OneSignal ne s'est pas chargé
+        const reason = window.OneSignalError || 'SDK OneSignal n\'a pas pu se charger'
+        setNotifError('❌ ' + reason + ' — Vérifie ta connexion et réessaie.')
+        console.error('OneSignal non disponible:', reason)
         setNotifLoading(false)
         return
       }
       
+      // OneSignal est chargé et initialisé
+      console.log('Activation notifications via OneSignal...')
       await window.OneSignal.Notifications.requestPermission()
       setNotifStatus(Notification.permission === 'granted' ? 'accordee' : Notification.permission === 'denied' ? 'refusee' : 'a-activer')
     } catch (e) {
       console.error('Erreur activation notifications:', e)
-      setNotifError('Erreur : ' + (e?.message || 'impossible d\'activer les notifications.'))
+      setNotifError('❌ ' + (e?.message || 'impossible d\'activer les notifications.'))
     } finally {
       setNotifLoading(false)
     }

@@ -63,15 +63,49 @@
     <!-- OneSignal Web Push — service worker enregistré sur un scope séparé
          (/push/onesignal/) pour ne jamais entrer en conflit avec le service
          worker de la PWA (celui-ci reste seul maître du scope racine /). -->
+    <script>
+      window.OneSignalReady = false;
+      window.OneSignalError = null;
+      
+      // Fallback timeout: si OneSignal ne charge pas en 8 sec, mark comme failed
+      setTimeout(() => {
+        if (!window.OneSignal) {
+          window.OneSignalError = 'Timeout de chargement du SDK OneSignal';
+          console.warn('OneSignal SDK timeout après 8 secondes');
+        }
+      }, 8000);
+      
+      // Log qu'on a commencé à charger
+      console.log('Démarrage du chargement OneSignal SDK...');
+    </script>
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function (OneSignal) {
-        await OneSignal.init({
-          appId: 'f336f95a-cd06-42cf-9989-5aef9ccc1205',
-          serviceWorkerPath: 'push/onesignal/OneSignalSDKWorker.js',
-          serviceWorkerParam: { scope: '/push/onesignal/' },
-        });
+        try {
+          console.log('OneSignal SDK chargé, initialisation...');
+          await OneSignal.init({
+            appId: 'f336f95a-cd06-42cf-9989-5aef9ccc1205',
+            serviceWorkerPath: 'push/onesignal/OneSignalSDKWorker.js',
+            serviceWorkerParam: { scope: '/push/onesignal/' },
+          });
+          window.OneSignalReady = true;
+          console.log('✅ OneSignal initialisé avec succès');
+        } catch (e) {
+          window.OneSignalError = e.message;
+          console.error('❌ Erreur initialisation OneSignal:', e);
+        }
+      });
+      
+      // Fallback: si le script CDN ne charge pas du tout
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          if (!window.OneSignal) {
+            window.OneSignalError = window.OneSignalError || 'SDK OneSignal non chargé depuis le CDN';
+            console.error('❌ OneSignal SDK n\'a pas pu charger du CDN');
+            console.error('Possible causes: CORS, bloqueur de contenu, pas de réseau');
+          }
+        }, 500);
       });
     </script>
   </head>
