@@ -215,7 +215,8 @@ export default function Classement() {
 
         const allJ = await getDocs(query(collection(db, 'journees'), orderBy('numero', 'asc')));
         const openJ = allJ.docs.find((d) => ['ouverte', 'fermee'].includes(d.data().statut));
-        const jDoc = openJ || allJ.docs[allJ.docs.length - 1];
+        const nextJ = openJ || allJ.docs.find((d) => d.data().statut === 'a-venir'); // Prochaine à-venir
+        const jDoc = nextJ || allJ.docs[allJ.docs.length - 1]; // Fallback: dernière
         if (jDoc) {
           // Listener journée (résultats, statut)
           unsubJournee = onSnapshot(
