@@ -54,26 +54,6 @@ export default function Login() {
         }}
       />
 
-      {/* Titre stylé */}
-      <h1 style={{
-        fontFamily: '"Orbitron", "Space Grotesk", sans-serif',
-        fontSize: 48,
-        fontWeight: 900,
-        letterSpacing: '0.12em',
-        color: '#F2F7EF',
-        textTransform: 'uppercase',
-        background: 'linear-gradient(135deg, #9BE22D 0%, #22C55E 50%, #9BE22D 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-        textShadow: 'none',
-        marginBottom: 40,
-        margin: 0,
-        filter: 'drop-shadow(0 0 20px rgba(155,226,45,.25))',
-      }}>
-        La Chatte FC
-      </h1>
-
       {/* Form Card */}
       <div style={{
         background: 'linear-gradient(180deg, rgba(17,31,23,.94), rgba(8,15,11,.96))',
