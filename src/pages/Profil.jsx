@@ -48,7 +48,6 @@ export default function Profil() {
       }
       
       // OneSignal est chargé et initialisé
-      console.log('Activation notifications via OneSignal...')
       await window.OneSignal.Notifications.requestPermission()
       setNotifStatus(Notification.permission === 'granted' ? 'accordee' : Notification.permission === 'denied' ? 'refusee' : 'a-activer')
     } catch (e) {

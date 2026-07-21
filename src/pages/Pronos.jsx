@@ -4,77 +4,12 @@ import { db } from '../firebase/config'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
+import PronoBtn from '../components/PronoBtn'
+import DcBtn from '../components/DcBtn'
+import Confetti from '../components/Confetti'
 import { translateTeam } from '../utils/teamName'
 
-// ── Helpers ──
-const RESULT_COLORS = {
-  '1': { sel:'var(--b)', dim:'var(--b-dim)', label:'1' },
-  'N': { sel:'var(--a)', dim:'var(--a-dim)', label:'N' },
-  '2': { sel:'var(--p)', dim:'var(--p-dim)', label:'2' },
-}
 
-function PronoBtn({ val, selected, onClick, disabled }) {
-  const c = RESULT_COLORS[val]
-  const isSel = selected === val
-  return (
-    <button onClick={onClick} disabled={disabled} style={{
-      flex:1, height:42, borderRadius:10,
-      border:`1.5px solid ${isSel ? c.sel : 'rgba(255,255,255,.13)'}`,
-      background: isSel ? c.dim : 'rgba(255,255,255,.04)',
-      color: isSel ? c.sel : 'rgba(255,255,255,.4)',
-      fontSize:14, fontWeight:700, cursor: disabled ? 'not-allowed' : 'pointer',
-      transition:'all .15s', opacity: disabled ? .5 : 1,
-    }}>
-      {c.label}
-    </button>
-  )
-}
-
-function DcBtn({ val, selected, onClick }) {
-  const c = RESULT_COLORS[val]
-  const isSel = selected?.includes(val)
-  return (
-    <button onClick={onClick} style={{
-      flex:1, height:42, borderRadius:10,
-      border:`1.5px solid ${isSel ? c.sel : 'rgba(255,255,255,.13)'}`,
-      background: isSel ? c.dim : 'rgba(255,255,255,.04)',
-      color: isSel ? c.sel : 'rgba(255,255,255,.4)',
-      fontSize:14, fontWeight:700, cursor:'pointer', transition:'all .15s',
-    }}>
-      {c.label} {isSel ? '✓' : ''}
-    </button>
-  )
-}
-
-function Confetti() {
-  const colors = ['#9BE22D', '#FFD700', '#60A5FA', '#F87171', '#C084FC', '#FB923C']
-  const pieces = Array.from({ length: 90 }, (_, i) => ({
-    id: i,
-    left: Math.random() * 100,
-    color: colors[i % colors.length],
-    delay: Math.random() * 0.6,
-    duration: 2.5 + Math.random() * 1.8,
-    size: 6 + Math.random() * 6,
-  }))
-  return (
-    <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:9999, overflow:'hidden' }}>
-      <style>{`
-        @keyframes confetti-fall {
-          0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-        }
-      `}</style>
-      {pieces.map(p => (
-        <div key={p.id} style={{
-          position:'absolute', top:0, left:`${p.left}%`,
-          width:p.size, height:p.size*0.4, background:p.color,
-          borderRadius:2,
-          animation:`confetti-fall ${p.duration}s ease-in ${p.delay}s forwards`,
-        }} />
-      ))}
-    </div>
-  )
-}
 
 export default function Pronos() {
   const { profil, user } = useUser()
