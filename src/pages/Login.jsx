@@ -54,18 +54,22 @@ export default function Login() {
         }}
       />
 
-      {/* Titre Playfair Display stylé */}
+      {/* Titre stylé */}
       <h1 style={{
-        fontFamily: '"Playfair Display", serif',
-        fontSize: 'clamp(36px, 8vw, 48px)',
+        fontFamily: '"Orbitron", "Space Grotesk", sans-serif',
+        fontSize: 48,
         fontWeight: 900,
-        fontStyle: 'italic',
+        letterSpacing: '0.12em',
         color: '#F2F7EF',
         textTransform: 'uppercase',
-        textShadow: '0 0 14px rgba(155,226,45,.15)',
+        background: 'linear-gradient(135deg, #9BE22D 0%, #22C55E 50%, #9BE22D 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+        textShadow: 'none',
         marginBottom: 40,
         margin: 0,
-        whiteSpace: 'nowrap',
+        filter: 'drop-shadow(0 0 20px rgba(155,226,45,.25))',
       }}>
         La Chatte FC
       </h1>
