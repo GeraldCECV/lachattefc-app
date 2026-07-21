@@ -67,18 +67,23 @@
       window.OneSignalReady = false;
       window.OneSignalError = null;
       
+      // Log qu'on a commencé à charger
+      console.log('Démarrage du chargement OneSignal SDK...');
+      
       // Fallback timeout: si OneSignal ne charge pas en 8 sec, mark comme failed
       setTimeout(() => {
         if (!window.OneSignal) {
-          window.OneSignalError = 'Timeout de chargement du SDK OneSignal';
-          console.warn('OneSignal SDK timeout après 8 secondes');
+          window.OneSignalError = 'Timeout de chargement du SDK OneSignal (CDN bloqué ou lent)';
+          console.warn('⚠️ OneSignal SDK timeout après 8 secondes');
+          console.warn('Possible causes: bloqueur de contenu, CDN externe, réseau lent');
         }
       }, 8000);
-      
-      // Log qu'on a commencé à charger
-      console.log('Démarrage du chargement OneSignal SDK...');
     </script>
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script 
+      src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" 
+      defer
+      onerror="window.OneSignalError='Erreur de chargement du script OneSignal (CORS ou bloqué)'; console.error('❌ OneSignal CDN script failed to load');"
+    ></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function (OneSignal) {

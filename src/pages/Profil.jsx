@@ -31,9 +31,9 @@ export default function Profil() {
     setNotifLoading(true)
     setNotifError(null)
     try {
-      // Attendre que OneSignal se charge (max 10 sec = 100 tentatives × 100ms)
+      // Attendre que OneSignal se charge (max 15 sec = 150 tentatives × 100ms)
       let attempts = 0
-      while (!window.OneSignal && attempts < 100) {
+      while (!window.OneSignal && attempts < 150) {
         await new Promise(r => setTimeout(r, 100))
         attempts++
       }
@@ -41,7 +41,7 @@ export default function Profil() {
       if (!window.OneSignal) {
         // OneSignal ne s'est pas chargé
         const reason = window.OneSignalError || 'SDK OneSignal n\'a pas pu se charger'
-        setNotifError('❌ ' + reason + ' — Vérifie ta connexion et réessaie.')
+        setNotifError('❌ ' + reason + '\n\n💡 Essaie: désactiver tes bloqueurs de contenu, vérifier le WiFi, ou attendre quelques secondes.')
         console.error('OneSignal non disponible:', reason)
         setNotifLoading(false)
         return
