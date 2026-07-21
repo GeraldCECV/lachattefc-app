@@ -42,17 +42,20 @@ export default function Login() {
         linear-gradient(135deg, #060A07 0%, #0A140E 45%, #050806 100%)
       `,
     }}>
-      {/* Logo sans fond noir */}
-      <img
-        src="/icon-512-transparent.png"
-        alt="La Chatte FC"
-        style={{
-          width: 200,
-          height: 200,
-          marginBottom: 40,
-          filter: 'drop-shadow(0 0 24px rgba(155,226,45,.18))',
-        }}
-      />
+      {/* Logo sans fond noir - WebP + fallback PNG */}
+      <picture>
+        <source srcSet="/icon-512-transparent.webp" type="image/webp" />
+        <img
+          src="/icon-512-transparent.png"
+          alt="La Chatte FC"
+          style={{
+            width: 200,
+            height: 200,
+            marginBottom: 40,
+            filter: 'drop-shadow(0 0 24px rgba(155,226,45,.18))',
+          }}
+        />
+      </picture>
 
       {/* Form Card */}
       <div style={{
