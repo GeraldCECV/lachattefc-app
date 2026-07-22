@@ -373,6 +373,31 @@ export default function Pronos() {
         setSaved(true)
         celebrer()
         setTimeout(() => setSaved(false), 3000)
+        
+        // Envoyer email de confirmation
+        try {
+          const joueurSnap2 = await getDoc(doc(db,'joueurs',user.uid))
+          const joueurData = joueurSnap2.data()
+          if (joueurData?.email) {
+            const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
+            await fn({
+              journeeId: journee.id,
+              journeeNumero: journee.numero,
+              joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
+              joueurEmail: joueurData.email,
+              pronos: scores,
+              matchesL1: matchesL1 || [],
+              matchScorer: null,
+              matchEuro: null,
+              scorerOnly: true,
+              jackpotMatches: [],
+              dcSelections: [],
+              missiles: [],
+            })
+          }
+        } catch(emailErr) {
+          console.warn('Email non envoyé:', emailErr.message)
+        }
       } catch(e) { alert('Erreur : '+e.message) }
       setSaving(false)
     }
@@ -434,6 +459,31 @@ export default function Pronos() {
         setSaved(true)
         celebrer()
         setTimeout(() => setSaved(false), 3000)
+        
+        // Envoyer email de confirmation
+        try {
+          const joueurSnap2 = await getDoc(doc(db,'joueurs',user.uid))
+          const joueurData = joueurSnap2.data()
+          if (joueurData?.email) {
+            const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
+            await fn({
+              journeeId: journee.id,
+              journeeNumero: journee.numero,
+              joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
+              joueurEmail: joueurData.email,
+              pronos: scores,
+              matchesL1: matchesBoxing || [],
+              matchScorer: null,
+              matchEuro: null,
+              scorerOnly: true,
+              jackpotMatches: [],
+              dcSelections: [],
+              missiles: [],
+            })
+          }
+        } catch(emailErr) {
+          console.warn('Email non envoyé:', emailErr.message)
+        }
       } catch(e) { alert('Erreur : '+e.message) }
       setSaving(false)
     }
