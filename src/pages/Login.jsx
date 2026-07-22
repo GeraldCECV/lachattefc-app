@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../firebase/config';
 
 // Importer les polices stylées
@@ -15,6 +15,10 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,6 +30,28 @@ export default function Login() {
       setError(err.message);
     }
     setLoading(false);
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      setResetMessage({ type: 'error', text: 'Entrez votre email' });
+      return;
+    }
+    setResetLoading(true);
+    setResetMessage('');
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      setResetMessage({ type: 'ok', text: '✅ Email de réinitialisation envoyé ! Vérifie ta boîte.' });
+      setResetEmail('');
+      setTimeout(() => setShowResetForm(false), 3000);
+    } catch (err) {
+      let msg = err.message;
+      if (err.code === 'auth/user-not-found') msg = 'Cet email n\'existe pas';
+      if (err.code === 'auth/invalid-email') msg = 'Email invalide';
+      setResetMessage({ type: 'error', text: '❌ Erreur : ' + msg });
+    }
+    setResetLoading(false);
   };
 
   return (
@@ -158,10 +184,7 @@ export default function Login() {
           {/* Bouton mot de passe oublié */}
           <button
             type="button"
-            onClick={() => {
-              // TODO: implémenter réinitialisation mot de passe
-              alert('Contacte Gérald pour réinitialiser ton mot de passe');
-            }}
+            onClick={() => setShowResetForm(true)}
             style={{
               background: 'none',
               border: 'none',
@@ -211,6 +234,95 @@ export default function Login() {
           <span style={{ color: 'rgba(242,247,239,.4)', fontWeight: 400 }}>Mot de passe fourni par Gérald</span>
         </div>
       </div>
+
+      {/* Modal réinitialisation mot de passe */}
+      {showResetForm && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #0F2818 0%, #0A1F14 100%)',
+            border: '1px solid rgba(155,226,45,.2)',
+            borderRadius: 12,
+            padding: 24,
+            width: '90%',
+            maxWidth: 340,
+            boxShadow: '0 20px 40px rgba(0,0,0,.3)',
+          }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: 18, fontWeight: 700, color: '#9BE22D' }}>
+              🔑 Réinitialiser ton mot de passe
+            </h2>
+            <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <input
+                type="email"
+                placeholder="Ton email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                style={{
+                  padding: '10px 12px',
+                  background: 'rgba(255,255,255,.05)',
+                  border: '1px solid rgba(155,226,45,.2)',
+                  borderRadius: 8,
+                  color: '#F2F7EF',
+                  fontSize: 14,
+                  fontFamily: 'Inter',
+                  outline: 'none',
+                }}
+              />
+              {resetMessage && (
+                <div style={{
+                  padding: 10,
+                  background: resetMessage.type === 'ok' ? 'rgba(34,197,94,.12)' : 'rgba(248,113,113,.12)',
+                  border: `1px solid ${resetMessage.type === 'ok' ? 'rgba(34,197,94,.3)' : 'rgba(248,113,113,.3)'}`,
+                  borderRadius: 6,
+                  color: resetMessage.type === 'ok' ? '#86EFAC' : '#FCA5A5',
+                  fontSize: 13,
+                  textAlign: 'center',
+                }}>
+                  {resetMessage.text}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={resetLoading}
+                style={{
+                  padding: '10px 16px',
+                  background: '#9BE22D',
+                  border: 'none',
+                  borderRadius: 8,
+                  color: '#060A07',
+                  fontWeight: 700,
+                  cursor: resetLoading ? 'not-allowed' : 'pointer',
+                  opacity: resetLoading ? 0.6 : 1,
+                }}
+              >
+                {resetLoading ? '⏳ Envoi...' : '📧 Envoyer un lien'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowResetForm(false)}
+                style={{
+                  padding: '10px 16px',
+                  background: 'rgba(255,255,255,.08)',
+                  border: '1px solid rgba(255,255,255,.1)',
+                  borderRadius: 8,
+                  color: '#A9B8A7',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+              >
+                Annuler
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
