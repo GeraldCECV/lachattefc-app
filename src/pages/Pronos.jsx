@@ -35,6 +35,43 @@ export default function Pronos() {
     setTimeout(() => setShowConfetti(false), 5000)
   }
 
+  // Fonction utilitaire : envoyer email de confirmation
+  const sendPronosEmail = async (data, matchesForEmail, scorerOnly = false) => {
+    try {
+      const joueurSnap = await getDoc(doc(db,'joueurs',user.uid))
+      const joueurData = joueurSnap.data()
+      if (!joueurData?.email) return
+      
+      const missilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
+      const missilesPourEmail = missilesSnap.docs
+        .map(d => d.data())
+        .filter(m => m.lanceur === user.uid)
+        .map(m => {
+          const cibleJoueur = joueurs.find(j => j.id === m.cible)
+          return { cibleNom: cibleJoueur?.nom?.split(' ')[0] || 'un joueur', matchKey: m.matchKey, pronoImpose: m.pronoImpose }
+        })
+      
+      const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
+      await fn({
+        journeeId: journee.id,
+        journeeNumero: journee.numero,
+        joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
+        joueurEmail: joueurData.email,
+        pronos: Array.isArray(data.matchesL1) ? data.matchesL1 : (data.matchesBoxing || data.matchesMultiplex || []),
+        matchesL1: matchesForEmail || [],
+        matchScorer: journee.matchScorer || null,
+        matchEuro: journee.matchEuro || null,
+        scorerOnly: scorerOnly || false,
+        jackpotMatches: jackpotMatches || [],
+        dcSelections: dcSelections || [],
+        missiles: missilesPourEmail,
+      })
+    } catch(emailErr) {
+      console.warn('Email non envoyé:', emailErr.message)
+    }
+  }
+
+
   // Bonus state
   const [bonusStock, setBonusStock] = useState({ missile:3, jackpot:3, doubleChance:4 })
   const [activeBonus, setActiveBonus] = useState(null) // { type:'jackpot'|'dc'|'missile', matchKey: null }
