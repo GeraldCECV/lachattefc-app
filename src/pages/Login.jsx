@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { httpsCallable, getFunctions } from 'firebase/functions';
 import { auth } from '../firebase/config';
 
 // Importer les polices stylées
@@ -41,15 +42,14 @@ export default function Login() {
     setResetLoading(true);
     setResetMessage('');
     try {
-      await sendPasswordResetEmail(auth, resetEmail);
-      setResetMessage({ type: 'ok', text: '✅ Email de réinitialisation envoyé ! Vérifie ta boîte.' });
+      const functions = getFunctions(undefined, 'us-central1');
+      const demanderReset = httpsCallable(functions, 'demanderResetMotDePasse');
+      await demanderReset({ email: resetEmail });
+      setResetMessage({ type: 'ok', text: '✅ Email envoyé ! Vérifie ta boîte (y compris spam).' });
       setResetEmail('');
       setTimeout(() => setShowResetForm(false), 3000);
     } catch (err) {
-      let msg = err.message;
-      if (err.code === 'auth/user-not-found') msg = 'Cet email n\'existe pas';
-      if (err.code === 'auth/invalid-email') msg = 'Email invalide';
-      setResetMessage({ type: 'error', text: '❌ Erreur : ' + msg });
+      setResetMessage({ type: 'error', text: '❌ Erreur : ' + (err.message || 'Erreur réseau') });
     }
     setResetLoading(false);
   };
