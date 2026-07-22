@@ -19,6 +19,7 @@ export default function Pronos() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
   const [showConfetti, setShowConfetti] = useState(false)
   const [scorerH, setScorerH] = useState(0)
   const [scorerA, setScorerA] = useState(0)
@@ -265,7 +266,7 @@ export default function Pronos() {
       } catch(emailErr) {
         console.warn('Email non envoyé:', emailErr.message)
       }
-    } catch(e) { alert('Erreur : '+e.message) }
+    } catch(e) { setError(e.message); console.error(e) }
     setSaving(false)
   }
 
@@ -328,7 +329,7 @@ export default function Pronos() {
       await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': Math.min(currentStock + 1, 6) })
       setBonusStock(prev => ({ ...prev, missile: Math.min(prev.missile + 1, 6) }))
       setMesMissiles(prev => prev.filter(m => m.id !== missileId))
-    } catch(e) { alert('Erreur : '+e.message) }
+    } catch(e) { setError(e.message); console.error(e) }
   }
 
   const filled = countFilled()
@@ -398,7 +399,7 @@ export default function Pronos() {
         } catch(emailErr) {
           console.warn('Email non envoyé:', emailErr.message)
         }
-      } catch(e) { alert('Erreur : '+e.message) }
+      } catch(e) { setError(e.message); console.error(e) }
       setSaving(false)
     }
 
@@ -409,6 +410,7 @@ export default function Pronos() {
           <div style={{fontSize:13,color:'var(--tx2)',marginTop:2}}>J{journee.numero} · Tous les matchs à scorer simultanément · Pas de bonus</div>
         </div>
         {saved && <div className="alert alert-g" style={{margin:'12px 16px 0'}}>✅ Pronos envoyés !</div>}
+        {error && <div className="alert alert-r" style={{margin:'12px 16px 0'}}>❌ {error}</div>}
         <div style={{margin:'12px 16px 0',padding:'10px 14px',background:'rgba(155,226,45,.06)',border:'1px solid var(--g-b)',borderRadius:'var(--Rs)',fontSize:12,color:'var(--g)',fontWeight:700}}>
           ⚽ Multiplex — tous les matchs débutent en même temps. Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt
         </div>
@@ -484,7 +486,7 @@ export default function Pronos() {
         } catch(emailErr) {
           console.warn('Email non envoyé:', emailErr.message)
         }
-      } catch(e) { alert('Erreur : '+e.message) }
+      } catch(e) { setError(e.message); console.error(e) }
       setSaving(false)
     }
 
@@ -495,6 +497,7 @@ export default function Pronos() {
           <div style={{fontSize:13,color:'var(--tx2)',marginTop:2}}>26 décembre · 10 matchs PL · Tous à scorer · Pas de bonus</div>
         </div>
         {saved && <div className="alert alert-g" style={{margin:'12px 16px 0'}}>✅ Pronos envoyés !</div>}
+        {error && <div className="alert alert-r" style={{margin:'12px 16px 0'}}>❌ {error}</div>}
         <div className="section-lbl" style={{padding:'14px 20px 8px'}}>🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League — 10 matchs à scorer</div>
         {matchesBoxing.map((m, i) => (
           <div key={i} style={{margin:'0 16px 8px',background:'rgba(251,191,36,.04)',border:'1px solid var(--a-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
@@ -660,6 +663,7 @@ export default function Pronos() {
       </div>
 
       {saved && <div className="alert alert-g" style={{margin:'12px 16px 0'}}>✅ Pronos enregistrés !</div>}
+        {error && <div className="alert alert-r" style={{margin:'12px 16px 0'}}>❌ {error}</div>}
 
       {/* Progress */}
       <div style={{margin:'14px 16px 0'}}>

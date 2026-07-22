@@ -18,6 +18,7 @@ export default function Profil() {
   const [notifStatus, setNotifStatus] = useState('inconnu') // inconnu | accordee | refusee | non-supportee
   const [notifLoading, setNotifLoading] = useState(false)
   const [notifError, setNotifError] = useState(null)
+  const [clubError, setClubError] = useState('')
 
   useEffect(() => {
     if (typeof Notification === 'undefined') { setNotifStatus('non-supportee'); return }
@@ -111,7 +112,8 @@ export default function Profil() {
       await updateDoc(doc(db, 'joueurs', user.uid), { clubCoeur: club })
       setClubCoeur(club)
       setShowClubPicker(false)
-    } catch(e) { alert('Erreur : ' + e.message) }
+      setClubError('')
+    } catch(e) { setClubError(e.message); console.error(e) }
     setSavingClub(false)
   }
 
@@ -450,6 +452,7 @@ export default function Profil() {
           <div style={{ position:'fixed', top:'8dvh', left:0, right:0, bottom:0, overflowY:'scroll', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', borderRadius:'20px 20px 0 0', padding:'20px 20px calc(20px + env(safe-area-inset-bottom))', background:'linear-gradient(180deg, rgba(20,36,27,.99), rgba(9,17,12,.995))', border:'1px solid var(--bd)', borderBottom:'none', boxShadow:'var(--shadow)' }}>
             <div className="page-title" style={{ fontSize:22, marginBottom:4 }}>👕 Ton club de cœur</div>
             <div style={{ fontSize:12, color:'var(--tx3)', marginBottom:16 }}>Ton avatar prend les couleurs du club choisi, visible par tout le monde.</div>
+            {clubError && <div style={{ background:'rgba(252,165,165,.12)', border:'1px solid rgba(252,165,165,.3)', borderRadius:'var(--Rs)', padding:10, marginBottom:16, color:'#FCA5A5', fontSize:12 }}>❌ {clubError}</div>}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               {CLUBS_L1_2627.map(c => (
                 <button key={c} onClick={() => choisirClub(c)} disabled={savingClub} style={{
