@@ -230,8 +230,7 @@ export default function Login() {
           fontWeight: 700,
           letterSpacing: '0.01em',
         }}>
-          ACCÈS RÉSERVÉ AUX 16 CHATTEUX<br />
-          <span style={{ color: 'rgba(242,247,239,.4)', fontWeight: 400 }}>Mot de passe fourni par Gérald</span>
+          ACCÈS RÉSERVÉ AUX 16 CHATTEUX
         </div>
       </div>
 
