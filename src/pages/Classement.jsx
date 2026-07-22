@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useUser } from '../App';
+import ErrorBoundary from '../components/ErrorBoundary';
 import JerseyAvatar from '../components/JerseyAvatar';
 import {
   issueMatch,
@@ -28,7 +29,7 @@ const COLORS = [
 ];
 const getC = (i) => COLORS[i % COLORS.length];
 
-export default function Classement() {
+function ClassementContent() {
   const { profil } = useUser();
   const [tab, setTab] = useState('journee');
   const [historiqueList, setHistoriqueList] = useState([]);
@@ -869,4 +870,8 @@ export default function Classement() {
       </div>
     </div>
   );
+}
+
+export default function Classement() {
+  return <ErrorBoundary><ClassementContent /></ErrorBoundary>
 }

@@ -3,6 +3,7 @@ import { collection, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc, query, 
 import { db } from '../firebase/config'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useUser } from '../App'
+import ErrorBoundary from '../components/ErrorBoundary'
 import TeamLogo from '../components/TeamLogo'
 import PronoBtn from '../components/PronoBtn'
 import DcBtn from '../components/DcBtn'
@@ -11,7 +12,7 @@ import { translateTeam } from '../utils/teamName'
 
 
 
-export default function Pronos() {
+function PronosContent() {
   const { profil, user } = useUser()
   const [journee, setJournee] = useState(null)
   const [pronos, setPronos] = useState({ matchesL1: Array(8).fill(null), matchEuro: null, matchScorer: null })
@@ -1050,3 +1051,7 @@ function deadlineFmt(j) {
 
 
 
+
+export default function Pronos() {
+  return <ErrorBoundary><PronosContent /></ErrorBoundary>
+}
