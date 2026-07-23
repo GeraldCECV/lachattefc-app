@@ -6,8 +6,9 @@ import { db, auth } from '../firebase/config'
 import { CLUBS_L1_2627 } from '../firebase/constants'
 import JerseyAvatar from '../components/JerseyAvatar'
 import { useUser } from '../App'
+import ErrorBoundary from '../components/ErrorBoundary'
 
-export default function Profil() {
+function ProfilContent() {
   const { profil, user } = useUser()
   const [stats, setStats] = useState(null)
   const [historique, setHistorique] = useState([])
@@ -474,6 +475,10 @@ export default function Profil() {
       )}
     </div>
   )
+}
+
+export default function Profil() {
+  return <ErrorBoundary><ProfilContent /></ErrorBoundary>
 }
 
 

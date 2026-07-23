@@ -3,6 +3,7 @@ import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/f
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
+import ErrorBoundary from '../components/ErrorBoundary'
 
 const COLORS = [
   ['rgba(255,215,0,.14)','#FFD700'],['rgba(192,192,192,.12)','#C0C0C0'],
@@ -10,7 +11,7 @@ const COLORS = [
   ['rgba(155,226,45,.12)','#9BE22D'],
 ]
 
-export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) {
+function VestiaireContent({ onNavigate, onProfil, profil: profilProp }) {
   const { profil } = useUser()
   const [journee, setJournee] = useState(null)
   const [monProno, setMonProno] = useState(null)
@@ -340,4 +341,8 @@ export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) 
       )}
     </div>
   )
+}
+
+export default function Vestiaire({ onNavigate, onProfil, profil: profilProp }) {
+  return <ErrorBoundary><VestiaireContent onNavigate={onNavigate} onProfil={onProfil} profil={profilProp} /></ErrorBoundary>
 }

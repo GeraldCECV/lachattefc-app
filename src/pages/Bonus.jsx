@@ -3,8 +3,9 @@ import { collection, getDocs, doc, getDoc, query, orderBy } from 'firebase/fires
 import { db } from '../firebase/config';
 import { useUser } from '../App';
 import { translateTeam } from '../utils/teamName';
+import ErrorBoundary from '../components/ErrorBoundary';
 
-export default function Bonus() {
+function BonusContent() {
   const { profil, user } = useUser();
   const [bonus, setBonus] = useState(null);
   const [joueurs, setJoueurs] = useState([]);
@@ -396,4 +397,8 @@ export default function Bonus() {
       )}
     </div>
   );
+}
+
+export default function Bonus() {
+  return <ErrorBoundary><BonusContent /></ErrorBoundary>;
 }
