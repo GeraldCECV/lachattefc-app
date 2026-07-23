@@ -164,7 +164,6 @@ function PronosContent() {
         await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.jackpot': Math.max(0, currentStock - 1) })
         setBonusStock(prev => ({ ...prev, jackpot: Math.max(0, prev.jackpot - 1) }))
       }
-    } catch(e) { console.warn('Erreur jackpot:', e.message) }
     setActiveBonus(null)
   }
 
@@ -185,7 +184,6 @@ function PronosContent() {
         await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.doubleChance': Math.max(0, currentStock - 1) })
         setBonusStock(prev => ({ ...prev, doubleChance: Math.max(0, prev.doubleChance - 1) }))
       }
-    } catch(e) { console.warn('Erreur DC:', e.message) }
     setActiveBonus(null)
   }
 
