@@ -1,8 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { initSentry } from './sentry.js';
 import App from './App.jsx';
 import './index.css';
 import { registerSW } from 'virtual:pwa-register';
+
+// Initialize Sentry error tracking
+initSentry();
 
 // Le SW ne vérifie une nouvelle version qu'au chargement complet — jamais
 // pendant la navigation interne (SPA). On expose un checker global que
@@ -14,7 +18,7 @@ registerSW({
   onOfflineReady() {},
 });
 window.__checkForAppUpdate = () => {
-  navigator.serviceWorker?.getRegistration().then((reg) => reg?.update());
+  navigator.serviceWorker?.getRegistration().then(reg => reg?.update());
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(
