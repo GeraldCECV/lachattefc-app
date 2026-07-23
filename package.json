@@ -6,8 +6,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src/",
-    "format": "prettier --write 'src/**/*.{js,jsx}'"
+    "lint": "eslint src --ext .jsx,.js --fix",
+    "format": "prettier --write \"src/**/*.{jsx,js,css,md}\"",
+    "lint:check": "eslint src --ext .jsx,.js"
   },
   "dependencies": {
     "firebase": "^10.14.1",
@@ -22,7 +23,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "firebase-admin": "^14.2.0",
-    "prettier": "^3.9.5",
+    "prettier": "^3.9.6",
     "vite": "^5.3.1",
     "vite-plugin-pwa": "^0.20.0",
     "workbox-window": "^7.1.0"
