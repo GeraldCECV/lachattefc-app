@@ -164,7 +164,11 @@ function PronosContent() {
         await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.jackpot': Math.max(0, currentStock - 1) })
         setBonusStock(prev => ({ ...prev, jackpot: Math.max(0, prev.jackpot - 1) }))
       }
-    setActiveBonus(null)
+    } catch (err) {
+      console.error('Erreur jackpot toggle:', err.message)
+    } finally {
+      setActiveBonus(null)
+    }
   }
 
   const toggleDcMatch = async (key) => {
@@ -184,7 +188,11 @@ function PronosContent() {
         await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.doubleChance': Math.max(0, currentStock - 1) })
         setBonusStock(prev => ({ ...prev, doubleChance: Math.max(0, prev.doubleChance - 1) }))
       }
-    setActiveBonus(null)
+    } catch (err) {
+      console.error('Erreur DC toggle:', err.message)
+    } finally {
+      setActiveBonus(null)
+    }
   }
 
   const toggleDcChoice = (matchKey, val) => {
