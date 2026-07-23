@@ -6,8 +6,9 @@ import { issueMatch, calcPoints1N2, calcPointsScorer, isJackpotOn, getDcChoicesF
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
 import JerseyAvatar from '../components/JerseyAvatar'
+import ErrorBoundary from '../components/ErrorBoundary'
 
-export default function PronosChatteux() {
+function PronosChatteuxContent() {
   const { profil } = useUser()
   const [journeesList, setJourneesList] = useState([])
   const [selectedJId, setSelectedJId] = useState(null)
@@ -508,6 +509,10 @@ export default function PronosChatteux() {
       </div>
     </div>
   )
+}
+
+export default function PronosChatteux() {
+  return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
 
 

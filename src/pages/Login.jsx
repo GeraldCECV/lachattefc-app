@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { auth } from '../firebase/config';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // Importer les polices stylées
 const fontLink = document.createElement('link');
@@ -11,7 +12,7 @@ if (document.head && !document.head.querySelector('link[href*="Orbitron"]')) {
   document.head.appendChild(fontLink);
 }
 
-export default function Login() {
+function LoginContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -324,4 +325,8 @@ export default function Login() {
       )}
     </div>
   );
+}
+
+export default function Login() {
+  return <ErrorBoundary><LoginContent /></ErrorBoundary>;
 }

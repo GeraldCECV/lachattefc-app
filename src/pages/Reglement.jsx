@@ -1,4 +1,6 @@
-export default function Reglement() {
+import ErrorBoundary from '../components/ErrorBoundary'
+
+function ReglementContent() {
   const PALMARES = [
     { s:'2014-2015', or:'Jérémie GALLOYER', pb:'Thibaut PLET' },
     { s:'2015-2016', or:'Frédéric BOURRIER', pb:'Thibaut PLET' },
@@ -155,4 +157,8 @@ export default function Reglement() {
       </div>
     </div>
   )
+}
+
+export default function Reglement() {
+  return <ErrorBoundary><ReglementContent /></ErrorBoundary>
 }
