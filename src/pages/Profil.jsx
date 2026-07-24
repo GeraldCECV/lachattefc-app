@@ -829,7 +829,7 @@ function ProfilContent() {
                           }}
                         >
                           <div style={{ fontSize: 11, color: 'var(--tx3)', marginBottom: 6 }}>
-                            Total
+                            Plus-value
                           </div>
                           <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--g)' }}>
                             {total}€
