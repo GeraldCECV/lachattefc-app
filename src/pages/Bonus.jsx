@@ -23,14 +23,14 @@ function BonusContent() {
             setBonus(snap.data().bonus || { missile: 3, jackpot: 3, doubleChance: 4 });
         }
         const jSnap = await getDocs(collection(db, 'joueurs'));
-        const joueursLocaux = jSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setJoueurs(joueursLocaux.filter((j) => j.id !== user?.uid));
+        const joueursLocaux = jSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setJoueurs(joueursLocaux.filter(j => j.id !== user?.uid));
         // Charger historique bonus - uniquement journées avec statut resultats ou fermee
         if (user) {
           const journeesSnap = await getDocs(
             query(collection(db, 'journees'), orderBy('numero', 'asc'))
           );
-          const journeesActives = journeesSnap.docs.filter((d) => {
+          const journeesActives = journeesSnap.docs.filter(d => {
             const s = d.data().statut;
             return s === 'resultats' || s === 'fermee';
           });
@@ -51,7 +51,7 @@ function BonusContent() {
             return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key;
           };
           await Promise.all(
-            journeesActives.map(async (jDoc) => {
+            journeesActives.map(async jDoc => {
               const j = jDoc.data();
               const [pronoDoc, missilesSnap] = await Promise.all([
                 getDoc(doc(db, 'journees', jDoc.id, 'pronos', user.uid)),
@@ -69,10 +69,10 @@ function BonusContent() {
                   : p.dcMatch
                     ? [{ matchKey: p.dcMatch, choices: p.dcChoices || [] }]
                     : [];
-                jackpotMatchesArr.forEach((key) =>
+                jackpotMatchesArr.forEach(key =>
                   hist.push({ journee: j.numero, type: 'jackpot', match: matchLabelFor(j, key) })
                 );
-                dcSelectionsArr.forEach((d) =>
+                dcSelectionsArr.forEach(d =>
                   hist.push({
                     journee: j.numero,
                     type: 'dc',
@@ -81,10 +81,10 @@ function BonusContent() {
                   })
                 );
               }
-              missilesSnap.docs.forEach((d) => {
+              missilesSnap.docs.forEach(d => {
                 const m = d.data();
                 if (m.lanceur === user.uid) {
-                  const cibleJoueur = joueursLocaux.find((j) => j.id === m.cible);
+                  const cibleJoueur = joueursLocaux.find(j => j.id === m.cible);
                   const cibleNom = cibleJoueur?.nom?.split(' ')[0] || null;
                   hist.push({
                     journee: j.numero,
@@ -146,21 +146,21 @@ function BonusContent() {
   ];
 
   return (
-    <div className='scroll-area'>
+    <div className="scroll-area">
       <div style={{ padding: '16px 20px 0' }}>
-        <div className='page-title'>Bonus</div>
-        <div className='page-sub'>Saison 26/27 · {profil?.nom?.split(' ')[0]}</div>
+        <div className="page-title">Bonus</div>
+        <div className="page-sub">Saison 26/27 · {profil?.nom?.split(' ')[0]}</div>
       </div>
 
       {error && (
-        <div className='alert alert-r' style={{ margin: '0 16px 14px' }}>
+        <div className="alert alert-r" style={{ margin: '0 16px 14px' }}>
           {error}
         </div>
       )}
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-          <div className='spinner' style={{ width: 24, height: 24 }}></div>
+          <div className="spinner" style={{ width: 24, height: 24 }}></div>
         </div>
       ) : (
         <>
@@ -188,7 +188,7 @@ function BonusContent() {
               Ton stock
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-              {BONUS_INFO.map((b) => {
+              {BONUS_INFO.map(b => {
                 const n = bonus?.[b.key] ?? 0;
                 return (
                   <div
@@ -233,7 +233,7 @@ function BonusContent() {
           </div>
 
           {/* Règles */}
-          <div className='section-lbl'>📖 Règles</div>
+          <div className="section-lbl">📖 Règles</div>
           <div style={{ margin: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
               {
@@ -242,7 +242,7 @@ function BonusContent() {
                 color: 'var(--r)',
                 dim: 'var(--r-dim)',
                 border: 'var(--r-b)',
-                desc: 'Le plus puissant. Tu choisis un adversaire + un match et tu REMPLACES son prono par le résultat de ton choix. Prévaut sur tous les autres bonus.',
+                desc: 'Le plus puissant. Tu choisis un adversaire + un match et tu REMPLACES son prono par le résultat de ton choix. Prévaut sur tous les autres bonus. Non utilisable sur le match à scorer.',
               },
               {
                 ico: '🎰',
@@ -250,7 +250,7 @@ function BonusContent() {
                 color: 'var(--a)',
                 dim: 'var(--a-dim)',
                 border: 'var(--a-b)',
-                desc: 'Double tes points sur le match de ton choix. Non utilisable sur le scorer.',
+                desc: 'Double tes points sur le match de ton choix. Non utilisable sur le match à scorer.',
               },
               {
                 ico: '2️⃣',
@@ -258,9 +258,9 @@ function BonusContent() {
                 color: 'var(--p)',
                 dim: 'var(--p-dim)',
                 border: 'var(--p-b)',
-                desc: "Joue 2 résultats sur 1 match (ex: 1/N). Si l'un des deux est bon → 1pt.",
+                desc: "Joue 2 résultats sur 1 match (ex: 1/N). Si l'un des deux est bon → 1pt. Non utilisable sur le match à scorer.",
               },
-            ].map((b) => (
+            ].map(b => (
               <div
                 key={b.title}
                 style={{
@@ -296,7 +296,7 @@ function BonusContent() {
           {/* Historique bonus */}
           {historique.length > 0 && (
             <>
-              <div className='section-lbl'>📋 Historique des bonus joués</div>
+              <div className="section-lbl">📋 Historique des bonus joués</div>
               <div
                 style={{ margin: '0 16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}
               >
@@ -400,5 +400,9 @@ function BonusContent() {
 }
 
 export default function Bonus() {
-  return <ErrorBoundary><BonusContent /></ErrorBoundary>;
+  return (
+    <ErrorBoundary>
+      <BonusContent />
+    </ErrorBoundary>
+  );
 }
