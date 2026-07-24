@@ -71,7 +71,7 @@ function ReglementContent() {
         <Li>Un Tableau Annexe de Paris sur les 3 premiers du championnat, gagnants LDC et Europa, meilleur buteur et passeur L1</Li>
       </Section>
 
-      <Section num="3" title="Pronostics">
+      <Section num="2" title="Pronostics">
         <p style={{ marginBottom:10 }}>Chaque joueur mise <Strong>5€ par journée</Strong>.</p>
         <Li>8 matchs L1 : victoire dom. (1), nul (N) ou victoire ext. (2)</Li>
         <Li>1 match à scorer choisi par le bureau</Li>
@@ -91,7 +91,7 @@ function ReglementContent() {
         <p style={{ marginTop:8, fontSize:12, color:'var(--tx3)' }}>⚠️ Si un match est reporté ou arrêté → déclaré perdant pour tous les participants.</p>
       </Section>
 
-      <Section num="4" title="Bonus">
+      <Section num="3" title="Bonus">
         <p style={{ marginBottom:12, fontSize:12, color:'var(--tx3)' }}>Les bonus ne peuvent pas être posés sur le match à scorer. Possible de cumuler les 3 types sur la même journée, mais pas deux fois le même type.</p>
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           {[
@@ -113,7 +113,7 @@ function ReglementContent() {
         </div>
       </Section>
 
-      <Section num="6" title="Déroulement d'une journée">
+      <Section num="4" title="Déroulement d'une journée">
         <Li>Dimanche/lundi soir → annonce de la journée via l'app</Li>
         <Li>Match à scorer + affiche européenne communiqués par le bureau</Li>
         <Li><Strong>Deadline : jeudi 23h00</Strong> — tout prono non envoyé = ABS → <Strong>−1pt</Strong> journée suivante</Li>
@@ -121,7 +121,7 @@ function ReglementContent() {
         <Li>Week-end → scores mis à jour <Strong>en live toutes les 5 min</Strong> automatiquement 🆕</Li>
       </Section>
 
-      <Section num="8" title="Gains">
+      <Section num="5" title="Gains">
         <div style={{ marginBottom:12 }}>
           <div style={{ fontWeight:900, color:'var(--g)', marginBottom:8, fontSize:12, textTransform:'uppercase', letterSpacing:'.05em' }}>Gains par journée — Pot : 80€</div>
           {[[1,'🥇','24€'],[2,'🥈','16€'],[3,'🥉','12€'],[4,'4e','9€'],[5,'5e','7€'],[6,'6e','5€'],[7,'7e','4€'],[8,'8e','3€']].map(([r,m,g]) => (
@@ -138,7 +138,7 @@ function ReglementContent() {
         <p style={{ fontSize:12, color:'var(--tx3)', marginTop:10 }}>Mise totale par joueur : <Strong>177€</Strong> (5€ × 34 journées + 7€ tableau final) · Pot journée : <Strong>80€</Strong></p>
       </Section>
 
-      <Section num="10" title="Soirée de clôture">
+      <Section num="6" title="Soirée de clôture">
         <p>Celui qui termine <Strong>dernier</Strong> de la saison devra tous nous recevoir pour la soirée de clôture avec remise des récompenses. 💩</p>
       </Section>
 
