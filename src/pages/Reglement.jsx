@@ -67,7 +67,7 @@ function ReglementContent() {
         <p style={{ marginBottom:10 }}>LA CHATTE est un jeu de pronostics entre amis sur le Championnat de France de Ligue 1 saison 2026/2027. Nous sommes <Strong>16 participants</Strong> cette année. <Strong>10ème saison</Strong> entre copains ! 🥳</p>
         <p style={{ marginBottom:10 }}>Le concours est composé de :</p>
         <Li>Des pronostics sur les 34 journées de championnat — 1 match à scorer, 1 affiche européenne et 8 matchs à pronostiquer</Li>
-        <Li><Strong>Particularité :</Strong> les journées 17 et 34 sont à scorer en intégralité</Li>
+        <Li><Strong>Particularité :</Strong> les journées 17 et 34 sont à scorer en intégralité. Le Boxing Day Premier League est aussi à scorer en totalité</Li>
         <Li>Un Tableau Annexe de Paris sur les 3 premiers du championnat, gagnants LDC et Europa, meilleur buteur et passeur L1</Li>
       </Section>
 
