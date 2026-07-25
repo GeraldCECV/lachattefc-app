@@ -44,7 +44,7 @@ function calcPointsScorer(prono, scoreH, scoreA, bonCount, totalJoueurs) {
 
   if (pH === scoreH && pA === scoreA) return POINTS.scorerExact;
 
-  const bonEcart = (pH - pA) === (scoreH - scoreA);
+  const bonEcart = pH - pA === scoreH - scoreA;
   const bonIssue = issueMatch(pH, pA) === issueMatch(scoreH, scoreA);
 
   if (bonEcart && bonIssue) return POINTS.scorerBonEcart;
