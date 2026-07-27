@@ -17,27 +17,65 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
-      // Fige la hauteur réelle de l'app dans une variable CSS, mesurée une
-      // seule fois hors ouverture du clavier. iOS recalcule mal 100dvh
-      // quand le clavier s'ouvre/se ferme (bug connu) et peut rester
-      // bloqué sur une valeur incorrecte après la fermeture. En figeant
-      // la hauteur sur une mesure JS stable (mise à jour seulement sur
-      // rotation d'écran, jamais sur ouverture/fermeture clavier), l'app
-      // n'a plus jamais besoin de recalculer sa hauteur pendant la saisie.
-      function setAppHeight() {
-        document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+      // Fige la hauteur réelle de l'app dans une variable CSS. iOS recalcule
+      // mal 100dvh à l'ouverture/fermeture du clavier (bug connu) et peut
+      // rester bloqué sur une valeur incorrecte : d'où cette mesure JS.
+      //
+      // Le piège de la version figée « une fois pour toutes » : si la mesure
+      // initiale tombe au mauvais moment (rechargement déclenché pendant que
+      // le clavier est ouvert, retour d'arrière-plan, mise à jour du service
+      // worker), la hauteur reste trop courte pour TOUTE la session — la
+      // barre d'onglets remonte et laisse une bande vide en bas.
+      //
+      // Principe retenu : le clavier ne fait jamais que RÉDUIRE innerHeight.
+      // On n'accepte donc une valeur plus petite que sur rotation d'écran,
+      // où le changement est légitime. Toute mesure plus grande est prise
+      // immédiatement — l'affichage se répare tout seul.
+      function setAppHeight(forcer) {
+        var h = window.innerHeight;
+        if (!h) return;
+        var actuel = parseInt(
+          document.documentElement.style.getPropertyValue('--app-height'),
+          10
+        ) || 0;
+        if (forcer || h > actuel) {
+          document.documentElement.style.setProperty('--app-height', h + 'px');
+        }
       }
-      setAppHeight();
-      window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
-      window.addEventListener('load', () => {
-        setAppHeight();
-        // Re-mesure de sécurité : en mode PWA standalone, l'affichage
-        // peut mettre un instant à se stabiliser après le chargement —
-        // une mesure prise trop tôt peut figer une hauteur légèrement
-        // trop courte, laissant un espace vide permanent en bas.
-        setTimeout(setAppHeight, 300);
-        setTimeout(setAppHeight, 800);
+
+      setAppHeight(true);
+
+      // Rotation : seul cas où une hauteur plus petite est légitime.
+      window.addEventListener('orientationchange', function () {
+        setTimeout(function () { setAppHeight(true); }, 300);
       });
+
+      window.addEventListener('load', function () {
+        setAppHeight();
+        // En PWA standalone, l'affichage met un instant à se stabiliser :
+        // une mesure prise trop tôt fige une hauteur trop courte.
+        setTimeout(function () { setAppHeight(); }, 300);
+        setTimeout(function () { setAppHeight(); }, 800);
+      });
+
+      // Retour au premier plan et restauration depuis le cache de navigation :
+      // deux moments où la hauteur a pu changer sans qu'aucun événement de
+      // redimensionnement ne soit émis.
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) setTimeout(function () { setAppHeight(); }, 100);
+      });
+      window.addEventListener('pageshow', function () {
+        setTimeout(function () { setAppHeight(); }, 100);
+      });
+
+      // visualViewport suit les variations réelles (barre Safari qui se
+      // rétracte, clavier). Les réductions sont ignorées par setAppHeight,
+      // seules les remontées passent.
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', function () {
+          setTimeout(function () { setAppHeight(); }, 100);
+        });
+      }
     </script>
     <script>
       // Force reload when new Service Worker is available
