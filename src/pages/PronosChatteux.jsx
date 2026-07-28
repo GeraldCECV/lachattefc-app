@@ -1,6 +1,6 @@
 import { translateTeam } from '../utils/teamName'
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, getDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { issueMatch, calcPoints1N2, calcPointsScorer, isJackpotOn, getDcChoicesFor, joueurADevineIssue as joueurADevineIssuePure } from '../scoring'
 import { useUser } from '../App'
@@ -17,6 +17,7 @@ function PronosChatteuxContent() {
   const [pronos, setPronos] = useState({})
   const [missiles, setMissiles] = useState([])
   const [loading, setLoading] = useState(true)
+  const [erreur, setErreur] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -56,20 +57,56 @@ function PronosChatteuxContent() {
   useEffect(() => {
     if (!selectedJId) return
     let unsub = null
+    let annule = false
+
     const load = async () => {
-      const pronosSnap = await getDocs(collection(db,'journees',selectedJId,'pronos'))
-      const pronosData = {}
-      pronosSnap.docs.forEach(d => { pronosData[d.id] = d.data() })
-      setPronos(pronosData)
-      const missilesSnap = await getDocs(collection(db,'journees',selectedJId,'missiles'))
-      setMissiles(missilesSnap.docs.map(d => ({ id:d.id, ...d.data() })))
-      unsub = onSnapshot(doc(db,'journees',selectedJId), d => {
-        if (!d.exists()) return
-        setJournee({ id:d.id, ...d.data() })
-      })
+      try {
+        setErreur('')
+        // Le statut de la journee conditionne la lecture : tant qu'elle est
+        // ouverte, les pronos des autres restent secrets (regle du jeu, et
+        // les regles Firestore refusent la requete). On ne tente donc la
+        // lecture qu'une fois la journee fermee.
+        const jDoc = await getDoc(doc(db,'journees',selectedJId))
+        if (annule) return
+        const donnees = jDoc.exists() ? jDoc.data() : null
+        const statut = donnees ? donnees.statut : null
+        // Meme condition que les regles Firestore : les pronos deviennent
+        // publics des que la deadline est passee, sans attendre le cron de
+        // fermeture qui ne s'execute pas a la seconde pres.
+        const deadlineFranchie = donnees?.deadline?.seconds
+          ? new Date(donnees.deadline.seconds * 1000) < new Date()
+          : false
+
+        if (statut === 'ouverte' && !deadlineFranchie) {
+          setPronos({})
+          setMissiles([])
+        } else {
+          const pronosSnap = await getDocs(collection(db,'journees',selectedJId,'pronos'))
+          if (annule) return
+          const pronosData = {}
+          pronosSnap.docs.forEach(d => { pronosData[d.id] = d.data() })
+          setPronos(pronosData)
+          const missilesSnap = await getDocs(collection(db,'journees',selectedJId,'missiles'))
+          if (annule) return
+          setMissiles(missilesSnap.docs.map(d => ({ id:d.id, ...d.data() })))
+        }
+
+        unsub = onSnapshot(
+          doc(db,'journees',selectedJId),
+          d => {
+            if (!d.exists()) return
+            setJournee({ id:d.id, ...d.data() })
+          },
+          e => console.error('Erreur listener journee (PronosChatteux):', e)
+        )
+      } catch (e) {
+        console.error('Erreur chargement pronos des chatteux:', e)
+        setErreur('Impossible de charger les pronos. Verifie ta connexion et reessaie.')
+      }
     }
+
     load()
-    return () => { if (unsub) unsub() }
+    return () => { annule = true; if (unsub) unsub() }
   }, [selectedJId])
 
   if (loading) return (
@@ -251,6 +288,12 @@ function PronosChatteuxContent() {
           </span>
         </div>
       </div>
+
+      {erreur && (
+        <div style={{ margin:'0 12px 12px', padding:'12px 14px', background:'rgba(252,165,165,.08)', border:'1px solid rgba(252,165,165,.25)', borderRadius:'var(--Rs)', fontSize:13, color:'#FCA5A5' }}>
+          {erreur}
+        </div>
+      )}
 
       {/* Blocs par match */}
       <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'0 12px' }}>

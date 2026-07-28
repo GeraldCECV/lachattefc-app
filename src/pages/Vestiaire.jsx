@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, getDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
@@ -82,9 +82,12 @@ function VestiaireContent({ onNavigate, onProfil, profil: profilProp }) {
         }, e => { console.error('Erreur listener journée (Vestiaire):', e); setError('Connexion perdue, recharge la page.') })
         if (profil) {
           setMonProno(null)
-          const pronosSnap = await getDocs(collection(db,'journees',jDoc.id,'pronos'))
-          const monDoc = pronosSnap.docs.find(d => d.id === profil.id)
-          if (monDoc) setMonProno(monDoc.data())
+          // Lecture directe de SON prono : lire toute la collection pour y
+          // retrouver un seul document était inutilement coûteux, et surtout
+          // refusé par les règles tant que la journée est ouverte (les pronos
+          // des autres sont secrets avant la deadline).
+          const monDoc = await getDoc(doc(db,'journees',jDoc.id,'pronos',profil.id))
+          if (monDoc.exists()) setMonProno(monDoc.data())
         }
       }
       } catch (e) {
