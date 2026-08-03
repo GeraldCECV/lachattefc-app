@@ -59,6 +59,11 @@ function PronosContent() {
         joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
         joueurEmail: joueurData.email,
         pronos: Array.isArray(data.matchesL1) ? data.matchesL1 : (data.matchesBoxing || data.matchesMultiplex || []),
+        // Transmis à part : `pronos` est un tableau, donc pronos.matchScorer
+        // y était toujours undefined et ces deux lignes n'apparaissaient
+        // jamais dans l'e-mail de confirmation.
+        pronoScorer: data.matchScorer || null,
+        pronoEuro: data.matchEuro || null,
         matchesL1: matchesForEmail || [],
         matchScorer: journee.matchScorer || null,
         matchEuro: journee.matchEuro || null,
@@ -298,6 +303,8 @@ function PronosContent() {
             joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
             joueurEmail: joueurData.email,
             pronos: [...(pronos.matchesL1 || [])],
+            pronoScorer: pronos.matchScorer || null,
+            pronoEuro: pronos.matchEuro || null,
             matchesL1: journee.matchesL1 || [],
             matchScorer: journee.matchScorer || null,
             matchEuro: journee.matchEuro || null,
@@ -352,10 +359,20 @@ function PronosContent() {
         applique: false,
       })
 
-      // Débit immédiat du stock (plus de débit différé à l'envoi des pronos)
-      const jSnap = await getDoc(doc(db,'joueurs',user.uid))
-      const currentStock = jSnap.data()?.bonus?.missile || 0
-      await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': Math.max(0, currentStock - 1) })
+      // Débit immédiat du stock (plus de débit différé à l'envoi des pronos).
+      // Si ce débit échoue, on retire le missile qu'on vient de créer : mieux
+      // vaut ne rien avoir posé qu'un missile gratuit, invisible du stock et
+      // impossible à expliquer au moment du calcul des points.
+      try {
+        const jSnap = await getDoc(doc(db,'joueurs',user.uid))
+        const currentStock = jSnap.data()?.bonus?.missile || 0
+        await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': Math.max(0, currentStock - 1) })
+      } catch (errStock) {
+        console.error('Débit du missile impossible, annulation :', errStock)
+        try { await deleteDoc(doc(db,'journees',journee.id,'missiles',ref.id)) } catch (e2) { console.error(e2) }
+        setMissileMsg("Impossible de décompter ton missile, rien n'a été posé. Réessaie et préviens le bureau si ça persiste.")
+        return
+      }
       setBonusStock(prev => ({ ...prev, missile: Math.max(0, prev.missile - 1) }))
       setMesMissiles(prev => [...prev, { id: ref.id, lanceur: user.uid, cible: missileData.cible, cibleNom: cibleJoueur?.nom, matchKey: missileData.matchKey, pronoImpose: missileData.prono, applique: false }])
 
