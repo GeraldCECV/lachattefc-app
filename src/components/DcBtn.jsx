@@ -1,8 +1,4 @@
-const RESULT_COLORS = {
-  '1': { sel: 'var(--b)', dim: 'var(--b-dim)', label: '1' },
-  'N': { sel: 'var(--a)', dim: 'var(--a-dim)', label: 'N' },
-  '2': { sel: 'var(--p)', dim: 'var(--p-dim)', label: '2' },
-}
+import { RESULT_COLORS } from '../utils/resultColors'
 
 export default function DcBtn({ val, selected, onClick }) {
   const c = RESULT_COLORS[val]

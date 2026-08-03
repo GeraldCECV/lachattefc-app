@@ -9,6 +9,7 @@ import PronoBtn from '../components/PronoBtn'
 import DcBtn from '../components/DcBtn'
 import Confetti from '../components/Confetti'
 import { translateTeam } from '../utils/teamName'
+import { RESULT_COLORS } from '../utils/resultColors'
 
 
 
