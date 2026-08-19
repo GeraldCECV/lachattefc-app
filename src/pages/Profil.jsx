@@ -250,38 +250,40 @@ function ProfilContent() {
   };
 
   const soumettreParisAnnexe = async () => {
-    if (paPodium.some(p => !p) || new Set(paPodium).size < 3) {
-      setPaMsg('❌ Choisis 3 clubs différents pour le podium');
-      return;
-    }
-    if (!paLdc.trim() || !paEuropa.trim() || !paButeur.trim() || !paPasseur.trim()) {
-      setPaMsg('❌ Tous les champs sont requis');
-      return;
-    }
     setPaSaving(true);
     setPaMsg('');
     try {
+      // La validation était AVANT ce try/catch — toute erreur inattendue ici
+      // (ex: un état pas tout à fait une string) plantait silencieusement le
+      // clic, sans message d'erreur ni succès. On la met désormais à
+      // l'intérieur, avec coercion défensive en string.
+      const ldc = String(paLdc ?? '').trim();
+      const europa = String(paEuropa ?? '').trim();
+      const buteur = String(paButeur ?? '').trim();
+      const passeur = String(paPasseur ?? '').trim();
+
+      if (paPodium.some(p => !p) || new Set(paPodium).size < 3) {
+        setPaMsg('❌ Choisis 3 clubs différents pour le podium');
+        setPaSaving(false);
+        return;
+      }
+      if (!ldc || !europa || !buteur || !passeur) {
+        setPaMsg('❌ Tous les champs sont requis');
+        setPaSaving(false);
+        return;
+      }
+
       const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'soumettreParisAnnexe');
-      await fn({
-        podium: paPodium,
-        ldc: paLdc.trim(),
-        europa: paEuropa.trim(),
-        buteur: paButeur.trim(),
-        passeur: paPasseur.trim(),
-      });
-      setPaMonProno({
-        podium: paPodium,
-        ldc: paLdc.trim(),
-        europa: paEuropa.trim(),
-        buteur: paButeur.trim(),
-        passeur: paPasseur.trim(),
-      });
+      await fn({ podium: paPodium, ldc, europa, buteur, passeur });
+      setPaMonProno({ podium: paPodium, ldc, europa, buteur, passeur });
       setPaMsg('✅ Pronostic enregistré !');
       setTimeout(() => setShowParisAnnexe(false), 1200);
     } catch (e) {
-      setPaMsg('❌ ' + e.message);
+      console.error('Erreur soumission Paris Annexe:', e);
+      setPaMsg('❌ ' + (e?.message || 'Erreur inconnue, réessaie ou préviens Jérémie.'));
+    } finally {
+      setPaSaving(false);
     }
-    setPaSaving(false);
   };
 
   const handlePwd = async () => {
