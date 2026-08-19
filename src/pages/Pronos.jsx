@@ -255,6 +255,12 @@ function PronosContent() {
           pronosFinaux.matchesL1[i] = pronoImpose
         } else if (matchKey === 'euro') {
           pronosFinaux.matchEuro = pronoImpose
+        } else if (matchKey === 'scorer') {
+          // Bug corrigé : un missile posé sur le match à scorer n'était
+          // jamais appliqué (aucune branche ne gérait ce matchKey), donc
+          // pronosFinaux.matchScorer gardait le choix du joueur au lieu du
+          // score imposé par le missile.
+          pronosFinaux.matchScorer = pronoImpose
         }
         // Marquer le missile comme appliqué
         await updateDoc(doc(db,'journees',journee.id,'missiles',missile.id), { applique: true })
