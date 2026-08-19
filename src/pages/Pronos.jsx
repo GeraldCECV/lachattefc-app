@@ -309,9 +309,21 @@ function PronosContent() {
             journeeNumero: journee.numero,
             joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
             joueurEmail: joueurData.email,
-            pronos: [...(pronos.matchesL1 || [])],
-            pronoScorer: pronos.matchScorer || null,
-            pronoEuro: pronos.matchEuro || null,
+            // BUG corrigé : ces 3 champs venaient de l'état de formulaire
+            // `pronos`, qui n'est JAMAIS mis à jour par le stepper du match
+            // à scorer (celui-ci écrit dans scorerH/scorerA, fusionnés
+            // uniquement dans `pronosFinaux`/`data` au moment de la sauvegarde).
+            // Résultat : sur une PREMIÈRE soumission (pas de mise à jour d'un
+            // prono existant), pronos.matchScorer valait toujours null, donc
+            // pronoScorer était toujours null, et la ligne "match à scorer"
+            // n'apparaissait jamais dans le mail de confirmation — même si le
+            // joueur avait bien répondu (le score était correctement
+            // enregistré dans Firestore, juste absent de l'e-mail). On utilise
+            // maintenant `data`, l'objet réellement sauvegardé (missiles
+            // appliqués inclus), comme source de vérité pour l'e-mail.
+            pronos: [...(data.matchesL1 || [])],
+            pronoScorer: data.matchScorer || null,
+            pronoEuro: data.matchEuro || null,
             matchesL1: journee.matchesL1 || [],
             matchScorer: journee.matchScorer || null,
             matchEuro: journee.matchEuro || null,
