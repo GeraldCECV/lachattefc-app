@@ -17,19 +17,85 @@ function ProfilContent() {
   const [changingPwd, setChangingPwd] = useState(false);
   const [newPwd, setNewPwd] = useState('');
   const [pwdMsg, setPwdMsg] = useState('');
-  const [notifStatus, setNotifStatus] = useState('inconnu'); // inconnu | accordee | refusee | non-supportee
+  // inconnu | accordee | refusee | non-supportee | a-activer | permission-sans-abonnement
+  const [notifStatus, setNotifStatus] = useState('inconnu');
   const [notifLoading, setNotifLoading] = useState(false);
   const [notifError, setNotifError] = useState(null);
   const [clubError, setClubError] = useState('');
 
-  useEffect(() => {
+  // Enregistre le résultat réel de l'abonnement OneSignal dans Firestore,
+  // pour que l'admin puisse voir qui est VRAIMENT abonné (pas seulement qui
+  // a cliqué "activer") sans avoir à checker le dashboard OneSignal joueur
+  // par joueur.
+  const enregistrerStatutPush = async (subscribed, oneSignalId) => {
+    if (!user) return;
+    try {
+      await updateDoc(doc(db, 'joueurs', user.uid), {
+        pushSubscribed: !!subscribed,
+        pushOneSignalId: oneSignalId || null,
+        pushCheckedAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      // Non bloquant pour l'utilisateur — juste un souci de visibilité admin
+      console.error('Erreur enregistrement statut push:', e);
+    }
+  };
+
+  // Vérifie le VRAI statut d'abonnement côté OneSignal (pas seulement la
+  // permission navigateur, qui peut être "granted" alors que l'abonnement
+  // côté OneSignal n'a jamais abouti — réseau lent, bloqueur de contenu,
+  // souci de service worker).
+  const verifierAbonnementReel = async () => {
     if (typeof Notification === 'undefined') {
       setNotifStatus('non-supportee');
       return;
     }
-    if (Notification.permission === 'granted') setNotifStatus('accordee');
-    else if (Notification.permission === 'denied') setNotifStatus('refusee');
-    else setNotifStatus('a-activer');
+    if (Notification.permission === 'denied') {
+      setNotifStatus('refusee');
+      return;
+    }
+    if (Notification.permission !== 'granted') {
+      setNotifStatus('a-activer');
+      return;
+    }
+
+    // Permission navigateur accordée — encore faut-il que OneSignal ait
+    // bien créé l'abonnement en face.
+    let attempts = 0;
+    while (!window.OneSignal && attempts < 100) {
+      await new Promise((r) => setTimeout(r, 100));
+      attempts++;
+    }
+
+    if (!window.OneSignal) {
+      // SDK pas chargé, on ne peut pas confirmer — on affiche quand même
+      // "accordée" (best effort) pour ne pas alarmer inutilement, mais on
+      // le journalise pour debug.
+      console.warn('Impossible de vérifier l\'abonnement OneSignal (SDK non chargé)');
+      setNotifStatus('accordee');
+      return;
+    }
+
+    try {
+      const optedIn = window.OneSignal.User?.PushSubscription?.optedIn;
+      const subId = window.OneSignal.User?.PushSubscription?.id;
+      if (optedIn && subId) {
+        setNotifStatus('accordee');
+        enregistrerStatutPush(true, subId);
+      } else {
+        // Cas exact du bug : permission navigateur OK, mais OneSignal n'a
+        // jamais terminé la création de l'abonnement.
+        setNotifStatus('permission-sans-abonnement');
+        enregistrerStatutPush(false, null);
+      }
+    } catch (e) {
+      console.error('Erreur vérification abonnement OneSignal:', e);
+      setNotifStatus('accordee');
+    }
+  };
+
+  useEffect(() => {
+    verifierAbonnementReel();
   }, []);
 
   const activerNotifications = async () => {
@@ -58,13 +124,38 @@ function ProfilContent() {
 
       // OneSignal est chargé et initialisé
       await window.OneSignal.Notifications.requestPermission();
-      setNotifStatus(
-        Notification.permission === 'granted'
-          ? 'accordee'
-          : Notification.permission === 'denied'
-            ? 'refusee'
-            : 'a-activer'
-      );
+
+      if (Notification.permission !== 'granted') {
+        setNotifStatus(Notification.permission === 'denied' ? 'refusee' : 'a-activer');
+        setNotifLoading(false);
+        return;
+      }
+
+      // La permission navigateur est accordée, mais ça ne veut pas dire que
+      // OneSignal a fini de créer l'abonnement côté serveur — ça peut
+      // prendre quelques secondes. On repolle avant de conclure au succès.
+      let subAttempts = 0;
+      let optedIn = false;
+      let subId = null;
+      while (subAttempts < 50) {
+        optedIn = window.OneSignal.User?.PushSubscription?.optedIn;
+        subId = window.OneSignal.User?.PushSubscription?.id;
+        if (optedIn && subId) break;
+        await new Promise((r) => setTimeout(r, 200));
+        subAttempts++;
+      }
+
+      if (optedIn && subId) {
+        setNotifStatus('accordee');
+        enregistrerStatutPush(true, subId);
+      } else {
+        // Bug reproduit : permission accordée mais abonnement jamais créé.
+        setNotifStatus('permission-sans-abonnement');
+        enregistrerStatutPush(false, null);
+        setNotifError(
+          "⚠️ Ton téléphone a autorisé les notifications, mais l'abonnement n'a pas pu être finalisé. Vérifie ta connexion et réessaie — si ça persiste, désactive un éventuel bloqueur de contenu."
+        );
+      }
     } catch (e) {
       console.error('Erreur activation notifications:', e);
       setNotifError('❌ ' + (e?.message || "impossible d'activer les notifications."));
@@ -729,6 +820,22 @@ function ProfilContent() {
               {notifStatus === 'refusee' && (
                 <div style={{ fontSize: 12, color: 'var(--tx3)' }}>
                   Bloquées — à réactiver dans les réglages de ton navigateur/téléphone pour ce site.
+                </div>
+              )}
+              {notifStatus === 'permission-sans-abonnement' && (
+                <div>
+                  <div style={{ fontSize: 12, color: '#FCA5A5', marginBottom: 8 }}>
+                    ⚠️ Permission accordée mais l'abonnement n'a pas abouti — tu ne recevras pas les
+                    notifications. Réessaie ci-dessous.
+                  </div>
+                  <button
+                    onClick={activerNotifications}
+                    disabled={notifLoading}
+                    className="btn btn-primary"
+                    style={{ width: '100%' }}
+                  >
+                    {notifLoading ? 'Activation...' : '🔄 Réessayer'}
+                  </button>
                 </div>
               )}
               {notifStatus === 'a-activer' && (
