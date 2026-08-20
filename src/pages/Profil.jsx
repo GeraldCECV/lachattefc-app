@@ -27,13 +27,22 @@ function ProfilContent() {
   // pour que l'admin puisse voir qui est VRAIMENT abonné (pas seulement qui
   // a cliqué "activer") sans avoir à checker le dashboard OneSignal joueur
   // par joueur.
-  const enregistrerStatutPush = async (subscribed, oneSignalId) => {
+  //
+  // `extra` permet de poser des marqueurs de diagnostic (ex: le SDK OneSignal
+  // n'a jamais fini de charger) SANS changer le sens de `pushSubscribed`.
+  // Important : on écrit toujours ces champs, même en cas d'échec, pour que
+  // l'échec soit visible en base plutôt que silencieux (cf. bug Baptiste :
+  // permission navigateur accordée, mais SDK jamais chargé => aucun champ
+  // n'était jamais écrit et le joueur semblait "jamais vérifié").
+  const enregistrerStatutPush = async (subscribed, oneSignalId, extra = {}) => {
     if (!user) return;
     try {
       await updateDoc(doc(db, 'joueurs', user.uid), {
         pushSubscribed: !!subscribed,
         pushOneSignalId: oneSignalId || null,
         pushCheckedAt: new Date().toISOString(),
+        pushSdkLoadFailed: false,
+        ...extra,
       });
     } catch (e) {
       // Non bloquant pour l'utilisateur — juste un souci de visibilité admin
@@ -69,10 +78,13 @@ function ProfilContent() {
 
     if (!window.OneSignal) {
       // SDK pas chargé, on ne peut pas confirmer — on affiche quand même
-      // "accordée" (best effort) pour ne pas alarmer inutilement, mais on
-      // le journalise pour debug.
+      // "accordée" (best effort) pour ne pas alarmer inutilement le joueur,
+      // MAIS on enregistre l'échec dans Firestore pour que ce ne soit pas
+      // invisible côté admin (avant ce fix, ce cas ne laissait AUCUNE trace
+      // en base : ni pushSubscribed, ni pushOneSignalId, ni pushCheckedAt).
       console.warn('Impossible de vérifier l\'abonnement OneSignal (SDK non chargé)');
       setNotifStatus('accordee');
+      enregistrerStatutPush(false, null, { pushSdkLoadFailed: true });
       return;
     }
 
@@ -110,7 +122,10 @@ function ProfilContent() {
       }
 
       if (!window.OneSignal) {
-        // OneSignal ne s'est pas chargé
+        // OneSignal ne s'est pas chargé. Le joueur voit déjà l'erreur
+        // ci-dessous, mais on l'enregistre aussi en base pour que l'admin
+        // puisse repérer les joueurs bloqués par ce cas sans devoir leur
+        // demander une capture d'écran.
         const reason = window.OneSignalError || "SDK OneSignal n'a pas pu se charger";
         setNotifError(
           '❌ ' +
@@ -118,6 +133,7 @@ function ProfilContent() {
             '\n\n💡 Essaie: désactiver tes bloqueurs de contenu, vérifier le WiFi, ou attendre quelques secondes.'
         );
         console.error('OneSignal non disponible:', reason);
+        enregistrerStatutPush(false, null, { pushSdkLoadFailed: true });
         setNotifLoading(false);
         return;
       }
