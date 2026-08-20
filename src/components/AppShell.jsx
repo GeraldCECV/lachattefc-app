@@ -101,20 +101,44 @@ export default function AppShell() {
   // le viewport visuel, ce qui fait "sauter" la barre en position:fixed.
   // La solution robuste est de la masquer pendant la saisie plutôt que
   // d'essayer de la stabiliser pendant que ça bouge.
+  //
+  // Le retrait de `modal-open` est volontairement DIFFÉRÉ (300ms) plutôt
+  // qu'immédiat au blur. Bug reproduit (Mathieu, Paris Annexe) : taper un
+  // bouton d'action juste sous un champ texte déclenche le blur du champ
+  // AVANT que le click du bouton ne se termine. Si on retire `modal-open`
+  // immédiatement, la barre réapparaît et le clavier se ferme PENDANT le
+  // tap — le viewport se redimensionne, le bouton bouge sous le doigt, et
+  // le clic rate sa cible (aucune erreur, aucun appel réseau : le handler
+  // ne se déclenche tout simplement jamais). En différant le retrait, le
+  // layout reste stable le temps que le tap en cours se termine. Si un
+  // nouveau champ reprend le focus avant l'expiration du délai (ex:
+  // tabulation entre deux inputs), on annule le retrait — la barre ne
+  // clignote pas.
   useEffect(() => {
     const CHAMPS = ['INPUT', 'SELECT', 'TEXTAREA'];
+    let hideTimer = null;
     const onFocusIn = (e) => {
-      if (CHAMPS.includes(e.target.tagName)) document.body.classList.add('modal-open');
+      if (!CHAMPS.includes(e.target.tagName)) return;
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+      document.body.classList.add('modal-open');
     };
     const onFocusOut = (e) => {
       if (!CHAMPS.includes(e.target.tagName)) return;
-      document.body.classList.remove('modal-open');
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        document.body.classList.remove('modal-open');
+        hideTimer = null;
+      }, 300);
     };
     document.addEventListener('focusin', onFocusIn);
     document.addEventListener('focusout', onFocusOut);
     return () => {
       document.removeEventListener('focusin', onFocusIn);
       document.removeEventListener('focusout', onFocusOut);
+      if (hideTimer) clearTimeout(hideTimer);
     };
   }, []);
 

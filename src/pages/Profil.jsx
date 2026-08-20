@@ -7,6 +7,7 @@ import { CLUBS_L1_2627 } from '../firebase/constants';
 import JerseyAvatar from '../components/JerseyAvatar';
 import { useUser } from '../App';
 import ErrorBoundary from '../components/ErrorBoundary';
+import Sentry from '../sentry';
 
 function ProfilContent() {
   const { profil, user } = useUser();
@@ -219,13 +220,26 @@ function ProfilContent() {
       }
       setHistorique(hist);
 
-      // Paris Annexe
-      const paConfigSnap = await getDoc(doc(db, 'parisAnnexe', 'config'));
-      if (paConfigSnap.exists()) {
-        const cfg = paConfigSnap.data();
-        setPaConfig(cfg);
-        const monPronoSnap = await getDoc(doc(db, 'parisAnnexe', 'config', 'pronos', user.uid));
-        if (monPronoSnap.exists()) setPaMonProno(monPronoSnap.data());
+      // Paris Annexe — isolé dans son propre try/catch : avant ce fix, une
+      // erreur ici (réseau, cache Firestore froid, etc.) faisait planter
+      // silencieusement tout le load() et laissait paMonProno à null, donc
+      // l'app affichait "🏆 Je tente ma chance" (formulaire vide) à un
+      // joueur qui avait pourtant déjà un pronostic enregistré — repro
+      // exacte avec Mathieu, qui a ressaisi son prono en pensant que
+      // rien n'avait été sauvegardé.
+      try {
+        const paConfigSnap = await getDoc(doc(db, 'parisAnnexe', 'config'));
+        if (paConfigSnap.exists()) {
+          const cfg = paConfigSnap.data();
+          setPaConfig(cfg);
+          const monPronoSnap = await getDoc(
+            doc(db, 'parisAnnexe', 'config', 'pronos', user.uid)
+          );
+          if (monPronoSnap.exists()) setPaMonProno(monPronoSnap.data());
+        }
+      } catch (e) {
+        console.error('Erreur chargement Paris Annexe:', e);
+        Sentry.captureException(e, { tags: { context: 'load-paris-annexe' } });
       }
 
       setLoading(false);
@@ -1210,7 +1224,23 @@ function ProfilContent() {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+            {/* Doublon volontaire du message succès/erreur, ICI près du
+                bouton plutôt qu'uniquement en haut du modal (cf. version
+                au-dessus du formulaire) : le formulaire est long, l'utilisateur
+                est scrollé tout en bas au moment de valider, et un message
+                affiché uniquement en haut restait invisible sans scroll
+                manuel — Mathieu n'a jamais vu la confirmation ni les
+                éventuelles erreurs. */}
+            {paMsg && (
+              <div
+                className={`alert ${paMsg.startsWith('✅') ? 'alert-g' : 'alert-r'}`}
+                style={{ marginTop: 16, marginBottom: 0 }}
+              >
+                {paMsg}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
               <button
                 className="btn btn-primary"
                 style={{ flex: 1 }}
