@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, setDoc, getDoc, updateDoc, query, orderBy, serverTimestamp } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc, getDoc, updateDoc, query, orderBy, serverTimestamp, where } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useUser } from '../App'
@@ -26,7 +26,8 @@ function PronosContent() {
   const [scorerH, setScorerH] = useState(0)
   const [scorerA, setScorerA] = useState(0)
   const [deadlinePassed, setDeadlinePassed] = useState(false)
-  const journeeAVenir = journee?.statut === 'a-venir'
+  const [multiplexScores, setMultiplexScores] = useState([])
+  const [boxingScores, setBoxingScores] = useState([])
 
   // Petit feedback immersif à la validation : confettis + vibration
   // (vibration ignorée sans effet sur iOS, l'API n'y existe pas — mais
@@ -46,7 +47,6 @@ function PronosContent() {
   const [mesMissiles, setMesMissiles] = useState([]) // liste des missiles lancés par ce joueur pour cette journée
   const [showConfirm, setShowConfirm] = useState(false)
   const [joueurs, setJoueurs] = useState([])
-  const [showBonusPanel, setShowBonusPanel] = useState(null) // matchKey
   const [showMissileModal, setShowMissileModal] = useState(false)
   const [missileStep, setMissileStep] = useState(1) // 1=cible 2=match 3=prono
   const [missileMsg, setMissileMsg] = useState('')
@@ -87,6 +87,21 @@ function PronosContent() {
           else if (data.jackpotMatch) setJackpotMatches([data.jackpotMatch]) // ancien format
           if (Array.isArray(data.dcSelections)) setDcSelections(data.dcSelections)
           else if (data.dcMatch) setDcSelections([{ matchKey: data.dcMatch, choices: data.dcChoices||[] }]) // ancien format
+          if (Array.isArray(data.matchesMultiplex)) {
+            setMultiplexScores(data.matchesMultiplex.map(score => {
+              const [h, a] = String(score || '0-0').split('-').map(Number)
+              return { h: Number.isFinite(h) ? h : 0, a: Number.isFinite(a) ? a : 0 }
+            }))
+          }
+          if (Array.isArray(data.matchesBoxing)) {
+            setBoxingScores(data.matchesBoxing.map(score => {
+              const [h, a] = String(score || '0-0').split('-').map(Number)
+              return { h: Number.isFinite(h) ? h : 0, a: Number.isFinite(a) ? a : 0 }
+            }))
+          }
+        } else {
+          if (j.type === 'multiplex') setMultiplexScores((j.matchesL1 || []).map(() => ({ h: 0, a: 0 })))
+          if (j.type === 'boxing-day') setBoxingScores((j.matchesBoxing || []).map(() => ({ h: 0, a: 0 })))
         }
         // Charger bonus
         const joueurDoc = await getDoc(doc(db,'joueurs',user.uid))
@@ -95,8 +110,11 @@ function PronosContent() {
         const jSnap = await getDocs(collection(db,'joueurs'))
         setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user.uid))
         // Charger mes missiles déjà lancés pour cette journée
-        const missilesSnap = await getDocs(collection(db,'journees',jDoc.id,'missiles'))
-        setMesMissiles(missilesSnap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.lanceur===user.uid))
+        const missilesSnap = await getDocs(query(
+          collection(db,'journees',jDoc.id,'missiles'),
+          where('lanceur', '==', user.uid)
+        ))
+        setMesMissiles(missilesSnap.docs.map(d=>({id:d.id,...d.data()})))
       }
       setLoading(false)
     }
@@ -289,7 +307,7 @@ function PronosContent() {
   // ── MULTIPLEX J34 ──
   if (journee.type === 'multiplex') {
     const matchesL1 = journee.matchesL1 || []
-    const [scores, setScores] = useState(matchesL1.map(() => ({ h: 0, a: 0 })))
+    const scores = multiplexScores
 
     const handleMultiplexSubmit = async () => {
       setSaving(true)
@@ -341,9 +359,9 @@ function PronosContent() {
               <span style={{fontSize:11,color:'var(--tx3)',marginLeft:'auto'}}>{m.jour} {m.heure}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
-              <Stepper val={scores[i]?.h||0} onChange={v => setScores(prev => prev.map((s,j) => j===i?{...s,h:v}:s))} />
+              <Stepper val={scores[i]?.h||0} onChange={v => setMultiplexScores(prev => prev.map((s,j) => j===i?{...s,h:v}:s))} />
               <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
-              <Stepper val={scores[i]?.a||0} onChange={v => setScores(prev => prev.map((s,j) => j===i?{...s,a:v}:s))} />
+              <Stepper val={scores[i]?.a||0} onChange={v => setMultiplexScores(prev => prev.map((s,j) => j===i?{...s,a:v}:s))} />
             </div>
           </div>
         ))}
@@ -359,7 +377,7 @@ function PronosContent() {
   // ── BOXING DAY ──
   if (journee.type === 'boxing-day') {
     const matchesBoxing = journee.matchesBoxing || []
-    const [scores, setScores] = useState(matchesBoxing.map(() => ({ h: 0, a: 0 })))
+    const scores = boxingScores
 
     const handleBoxingSubmit = async () => {
       setSaving(true)
@@ -408,9 +426,9 @@ function PronosContent() {
               <span style={{fontSize:11,color:'var(--tx3)',marginLeft:'auto'}}>{m.jour} {m.heure}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
-              <Stepper val={scores[i]?.h||0} onChange={v => setScores(prev => prev.map((s,j) => j===i?{...s,h:v}:s))} />
+              <Stepper val={scores[i]?.h||0} onChange={v => setBoxingScores(prev => prev.map((s,j) => j===i?{...s,h:v}:s))} />
               <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
-              <Stepper val={scores[i]?.a||0} onChange={v => setScores(prev => prev.map((s,j) => j===i?{...s,a:v}:s))} />
+              <Stepper val={scores[i]?.a||0} onChange={v => setBoxingScores(prev => prev.map((s,j) => j===i?{...s,a:v}:s))} />
             </div>
             <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:8}}>Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt</div>
           </div>

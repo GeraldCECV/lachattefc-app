@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, getDoc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useUser } from '../App';
 import { translateTeam } from '../utils/teamName';
@@ -55,7 +55,10 @@ function BonusContent() {
               const j = jDoc.data();
               const [pronoDoc, missilesSnap] = await Promise.all([
                 getDoc(doc(db, 'journees', jDoc.id, 'pronos', user.uid)),
-                getDocs(collection(db, 'journees', jDoc.id, 'missiles')),
+                getDocs(query(
+                  collection(db, 'journees', jDoc.id, 'missiles'),
+                  where('lanceur', '==', user.uid)
+                )),
               ]);
               if (pronoDoc.exists()) {
                 const p = pronoDoc.data();
