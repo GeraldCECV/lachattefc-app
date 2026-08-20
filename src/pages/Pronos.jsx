@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, addDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc, getDoc, updateDoc, query, orderBy, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useUser } from '../App'
@@ -36,48 +36,6 @@ function PronosContent() {
     if (navigator.vibrate) navigator.vibrate([30, 40, 60])
     setTimeout(() => setShowConfetti(false), 5000)
   }
-
-  // Fonction utilitaire : envoyer email de confirmation
-  const sendPronosEmail = async (data, matchesForEmail, scorerOnly = false) => {
-    try {
-      const joueurSnap = await getDoc(doc(db,'joueurs',user.uid))
-      const joueurData = joueurSnap.data()
-      if (!joueurData?.email) return
-      
-      const missilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
-      const missilesPourEmail = missilesSnap.docs
-        .map(d => d.data())
-        .filter(m => m.lanceur === user.uid)
-        .map(m => {
-          const cibleJoueur = joueurs.find(j => j.id === m.cible)
-          return { cibleNom: cibleJoueur?.nom?.split(' ')[0] || 'un joueur', matchKey: m.matchKey, pronoImpose: m.pronoImpose }
-        })
-      
-      const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
-      await fn({
-        journeeId: journee.id,
-        journeeNumero: journee.numero,
-        joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
-        joueurEmail: joueurData.email,
-        pronos: Array.isArray(data.matchesL1) ? data.matchesL1 : (data.matchesBoxing || data.matchesMultiplex || []),
-        // Transmis à part : `pronos` est un tableau, donc pronos.matchScorer
-        // y était toujours undefined et ces deux lignes n'apparaissaient
-        // jamais dans l'e-mail de confirmation.
-        pronoScorer: data.matchScorer || null,
-        pronoEuro: data.matchEuro || null,
-        matchesL1: matchesForEmail || [],
-        matchScorer: journee.matchScorer || null,
-        matchEuro: journee.matchEuro || null,
-        scorerOnly: scorerOnly || false,
-        jackpotMatches: jackpotMatches || [],
-        dcSelections: dcSelections || [],
-        missiles: missilesPourEmail,
-      })
-    } catch(emailErr) {
-      console.warn('Email non envoyé:', emailErr.message)
-    }
-  }
-
 
   // Bonus state
   const [bonusStock, setBonusStock] = useState({ missile:3, jackpot:3, doubleChance:4 })
@@ -230,44 +188,11 @@ function PronosContent() {
     if (!user || !journee) return
     setSaving(true)
     try {
-      // Les missiles sont désormais gérés indépendamment (lancement/annulation
-      // immédiats, cf. submitMissile/annulerMissile) — plus de nettoyage
-      // implicite ici, un joueur peut cumuler plusieurs missiles par journée.
-
-      // ── Vérifier si un missile a été posé sur ce joueur ──
-      // Si oui, écraser le prono concerné avant de sauvegarder
-      const missilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
-      const missilesSurMoi = missilesSnap.docs
-        .map(d => ({ id:d.id, ...d.data() }))
-        .filter(m => m.cible === user.uid && !m.applique)
-
       const pronosFinaux = {
         ...pronos,
         matchScorer: `${scorerH}-${scorerA}`,
         matchesL1: [...(pronos.matchesL1 || Array(8).fill(null))],
       }
-
-      // Appliquer les missiles reçus
-      for (const missile of missilesSurMoi) {
-        const { matchKey, pronoImpose } = missile
-        if (matchKey.startsWith('l1_')) {
-          const i = parseInt(matchKey.replace('l1_', ''))
-          pronosFinaux.matchesL1[i] = pronoImpose
-        } else if (matchKey === 'euro') {
-          pronosFinaux.matchEuro = pronoImpose
-        } else if (matchKey === 'scorer') {
-          // Bug corrigé : un missile posé sur le match à scorer n'était
-          // jamais appliqué (aucune branche ne gérait ce matchKey), donc
-          // pronosFinaux.matchScorer gardait le choix du joueur au lieu du
-          // score imposé par le missile.
-          pronosFinaux.matchScorer = pronoImpose
-        }
-        // Marquer le missile comme appliqué
-        await updateDoc(doc(db,'journees',journee.id,'missiles',missile.id), { applique: true })
-      }
-
-      // ── Vérifier le stock bonus côté serveur (garde-fou, débit déjà fait en immédiat) ──
-      const joueurSnap = await getDoc(doc(db,'joueurs',user.uid))
 
       const data = {
         ...pronosFinaux,
@@ -280,7 +205,6 @@ function PronosContent() {
         jackpotMatch: null,
         dcMatch: null,
         dcChoices: null,
-        missilesRecus: missilesSurMoi.length > 0 ? missilesSurMoi.map(m => m.id) : null,
       }
       await setDoc(doc(db,'journees',journee.id,'pronos',user.uid), data)
 
@@ -291,48 +215,8 @@ function PronosContent() {
 
       // Envoyer email de confirmation
       try {
-        const joueurSnap2 = await getDoc(doc(db,'joueurs',user.uid))
-        const joueurData = joueurSnap2.data()
-        if (joueurData?.email) {
-          // Récupérer les missiles lancés par ce joueur sur cette journée
-          const missilesSnap = await getDocs(collection(db,'journees',journee.id,'missiles'))
-          const missilesPourEmail = missilesSnap.docs
-            .map(d => d.data())
-            .filter(m => m.lanceur === user.uid)
-            .map(m => {
-              const cibleJoueur = joueurs.find(j => j.id === m.cible)
-              return { cibleNom: cibleJoueur?.nom?.split(' ')[0] || 'un joueur', matchKey: m.matchKey, pronoImpose: m.pronoImpose }
-            })
-          const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
-          await fn({
-            journeeId: journee.id,
-            journeeNumero: journee.numero,
-            joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
-            joueurEmail: joueurData.email,
-            // BUG corrigé : ces 3 champs venaient de l'état de formulaire
-            // `pronos`, qui n'est JAMAIS mis à jour par le stepper du match
-            // à scorer (celui-ci écrit dans scorerH/scorerA, fusionnés
-            // uniquement dans `pronosFinaux`/`data` au moment de la sauvegarde).
-            // Résultat : sur une PREMIÈRE soumission (pas de mise à jour d'un
-            // prono existant), pronos.matchScorer valait toujours null, donc
-            // pronoScorer était toujours null, et la ligne "match à scorer"
-            // n'apparaissait jamais dans le mail de confirmation — même si le
-            // joueur avait bien répondu (le score était correctement
-            // enregistré dans Firestore, juste absent de l'e-mail). On utilise
-            // maintenant `data`, l'objet réellement sauvegardé (missiles
-            // appliqués inclus), comme source de vérité pour l'e-mail.
-            pronos: [...(data.matchesL1 || [])],
-            pronoScorer: data.matchScorer || null,
-            pronoEuro: data.matchEuro || null,
-            matchesL1: journee.matchesL1 || [],
-            matchScorer: journee.matchScorer || null,
-            matchEuro: journee.matchEuro || null,
-            scorerOnly: journee.scorerOnly || false,
-            jackpotMatches: jackpotMatches || [],
-            dcSelections: dcSelections || [],
-            missiles: missilesPourEmail,
-          })
-        }
+        const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
+        await fn({ journeeId: journee.id })
       } catch(emailErr) {
         console.warn('Email non envoyé:', emailErr.message)
       }
@@ -354,46 +238,16 @@ function PronosContent() {
       return
     }
     try {
-      // Vérifier doublon (même cible + même match)
-      const existingMissiles = await getDocs(collection(db,'journees',journee.id,'missiles'))
-      const doublon = existingMissiles.docs.find(d => {
-        const m = d.data()
-        return m.lanceur === user.uid && m.cible === missileData.cible && m.matchKey === missileData.matchKey
-      })
-      if (doublon) {
-        setMissileMsg('⚠️ Tu as déjà posé un missile sur ce joueur pour ce match !')
-        return
-      }
-
       const cibleJoueur = joueurs.find(j => j.id === missileData.cible)
-      const ref = await addDoc(collection(db,'journees',journee.id,'missiles'), {
-        lanceur: user.uid,
-        lanceurNom: profil?.nom,
+      const fn = httpsCallable(getFunctions(), 'lancerMissile')
+      const res = await fn({
+        journeeId: journee.id,
         cible: missileData.cible,
-        cibleNom: cibleJoueur?.nom || null,
         matchKey: missileData.matchKey,
         pronoImpose: missileData.prono,
-        poseLe: serverTimestamp(),
-        journeeId: journee.id,
-        applique: false,
       })
-
-      // Débit immédiat du stock (plus de débit différé à l'envoi des pronos).
-      // Si ce débit échoue, on retire le missile qu'on vient de créer : mieux
-      // vaut ne rien avoir posé qu'un missile gratuit, invisible du stock et
-      // impossible à expliquer au moment du calcul des points.
-      try {
-        const jSnap = await getDoc(doc(db,'joueurs',user.uid))
-        const currentStock = jSnap.data()?.bonus?.missile || 0
-        await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': Math.max(0, currentStock - 1) })
-      } catch (errStock) {
-        console.error('Débit du missile impossible, annulation :', errStock)
-        try { await deleteDoc(doc(db,'journees',journee.id,'missiles',ref.id)) } catch (e2) { console.error(e2) }
-        setMissileMsg("Impossible de décompter ton missile, rien n'a été posé. Réessaie et préviens le bureau si ça persiste.")
-        return
-      }
-      setBonusStock(prev => ({ ...prev, missile: Math.max(0, prev.missile - 1) }))
-      setMesMissiles(prev => [...prev, { id: ref.id, lanceur: user.uid, cible: missileData.cible, cibleNom: cibleJoueur?.nom, matchKey: missileData.matchKey, pronoImpose: missileData.prono, applique: false }])
+      setBonusStock(prev => ({ ...prev, missile: res.data.bonusRestant }))
+      setMesMissiles(prev => [...prev, { id: res.data.missileId, lanceur: user.uid, cible: missileData.cible, cibleNom: cibleJoueur?.nom, matchKey: missileData.matchKey, pronoImpose: missileData.prono, applique: false }])
 
       setMissileMsg('✅ Missile lancé !')
       setTimeout(() => { setShowMissileModal(false); setMissileMsg(''); setMissileData({cible:null,matchKey:null,prono:null}); setMissileStep(1) }, 1200)
@@ -403,11 +257,9 @@ function PronosContent() {
   const annulerMissile = async (missileId) => {
     if (!confirm('Annuler ce missile ? Il sera remboursé.')) return
     try {
-      await deleteDoc(doc(db,'journees',journee.id,'missiles',missileId))
-      const jSnap = await getDoc(doc(db,'joueurs',user.uid))
-      const currentStock = jSnap.data()?.bonus?.missile || 0
-      await updateDoc(doc(db,'joueurs',user.uid), { 'bonus.missile': Math.min(currentStock + 1, 6) })
-      setBonusStock(prev => ({ ...prev, missile: Math.min(prev.missile + 1, 6) }))
+      const fn = httpsCallable(getFunctions(), 'annulerMissile')
+      const res = await fn({ journeeId: journee.id, missileId })
+      setBonusStock(prev => ({ ...prev, missile: res.data.bonusRestant }))
       setMesMissiles(prev => prev.filter(m => m.id !== missileId))
     } catch(e) { setError(e.message); console.error(e) }
   }
@@ -457,25 +309,8 @@ function PronosContent() {
         
         // Envoyer email de confirmation
         try {
-          const joueurSnap2 = await getDoc(doc(db,'joueurs',user.uid))
-          const joueurData = joueurSnap2.data()
-          if (joueurData?.email) {
-            const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
-            await fn({
-              journeeId: journee.id,
-              journeeNumero: journee.numero,
-              joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
-              joueurEmail: joueurData.email,
-              pronos: scores,
-              matchesL1: matchesL1 || [],
-              matchScorer: null,
-              matchEuro: null,
-              scorerOnly: true,
-              jackpotMatches: [],
-              dcSelections: [],
-              missiles: [],
-            })
-          }
+          const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
+          await fn({ journeeId: journee.id })
         } catch(emailErr) {
           console.warn('Email non envoyé:', emailErr.message)
         }
@@ -544,25 +379,8 @@ function PronosContent() {
         
         // Envoyer email de confirmation
         try {
-          const joueurSnap2 = await getDoc(doc(db,'joueurs',user.uid))
-          const joueurData = joueurSnap2.data()
-          if (joueurData?.email) {
-            const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
-            await fn({
-              journeeId: journee.id,
-              journeeNumero: journee.numero,
-              joueurNom: joueurData.nom?.split(' ')[0] || 'Chatteux',
-              joueurEmail: joueurData.email,
-              pronos: scores,
-              matchesL1: matchesBoxing || [],
-              matchScorer: null,
-              matchEuro: null,
-              scorerOnly: true,
-              jackpotMatches: [],
-              dcSelections: [],
-              missiles: [],
-            })
-          }
+          const fn = httpsCallable(getFunctions(), 'envoyerConfirmationPronos')
+          await fn({ journeeId: journee.id })
         } catch(emailErr) {
           console.warn('Email non envoyé:', emailErr.message)
         }
