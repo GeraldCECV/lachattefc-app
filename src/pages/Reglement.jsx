@@ -78,14 +78,14 @@ function ReglementContent() {
         <Li>1 affiche européenne (1N2) choisie par le bureau</Li>
         <div style={{ margin:'12px 0', padding:'12px', background:'rgba(155,226,45,.06)', border:'1px solid var(--g-b)', borderRadius:'var(--Rs)' }}>
           <div style={{ fontWeight:900, color:'var(--g)', marginBottom:6, fontSize:12, textTransform:'uppercase', letterSpacing:'.05em' }}>🕵 Règle des SURPRISES</div>
-          <p>Si le résultat est trouvé par <Strong>moins de 25%</Strong> des participants → <Strong>2 points</Strong> au lieu de 1.</p>
+          <p>Si le résultat est trouvé par <Strong>25% ou moins</Strong> des participants → <Strong>2 points</Strong> au lieu de 1.</p>
         </div>
         <div style={{ margin:'10px 0', padding:'12px', background:'rgba(96,165,250,.06)', border:'1px solid var(--b-b)', borderRadius:'var(--Rs)' }}>
           <div style={{ fontWeight:900, color:'#93C5FD', marginBottom:6, fontSize:12, textTransform:'uppercase', letterSpacing:'.05em' }}>⚽ Match à scorer</div>
           <Li>Bon score = <Strong>3 pts</Strong></Li>
           <Li>Bon écart = <Strong>2 pts</Strong></Li>
           <Li>Bonne issue seulement = <Strong>1 pt</Strong></Li>
-          <Li>Si -25% trouvent la bonne issue = <Strong>2 pts</Strong></Li>
+          <Li>Si 25% ou moins trouvent la bonne issue = <Strong>2 pts</Strong></Li>
           <Li style={{ color:'var(--r)' }}>Maximum = <Strong>3 pts</Strong></Li>
         </div>
         <p style={{ marginTop:8, fontSize:12, color:'var(--tx3)' }}>⚠️ Si un match est reporté ou arrêté → déclaré perdant pour tous les participants.</p>
