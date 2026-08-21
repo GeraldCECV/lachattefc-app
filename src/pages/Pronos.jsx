@@ -59,9 +59,12 @@ function PronosContent() {
       const now = new Date()
       const openDocs = snap.docs.filter(d => {
         const data = d.data()
-        if (data.statut === 'resultats') return false
+        // Une journée préparée à l'avance reste invisible tant qu'elle est
+        // "a-venir". Seule la finalisation de la journée précédente la fait
+        // passer à "ouverte".
+        if (data.statut !== 'ouverte') return false
         const dl = data.deadline ? new Date(data.deadline.seconds * 1000) : null
-        return data.statut !== 'fermee' && (!dl || dl > now)
+        return !dl || dl > now
       })
       if (openDocs.length === 0) { setLoading(false); return }
       snap = { docs: [openDocs[0]], empty: false }
