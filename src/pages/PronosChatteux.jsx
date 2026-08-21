@@ -288,7 +288,7 @@ function PronosChatteuxContent() {
       return { color:'var(--b)', background:'rgba(96,165,250,.12)', border:'rgba(96,165,250,.35)' }
     }
     if (prono?.val === 'N') {
-      return { color:'var(--o)', background:'rgba(251,146,60,.12)', border:'rgba(251,146,60,.35)' }
+      return { color:'var(--a)', background:'var(--a-dim)', border:'var(--a-b)' }
     }
     if (prono?.val === '2') {
       return { color:'var(--p)', background:'rgba(192,132,252,.12)', border:'rgba(192,132,252,.35)' }
@@ -611,7 +611,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
