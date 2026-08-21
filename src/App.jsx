@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocFromCache } from 'firebase/firestore';
 import { auth, db } from './firebase/config';
 import Login from './pages/Login';
 import AppShell from './components/AppShell';
@@ -10,6 +10,31 @@ import { synchroniserPushAuDemarrage } from './services/pushNotifications';
 
 export const UserContext = createContext(null);
 export const useUser = () => useContext(UserContext);
+
+const attendre = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Au réveil d'une PWA mobile, Firebase Auth peut restaurer la session avant
+// que le réseau soit réellement disponible. On laisse à Firestore quelques
+// secondes pour se reconnecter, puis on utilise le cache local s'il existe.
+async function chargerProfil(uid) {
+  const profilRef = doc(db, 'joueurs', uid);
+  let derniereErreur = null;
+
+  for (const delai of [0, 500, 1200]) {
+    if (delai) await attendre(delai);
+    try {
+      return await getDoc(profilRef);
+    } catch (error) {
+      derniereErreur = error;
+    }
+  }
+
+  try {
+    return await getDocFromCache(profilRef);
+  } catch {
+    throw derniereErreur || new Error('Profil indisponible');
+  }
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -22,7 +47,7 @@ export default function App() {
       if (u) {
         setUser(u);
         try {
-          const snap = await getDoc(doc(db, 'joueurs', u.uid));
+          const snap = await chargerProfil(u.uid);
           if (snap.exists()) setProfil({ id: snap.id, ...snap.data() });
           setAuthError(null);
         } catch (e) {
