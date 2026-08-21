@@ -445,11 +445,11 @@ function PronosChatteuxContent() {
   const maSituation = classementProvisoire.find(joueur => joueur.id === profil?.id)
   const rangLibelle = maSituation?.rang === 1 ? '1er' : maSituation ? `${maSituation.rang}e` : '—'
   const resumeMatchs = [
-    nbLive > 0 ? `🔴 ${nbLive} live` : null,
-    nbPause > 0 ? `🟠 ${nbPause} pause` : null,
-    nbTermines > 0 ? `🟢 ${nbTermines} terminé${nbTermines > 1 ? 's' : ''}` : null,
-    nbAVenir > 0 ? `🕐 ${nbAVenir} à venir` : null,
-    nbReportes > 0 ? `⚠️ ${nbReportes} reporté${nbReportes > 1 ? 's' : ''}` : null,
+    nbLive > 0 ? `🔴 ${nbLive} match${nbLive > 1 ? 's' : ''} live` : null,
+    nbPause > 0 ? `🟠 ${nbPause} match${nbPause > 1 ? 's' : ''} en pause` : null,
+    nbTermines > 0 ? `🟢 ${nbTermines} match${nbTermines > 1 ? 's' : ''} terminé${nbTermines > 1 ? 's' : ''}` : null,
+    nbAVenir > 0 ? `🕐 ${nbAVenir} match${nbAVenir > 1 ? 's' : ''} à venir` : null,
+    nbReportes > 0 ? `⚠️ ${nbReportes} match${nbReportes > 1 ? 's' : ''} reporté${nbReportes > 1 ? 's' : ''}` : null,
   ].filter(Boolean).join(' · ')
 
   return (
