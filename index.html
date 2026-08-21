@@ -129,8 +129,9 @@
           console.log('OneSignal SDK chargé, initialisation...');
           await OneSignal.init({
             appId: 'f336f95a-cd06-42cf-9989-5aef9ccc1205',
-            serviceWorkerPath: 'push/onesignal/OneSignalSDKWorker.js',
+            serviceWorkerPath: '/push/onesignal/OneSignalSDKWorker.js',
             serviceWorkerParam: { scope: '/push/onesignal/' },
+            autoResubscribe: true,
           });
           window.OneSignalReady = true;
           console.log('✅ OneSignal initialisé avec succès');
@@ -157,7 +158,3 @@
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
-
-
-
-

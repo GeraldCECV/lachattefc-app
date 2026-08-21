@@ -6,6 +6,7 @@ import { auth, db } from './firebase/config';
 import Login from './pages/Login';
 import AppShell from './components/AppShell';
 import ErrorBoundary from './components/ErrorBoundary';
+import { synchroniserPushAuDemarrage } from './services/pushNotifications';
 
 export const UserContext = createContext(null);
 export const useUser = () => useContext(UserContext);
@@ -28,17 +29,9 @@ export default function App() {
           console.error('Erreur chargement profil:', e);
           setAuthError('Impossible de charger ton profil. Vérifie ta connexion et réessaie.');
         }
-        // Lie l'abonnement push OneSignal à l'UID Firebase, pour pouvoir
-        // cibler des notifications individuelles plus tard (missile reçu,
-        // rappel deadline personnel, etc.) plutôt que du broadcast uniquement.
-        try {
-          window.OneSignalDeferred = window.OneSignalDeferred || [];
-          window.OneSignalDeferred.push(async (OneSignal) => {
-            await OneSignal.login(u.uid);
-          });
-        } catch (e) {
-          console.error('Erreur liaison OneSignal:', e);
-        }
+        // Relie l'appareil au bon joueur et répare automatiquement les anciens
+        // abonnements Chrome/Android lorsque la permission est déjà accordée.
+        synchroniserPushAuDemarrage(u.uid);
       } else {
         setUser(null);
         setProfil(null);
