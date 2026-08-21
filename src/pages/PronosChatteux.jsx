@@ -411,6 +411,8 @@ function PronosChatteuxContent() {
   const nbLive = statutsMatchs.filter(status => status === 'IN_PLAY').length
   const nbPause = statutsMatchs.filter(status => status === 'PAUSED').length
   const nbTermines = statutsMatchs.filter(status => status === 'FINISHED').length
+  const nbReportes = statutsMatchs.filter(status => status === 'POSTPONED').length
+  const nbAVenir = statutsMatchs.filter(status => !['IN_PLAY', 'PAUSED', 'FINISHED', 'POSTPONED'].includes(status)).length
   const calculProvisoireActif = nbLive + nbPause + nbTermines > 0
   const pointsProvisoires = joueurs.map(joueur => ({
     ...joueur,
@@ -446,6 +448,8 @@ function PronosChatteuxContent() {
     nbLive > 0 ? `🔴 ${nbLive} live` : null,
     nbPause > 0 ? `🟠 ${nbPause} pause` : null,
     nbTermines > 0 ? `🟢 ${nbTermines} terminé${nbTermines > 1 ? 's' : ''}` : null,
+    nbAVenir > 0 ? `🕐 ${nbAVenir} à venir` : null,
+    nbReportes > 0 ? `⚠️ ${nbReportes} reporté${nbReportes > 1 ? 's' : ''}` : null,
   ].filter(Boolean).join(' · ')
 
   return (
