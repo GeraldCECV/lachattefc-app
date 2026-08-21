@@ -7,6 +7,7 @@ import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
 import JerseyAvatar from '../components/JerseyAvatar'
 import ErrorBoundary from '../components/ErrorBoundary'
+import { GAINS_JOURNEE } from '../firebase/constants'
 
 function PronosChatteuxContent() {
   const { profil } = useUser()
@@ -21,6 +22,7 @@ function PronosChatteuxContent() {
   const [erreur, setErreur] = useState('')
   const [detailPoints, setDetailPoints] = useState(null)
   const [cartesDepliees, setCartesDepliees] = useState({})
+  const [derniereActualisation, setDerniereActualisation] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -108,6 +110,7 @@ function PronosChatteuxContent() {
               return
             }
             setJournee({ id:d.id, ...d.data() })
+            setDerniereActualisation(new Date())
             setLoadingJournee(false)
           },
           e => {
@@ -253,7 +256,7 @@ function PronosChatteuxContent() {
   }
 
   const getPtsMatch = (uid, key, isScorer) => {
-    if (journee.statut !== 'resultats' && journee.statut !== 'fermee') return null
+    if (journee.statut !== 'resultats' && journee.statut !== 'fermee' && !deadlinePassed) return null
     const prono = getProno(uid, key)
     const res = journee.resultats?.[key]
     if (!prono || !res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY' && res.status !== 'PAUSED')) return null
@@ -402,6 +405,50 @@ function PronosChatteuxContent() {
     return 0
   })
 
+  // Tableau de bord live calculé uniquement avec les données déjà en
+  // mémoire. Le serveur reste la source officielle lors de la finalisation.
+  const statutsMatchs = matchBlocks.map(match => journee.resultats?.[match.key]?.status || 'SCHEDULED')
+  const nbLive = statutsMatchs.filter(status => status === 'IN_PLAY').length
+  const nbPause = statutsMatchs.filter(status => status === 'PAUSED').length
+  const nbTermines = statutsMatchs.filter(status => status === 'FINISHED').length
+  const calculProvisoireActif = nbLive + nbPause + nbTermines > 0
+  const pointsProvisoires = joueurs.map(joueur => ({
+    ...joueur,
+    pointsProvisoires: matchBlocks.reduce((somme, match) => {
+      const points = getPtsMatch(joueur.id, match.key, match.isScorer)
+      return somme + (points ?? 0)
+    }, Number(journee.penalites?.[joueur.id] || 0)),
+  })).sort((a, b) => b.pointsProvisoires - a.pointsProvisoires || (a.nom || '').localeCompare(b.nom || ''))
+
+  const gainsProvisoires = {}
+  if (calculProvisoireActif) {
+    let index = 0
+    while (index < pointsProvisoires.length) {
+      let finEgalite = index + 1
+      while (finEgalite < pointsProvisoires.length && pointsProvisoires[finEgalite].pointsProvisoires === pointsProvisoires[index].pointsProvisoires) finEgalite++
+      let enveloppe = 0
+      for (let place = index + 1; place <= finEgalite; place++) enveloppe += GAINS_JOURNEE[place] || 0
+      const gain = Math.round((enveloppe / (finEgalite - index)) * 100) / 100
+      for (let position = index; position < finEgalite; position++) gainsProvisoires[pointsProvisoires[position].id] = gain
+      index = finEgalite
+    }
+  }
+
+  let rangPrecedent = null
+  const classementProvisoire = pointsProvisoires.map((joueur, index) => {
+    const rang = index > 0 && joueur.pointsProvisoires === pointsProvisoires[index - 1].pointsProvisoires ? rangPrecedent : index + 1
+    rangPrecedent = rang
+    return { ...joueur, rang, gainProvisoire:gainsProvisoires[joueur.id] || 0 }
+  })
+  const maSituation = classementProvisoire.find(joueur => joueur.id === profil?.id)
+  const gainNetProvisoire = maSituation ? Math.round((maSituation.gainProvisoire - 5) * 100) / 100 : null
+  const rangLibelle = maSituation?.rang === 1 ? '1er' : maSituation ? `${maSituation.rang}e` : '—'
+  const resumeMatchs = [
+    nbLive > 0 ? `🔴 ${nbLive} live` : null,
+    nbPause > 0 ? `🟠 ${nbPause} pause` : null,
+    nbTermines > 0 ? `🟢 ${nbTermines} terminé${nbTermines > 1 ? 's' : ''}` : null,
+  ].filter(Boolean).join(' · ')
+
   return (
     <div style={{ padding:'16px 0 32px' }}>
       {detailPoints && (
@@ -430,6 +477,34 @@ function PronosChatteuxContent() {
           </span>
         </div>
       </div>
+
+      {maSituation && (
+        <div style={{ margin:'0 12px 14px', padding:'14px', borderRadius:'var(--R)', background:'linear-gradient(135deg, rgba(96,165,250,.10), rgba(155,226,45,.055))', border:'1px solid rgba(96,165,250,.25)' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, marginBottom:12 }}>
+            <div style={{ fontSize:11, fontWeight:900, letterSpacing:'.07em', color:nbLive ? '#FF4444' : nbPause ? 'var(--a)' : nbTermines ? 'var(--g)' : 'var(--b)', textTransform:'uppercase' }}>
+              {resumeMatchs || '🕐 Matchs à venir'}
+            </div>
+            {derniereActualisation && <div style={{ fontSize:9, color:'var(--tx3)', whiteSpace:'nowrap' }}>À {derniereActualisation.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' })}</div>}
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
+            <div style={{ padding:'9px 6px', borderRadius:'var(--Rs)', background:'rgba(255,255,255,.035)', textAlign:'center' }}>
+              <div style={{ fontFamily:'var(--D)', fontSize:22, color:'var(--tx)', fontWeight:900 }}>{calculProvisoireActif ? maSituation.pointsProvisoires : '—'}</div>
+              <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:800 }}>POINTS PROV.</div>
+            </div>
+            <div style={{ padding:'9px 6px', borderRadius:'var(--Rs)', background:'rgba(255,255,255,.035)', textAlign:'center' }}>
+              <div style={{ fontFamily:'var(--D)', fontSize:22, color:'var(--b)', fontWeight:900 }}>{calculProvisoireActif ? rangLibelle : '—'}</div>
+              <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:800 }}>CLASSEMENT</div>
+            </div>
+            <div style={{ padding:'9px 6px', borderRadius:'var(--Rs)', background:'rgba(255,255,255,.035)', textAlign:'center' }}>
+              <div style={{ fontFamily:'var(--D)', fontSize:22, color:maSituation.gainProvisoire > 0 ? 'var(--g)' : 'var(--tx3)', fontWeight:900 }}>{calculProvisoireActif ? `${maSituation.gainProvisoire.toFixed(2)}€` : '—'}</div>
+              <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:800 }}>GAIN PROV.</div>
+            </div>
+          </div>
+          {calculProvisoireActif && <div style={{ marginTop:9, textAlign:'center', fontSize:10, color:gainNetProvisoire >= 0 ? 'var(--g)' : 'var(--r)', fontWeight:800 }}>
+            Net après mise de 5€ : {gainNetProvisoire >= 0 ? '+' : ''}{gainNetProvisoire.toFixed(2)}€
+          </div>}
+        </div>
+      )}
 
       {erreur && (
         <div style={{ margin:'0 12px 12px', padding:'12px 14px', background:'rgba(252,165,165,.08)', border:'1px solid rgba(252,165,165,.25)', borderRadius:'var(--Rs)', fontSize:13, color:'#FCA5A5' }}>
