@@ -190,20 +190,37 @@ function PronosContent() {
     }))
   }
 
-  const countFilled = () => {
-    let n = 0
-    if (pronos.matchScorer || (scorerH !== null)) n++
-    if (pronos.matchEuro) n++
-    ;(pronos.matchesL1||[]).forEach((p, i) => {
-      const key = `l1_${i}`
-      const dcSel = dcSelections.find(d => d.matchKey === key)
-      const isDcOnThisMatch = dcSel && dcSel.choices.length === 2
-      if (p || isDcOnThisMatch) n++
-    })
-    return n
+  const scoreComplet = value => /^\d+-\d+$/.test(String(value || ''))
+  const matchL1Complet = (match, index) => {
+    const value = pronos.matchesL1?.[index]
+    if (journee?.scorerOnly || match?.scorer) return scoreComplet(value)
+    const dc = dcSelections.find(d => d.matchKey === `l1_${index}`)
+    return Boolean(value || dc?.choices?.length === 2)
   }
 
-  const total = 10
+  const completionItems = journee ? [
+    journee.matchScorer?.dom ? { key:'scorer', label:`${translateTeam(journee.matchScorer.dom)} — ${translateTeam(journee.matchScorer.ext)}`, value:`${scorerH}-${scorerA}`, complete:Number.isInteger(scorerH) && Number.isInteger(scorerA) } : null,
+    ...(journee.matchesL1 || []).map((match, index) => match?.dom ? {
+      key:`l1_${index}`,
+      label:`${translateTeam(match.dom)} — ${translateTeam(match.ext)}`,
+      value: dcSelections.find(d => d.matchKey === `l1_${index}`)?.choices?.length === 2
+        ? dcSelections.find(d => d.matchKey === `l1_${index}`).choices.join(' ou ')
+        : pronos.matchesL1?.[index],
+      complete:matchL1Complet(match, index),
+    } : null),
+    journee.matchEuro?.dom ? { key:'euro', label:`${journee.matchEuro.dom} — ${journee.matchEuro.ext}`, value:pronos.matchEuro, complete:Boolean(pronos.matchEuro) } : null,
+  ].filter(Boolean) : []
+
+  const total = completionItems.length
+  const filled = completionItems.filter(item => item.complete).length
+  const missingItems = completionItems.filter(item => !item.complete)
+  const pct = total > 0 ? Math.round(filled / total * 100) : 0
+
+  const allerAuProchainManquant = () => {
+    const prochain = missingItems[0]
+    if (!prochain) return
+    document.getElementById(`prono-${prochain.key}`)?.scrollIntoView({ behavior:'smooth', block:'center' })
+  }
 
   const handleSubmit = async () => {
     if (!user || !journee) return
@@ -284,9 +301,6 @@ function PronosContent() {
       setMesMissiles(prev => prev.filter(m => m.id !== missileId))
     } catch(e) { setError(e.message); console.error(e) }
   }
-
-  const filled = countFilled()
-  const pct = Math.round(filled/total*100)
 
   const matchLabel = (key) => {
     if (!journee) return key
@@ -581,7 +595,7 @@ function PronosContent() {
         </div>
       </div>
 
-      {saved && <div className="alert alert-g" style={{margin:'12px 16px 0'}}>✅ Pronos enregistrés !</div>}
+      {saved && <div className="alert alert-g" role="status" style={{margin:'12px 16px 0'}}>✅ Prono enregistré !</div>}
         {error && <div className="alert alert-r" style={{margin:'12px 16px 0'}}>❌ {error}</div>}
 
       {/* Progress */}
@@ -593,6 +607,16 @@ function PronosContent() {
         <div style={{height:4,background:'var(--bg4)',borderRadius:2,overflow:'hidden'}}>
           <div style={{height:'100%',width:`${pct}%`,background:'var(--g)',borderRadius:2,transition:'width .4s'}}></div>
         </div>
+        {missingItems.length > 0 && (
+          <button type="button" className="btn btn-secondary" onClick={allerAuProchainManquant} style={{width:'100%',marginTop:10,height:40,fontSize:12}}>
+            👉 Aller au prochain match à pronostiquer
+          </button>
+        )}
+        {total > 0 && filled === total && (
+          <div style={{marginTop:9,textAlign:'center',fontSize:12,fontWeight:800,color:'var(--g)'}}>
+            ✅ Tous les matchs sont renseignés
+          </div>
+        )}
       </div>
 
       {/* Bonus strip */}
@@ -677,7 +701,7 @@ function PronosContent() {
       )}
 
       {journee.matchScorer?.dom && (
-        <div style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px'}}>
+        <div id="prono-scorer" style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px',scrollMarginTop:20}}>
           <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau</div>
           <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
             {journee.matchScorer?.dom||'?'} — {journee.matchScorer?.ext||'?'}
@@ -702,6 +726,7 @@ function PronosContent() {
         const isDC = dcSelections.some(d => d.matchKey === key)
         const dcChoicesIci = dcSelections.find(d => d.matchKey === key)?.choices || []
         const isSelectingBonus = activeBonus?.type === 'jackpot' || activeBonus?.type === 'dc'
+        const matchComplet = matchL1Complet(m, i)
 
         // Mode scorer uniquement
         if (journee.scorerOnly || m.scorer) {
@@ -709,11 +734,11 @@ function PronosContent() {
           const domScore = parts[0] || ''
           const extScore = parts[1] || ''
           return (
-            <div key={i} style={{
+            <div key={i} id={`prono-${key}`} style={{
               margin:'0 16px 8px',
               background: sel ? 'rgba(155,226,45,.04)' : 'var(--bg2)',
-              border:`1px solid ${sel ? 'var(--g-b)' : 'var(--bd)'}`,
-              borderRadius:'var(--R)', padding:'13px 14px',
+              border:`1px solid ${matchComplet ? 'var(--g-b)' : 'rgba(251,146,60,.45)'}`,
+              borderRadius:'var(--R)', padding:'13px 14px', scrollMarginTop:20,
             }}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
                 <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -724,6 +749,7 @@ function PronosContent() {
                   </div>
                   <TeamLogo name={m.ext} size={22} />
                 </div>
+                {!matchComplet && <span style={{fontSize:9,fontWeight:900,color:'var(--o)',textTransform:'uppercase',letterSpacing:'.05em'}}>À compléter</span>}
               </div>
               <div style={{display:'flex',alignItems:'center',gap:10,justifyContent:'center'}}>
                 <input
@@ -760,11 +786,11 @@ function PronosContent() {
         }
 
         return (
-          <div key={i} style={{
+          <div key={i} id={`prono-${key}`} style={{
             margin:'0 16px 8px',
             background: isJP ? 'rgba(251,191,36,.04)' : isDC ? 'rgba(192,132,252,.04)' : 'var(--bg2)',
-            border:`1px solid ${isJP?'var(--a-b)':isDC?'var(--p-b)':sel?'var(--g-b)':'var(--bd)'}`,
-            borderRadius:'var(--R)',padding:'13px 14px',transition:'border-color .2s',
+            border:`1px solid ${isJP?'var(--a-b)':isDC?'var(--p-b)':matchComplet?'var(--g-b)':'rgba(251,146,60,.45)'}`,
+            borderRadius:'var(--R)',padding:'13px 14px',transition:'border-color .2s',scrollMarginTop:20,
           }}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -776,6 +802,7 @@ function PronosContent() {
                 <TeamLogo name={m.ext} size={22} />
               </div>
               <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                {!matchComplet && !isSelectingBonus && <span style={{fontSize:9,fontWeight:900,color:'var(--o)',textTransform:'uppercase',letterSpacing:'.05em'}}>À compléter</span>}
                 {isJP && <span className="pill pill-a" style={{cursor:'pointer'}} onClick={()=>toggleJackpot(key)}>🎰 Jackpot ✕</span>}
                 {isDC && <span className="pill pill-p" style={{cursor:'pointer'}} onClick={()=>toggleDcMatch(key)}>2️⃣ DC ✕</span>}
                 {isSelectingBonus && !(activeBonus.type==='jackpot' && isJP) && !(activeBonus.type==='dc' && isDC) && (
@@ -818,11 +845,11 @@ function PronosContent() {
         const isDCEuro = dcSelections.some(d => d.matchKey === 'euro')
         const dcChoicesEuro = dcSelections.find(d => d.matchKey === 'euro')?.choices || []
         return (
-        <div style={{
+        <div id="prono-euro" style={{
           margin:'0 16px 10px',
           background: isJPEuro?'rgba(251,191,36,.04)':isDCEuro?'rgba(192,132,252,.04)':'rgba(249,115,22,.03)',
           border:`1px solid ${isJPEuro?'var(--a-b)':isDCEuro?'var(--p-b)':pronos.matchEuro?'var(--g-b)':'var(--o-b)'}`,
-          borderRadius:'var(--R)',padding:'13px 14px',
+          borderRadius:'var(--R)',padding:'13px 14px',scrollMarginTop:20,
         }}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
             <div>
@@ -833,6 +860,7 @@ function PronosContent() {
               <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{journee.matchEuro.jour} {journee.matchEuro.heure}</div>
             </div>
             <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              {!pronos.matchEuro && !isDCEuro && !activeBonus && <span style={{fontSize:9,fontWeight:900,color:'var(--o)',textTransform:'uppercase',letterSpacing:'.05em'}}>À compléter</span>}
               {isJPEuro && <span className="pill pill-a" style={{cursor:'pointer'}} onClick={()=>toggleJackpot('euro')}>🎰 Jackpot ✕</span>}
               {isDCEuro && <span className="pill pill-p" style={{cursor:'pointer'}} onClick={()=>toggleDcMatch('euro')}>2️⃣ DC ✕</span>}
               {(activeBonus?.type==='jackpot'||activeBonus?.type==='dc') && !(activeBonus.type==='jackpot'&&isJPEuro) && !(activeBonus.type==='dc'&&isDCEuro) && (
@@ -875,7 +903,15 @@ function PronosContent() {
                 Confirmer l'envoi ?
               </div>
               <div style={{fontSize:13,color:'var(--tx2)',marginBottom:16,lineHeight:1.6}}>
-                {filled}/{total} matchs renseignés
+                <div style={{fontWeight:900,color:'var(--g)',marginBottom:10}}>{filled}/{total} matchs renseignés · Vérifie tes choix :</div>
+                <div style={{maxHeight:260,overflowY:'auto',background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:'var(--Rs)',padding:'4px 10px',marginBottom:10}}>
+                  {completionItems.map(item => (
+                    <div key={item.key} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,padding:'7px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                      <span style={{fontSize:11,color:'var(--tx2)',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.label}</span>
+                      <strong style={{fontFamily:'var(--D)',fontSize:15,color:item.complete?'var(--tx)':'var(--r)',flexShrink:0}}>{item.complete ? item.value : '—'}</strong>
+                    </div>
+                  ))}
+                </div>
                 {jackpotMatches.map(k => <div key={k} style={{color:'var(--a)',fontWeight:700,marginTop:4}}>🎰 Jackpot → {matchLabel(k)}</div>)}
                 {dcSelections.filter(d=>d.choices.length===2).map(d => <div key={d.matchKey} style={{color:'var(--p)',fontWeight:700}}>2️⃣ DC → {matchLabel(d.matchKey)}</div>)}
                 {mesMissiles.length > 0 && mesMissiles.map(m => (
@@ -895,7 +931,7 @@ function PronosContent() {
         <button className="btn btn-primary" onClick={()=>setShowConfirm(true)} disabled={saving||filled<total}>
           {saving
             ? <><div className="spinner" style={{width:18,height:18,borderTopColor:'#000'}}></div> Envoi...</>
-            : existingProno ? '🔄 Mettre à jour' : `📤 Envoyer mes pronos (${filled}/${total})`
+            : existingProno ? '🔎 Vérifier et mettre à jour' : `🔎 Vérifier mes pronos (${filled}/${total})`
           }
         </button>
         {filled < total && <div style={{textAlign:'center',fontSize:12,color:'var(--tx3)',marginTop:8}}>Renseigne les {total-filled} matchs restants</div>}
