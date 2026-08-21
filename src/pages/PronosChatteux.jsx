@@ -529,7 +529,7 @@ function PronosChatteuxContent() {
                   fontSize:11, fontWeight:900, letterSpacing:'.035em', cursor:'pointer',
                 }}
               >
-                {carteDepliee ? '▲ Masquer les pronostics' : `▼ Voir les ${Object.keys(pronos).length} pronostics`}
+                {carteDepliee ? '▲ Masquer les pronostics' : '▼ Voir les pronostics'}
               </button>
 
               {carteDepliee && <>
@@ -728,4 +728,3 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
