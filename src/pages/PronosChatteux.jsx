@@ -20,6 +20,7 @@ function PronosChatteuxContent() {
   const [loadingJournee, setLoadingJournee] = useState(true)
   const [erreur, setErreur] = useState('')
   const [detailPoints, setDetailPoints] = useState(null)
+  const [cartesDepliees, setCartesDepliees] = useState({})
 
   useEffect(() => {
     const load = async () => {
@@ -446,6 +447,8 @@ function PronosChatteuxContent() {
           const isFinished = res?.status === 'FINISHED'
           const isPostponed = res?.status === 'POSTPONED'
           const estMatchScorer = match.isScorer || match.isMatchScorer || journee.scorerOnly
+          const cleCarte = `${journee.id}:${match.key}`
+          const carteDepliee = Boolean(cartesDepliees[cleCarte])
 
           return (
             <div key={match.key} style={{
@@ -514,6 +517,22 @@ function PronosChatteuxContent() {
                   </div>
                 )}
               </div>
+
+              <button
+                type="button"
+                onClick={() => setCartesDepliees(prev => ({ ...prev, [cleCarte]: !prev[cleCarte] }))}
+                aria-expanded={carteDepliee}
+                style={{
+                  width:'100%', minHeight:38, padding:'8px 12px',
+                  border:0, borderBottom:carteDepliee ? '1px solid var(--bd)' : 0,
+                  background:'rgba(255,255,255,.025)', color:carteDepliee ? 'var(--tx3)' : 'var(--b)',
+                  fontSize:11, fontWeight:900, letterSpacing:'.035em', cursor:'pointer',
+                }}
+              >
+                {carteDepliee ? '▲ Masquer les pronostics' : `▼ Voir les ${Object.keys(pronos).length} pronostics`}
+              </button>
+
+              {carteDepliee && <>
 
               {/* Sagesse du groupe — répartition des pronos une fois la deadline passée */}
               {(journee.statut === 'fermee' || journee.statut === 'resultats') && (() => {
@@ -697,6 +716,7 @@ function PronosChatteuxContent() {
                   )
                 })}
               </div>
+              </>}
             </div>
           )
         })}
@@ -708,5 +728,4 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
