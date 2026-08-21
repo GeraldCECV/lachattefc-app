@@ -389,8 +389,9 @@ function PronosChatteuxContent() {
               {/* Header match */}
               <div style={{
                 padding:'10px 14px',
-                background: estMatchScorer ? 'rgba(96,165,250,.10)' : match.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(255,255,255,.03)',
-                borderBottom:'1px solid var(--bd)',
+                background: estMatchScorer ? 'linear-gradient(90deg, rgba(255,215,0,.20), rgba(255,215,0,.055) 62%, rgba(255,215,0,.12))' : match.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(255,255,255,.03)',
+                borderBottom:`1px solid ${estMatchScorer ? 'rgba(255,215,0,.48)' : 'var(--bd)'}`,
+                boxShadow:estMatchScorer ? 'inset 0 -1px 0 rgba(255,215,0,.10)' : undefined,
                 display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:8,
               }}>
                 {/* Équipes */}
@@ -398,14 +399,14 @@ function PronosChatteuxContent() {
                   <div style={{ display:'flex', alignItems:'center', gap:6, minWidth:0, flexWrap:'wrap' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
                       <TeamLogo name={match.dom} size={20} />
-                      <span style={{ fontSize:11, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                      <span style={{ fontSize:11, fontWeight:estMatchScorer ? 900 : 700, color:estMatchScorer ? '#FFF4C2' : 'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                         {translateTeam(match.dom)}
                       </span>
                     </div>
-                    <div style={{ fontSize:10, color:'var(--tx3)', fontWeight:700, flexShrink:0 }}>vs</div>
+                    <div style={{ fontSize:10, color:estMatchScorer ? '#FFD700' : 'var(--tx3)', fontWeight:700, flexShrink:0 }}>vs</div>
                     <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
                       <TeamLogo name={match.ext} size={20} />
-                      <span style={{ fontSize:11, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                      <span style={{ fontSize:11, fontWeight:estMatchScorer ? 900 : 700, color:estMatchScorer ? '#FFF4C2' : 'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                         {translateTeam(match.ext)}
                       </span>
                     </div>
@@ -666,7 +667,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
