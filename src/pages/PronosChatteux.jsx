@@ -392,86 +392,56 @@ function PronosChatteuxContent() {
                 background: estMatchScorer ? 'linear-gradient(90deg, rgba(255,215,0,.20), rgba(255,215,0,.055) 62%, rgba(255,215,0,.12))' : match.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(255,255,255,.03)',
                 borderBottom:`1px solid ${estMatchScorer ? 'rgba(255,215,0,.48)' : 'var(--bd)'}`,
                 boxShadow:estMatchScorer ? 'inset 0 -1px 0 rgba(255,215,0,.10)' : undefined,
-                display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:8,
+                display:'flex', flexDirection:'column', alignItems:'center', gap:7,
               }}>
-                {/* Équipes */}
-                <div style={{ display:'flex', flexDirection:'column', gap:2, flex:'1 1 auto', minWidth:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, minWidth:0, flexWrap:'wrap' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
-                      <TeamLogo name={match.dom} size={20} />
-                      <span style={{ fontSize:11, fontWeight:estMatchScorer ? 900 : 700, color:estMatchScorer ? '#FFF4C2' : 'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                        {translateTeam(match.dom)}
-                      </span>
-                    </div>
-                    <div style={{ fontSize:10, color:estMatchScorer ? '#FFD700' : 'var(--tx3)', fontWeight:700, flexShrink:0 }}>vs</div>
-                    <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
-                      <TeamLogo name={match.ext} size={20} />
-                      <span style={{ fontSize:11, fontWeight:estMatchScorer ? 900 : 700, color:estMatchScorer ? '#FFF4C2' : 'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                        {translateTeam(match.ext)}
-                      </span>
-                    </div>
-                    {estMatchScorer && (
-                      <div style={{
-                        flexShrink:0, padding:'3px 7px', borderRadius:20,
-                        background:'rgba(255,215,0,.11)', border:'1px solid rgba(255,215,0,.48)',
-                        fontSize:9, fontWeight:900, color:'#FFD700', letterSpacing:'.06em',
-                        boxShadow:'0 0 10px rgba(255,215,0,.15)',
-                      }}>
-                        🎯 MATCH À SCORER
-                      </div>
-                    )}
-                    {(isLive || isPaused || isPostponed) && (
-                      <div style={{
-                        display:'flex', alignItems:'center', gap:3, flexShrink:0,
-                        padding:'2px 6px', borderRadius:20,
-                        background: isPaused ? 'var(--a-dim)' : 'rgba(248,68,68,.15)',
-                        border: `1px solid ${isPaused ? 'var(--a-b)' : 'rgba(248,68,68,.4)'}`,
-                        fontSize:9, fontWeight:900, color:isPaused ? 'var(--a)' : '#FF4444', letterSpacing:'.06em',
-                        animation:isLive ? 'pulse 1.5s infinite' : undefined,
-                      }}>
-                        {isLive && <span style={{ width:4, height:4, borderRadius:'50%', background:'#FF4444', display:'inline-block' }} />}
-                        {isLive ? 'LIVE' : isPaused ? '⏸ MI-TEMPS' : '⚠️ REPORTÉ'}
-                      </div>
-                    )}
+                {estMatchScorer && (
+                  <div style={{ padding:'3px 9px', borderRadius:20, background:'rgba(255,215,0,.11)', border:'1px solid rgba(255,215,0,.48)', fontSize:9, fontWeight:900, color:'#FFD700', letterSpacing:'.06em', boxShadow:'0 0 10px rgba(255,215,0,.15)' }}>
+                    🎯 MATCH À SCORER
                   </div>
-                  {!hasScore && (match.jour || match.heure) && (
-                    <div style={{ fontSize:10, color:'var(--tx3)', fontWeight:700 }}>
-                      {match.jour}{match.jour && match.heure ? ' · ' : ''}{match.heure}
-                    </div>
-                  )}
+                )}
+
+                {/* Équipes, avec témoin live sur la même ligne */}
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, width:'100%', minWidth:0 }}>
+                  {isLive && <span aria-label="Match en direct" style={{ width:8, height:8, borderRadius:'50%', background:'#FF4444', boxShadow:'0 0 0 4px rgba(248,68,68,.14)', animation:'pulse 1.5s infinite', display:'inline-block', flexShrink:0 }} />}
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:7, minWidth:0 }}>
+                    <TeamLogo name={match.dom} size={25} />
+                    <span style={{ fontSize:14, fontWeight:900, color:estMatchScorer ? '#FFF4C2' : 'var(--tx)', textTransform:'uppercase', letterSpacing:'.025em', textAlign:'center' }}>
+                      {translateTeam(match.dom)}
+                    </span>
+                    <span style={{ fontSize:10, color:estMatchScorer ? '#FFD700' : 'var(--tx3)', fontWeight:800, flexShrink:0 }}>VS</span>
+                    <TeamLogo name={match.ext} size={25} />
+                    <span style={{ fontSize:14, fontWeight:900, color:estMatchScorer ? '#FFF4C2' : 'var(--tx)', textTransform:'uppercase', letterSpacing:'.025em', textAlign:'center' }}>
+                      {translateTeam(match.ext)}
+                    </span>
+                  </div>
+                </div>
+
+                {(match.jour || match.heure) && (
+                  <div style={{ fontSize:11, color:'var(--tx3)', fontWeight:700, textAlign:'center' }}>
+                    {match.jour}{match.jour && match.heure ? ' · ' : ''}{match.heure}
+                  </div>
+                )}
+
+                <div style={{
+                  padding:'3px 10px', borderRadius:20, fontSize:10, fontWeight:900, letterSpacing:'.06em',
+                  background:isLive ? 'rgba(248,68,68,.12)' : isPaused ? 'var(--a-dim)' : isFinished ? 'rgba(155,226,45,.08)' : isPostponed ? 'rgba(248,68,68,.12)' : 'rgba(96,165,250,.12)',
+                  border:`1px solid ${isLive ? 'rgba(248,68,68,.4)' : isPaused ? 'var(--a-b)' : isFinished ? 'var(--g-b)' : isPostponed ? 'rgba(248,68,68,.4)' : 'rgba(96,165,250,.35)'}`,
+                  color:isLive || isPostponed ? '#FF4444' : isPaused ? 'var(--a)' : isFinished ? 'var(--g)' : 'var(--b)',
+                }}>
+                  {isLive ? `LIVE${res.elapsed !== undefined && res.elapsed !== null ? ` · ${res.elapsed}'` : ''}` : isPaused ? '⏸ MI-TEMPS' : isFinished ? '✓ TERMINÉ' : isPostponed ? '⚠️ REPORTÉ' : '🕐 À VENIR'}
                 </div>
 
                 {/* Score */}
-                {hasScore ? (
+                {hasScore && (
                   <div style={{
-                    fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
+                    fontFamily:'var(--D)', fontSize:21, fontWeight:900, letterSpacing:'.04em',
                     color:'var(--tx)',
-                    padding:'4px 9px', borderRadius:'var(--Rs)', flexShrink:0,
+                    padding:'5px 12px', borderRadius:'var(--Rs)', flexShrink:0,
                     background: isLive ? 'rgba(248,68,68,.10)' : isPaused ? 'var(--a-dim)' : isFinished ? 'rgba(155,226,45,.08)' : 'rgba(255,255,255,.05)',
                     border: `1px solid ${isLive ? 'rgba(248,68,68,.4)' : isPaused ? 'var(--a-b)' : isFinished ? 'var(--g-b)' : 'var(--bd)'}`,
-                    display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+                    whiteSpace:'nowrap',
                   }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:4, whiteSpace:'nowrap' }}>
-                      {isLive && <span style={{ width:6, height:6, borderRadius:'50%', background:'#FF4444', display:'inline-block', flexShrink:0 }} />}
-                      {res.h} - {res.a}
-                    </div>
-                    {(isLive || isPaused) && (
-                      <div style={{ fontSize:11, color:isPaused ? 'var(--a)' : '#FF4444', fontWeight:700, lineHeight:1 }}>
-                        {isPaused ? 'Mi-temps' : res.elapsed !== undefined && res.elapsed !== null ? `${res.elapsed}'` : 'En cours'}
-                      </div>
-                    )}
-                    {isFinished && (
-                      <div style={{ fontSize:10, fontWeight:900, letterSpacing:'.06em', color:'var(--g)', lineHeight:1 }}>✓ Terminé</div>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{
-                    padding:'3px 10px', borderRadius:20, fontSize:10, fontWeight:900, letterSpacing:'.06em',
-                    background:isPostponed ? 'rgba(248,68,68,.12)' : 'rgba(96,165,250,.12)',
-                    border:`1px solid ${isPostponed ? 'rgba(248,68,68,.4)' : 'rgba(96,165,250,.35)'}`,
-                    color:isPostponed ? '#FF4444' : 'var(--b)',
-                  }}>
-                    {isPostponed ? '⚠️ Reporté' : '🕐 À venir'}
+                    {res.h} - {res.a}
                   </div>
                 )}
               </div>
@@ -667,7 +637,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
