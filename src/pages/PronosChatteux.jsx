@@ -341,7 +341,10 @@ function PronosChatteuxContent() {
         {matchBlocks.map(match => {
           const res = journee.resultats?.[match.key]
           const hasScore = res && (res.status === 'FINISHED' || res.status === 'IN_PLAY' || res.status === 'PAUSED') && res.h !== null && res.a !== null
-          const isLive = res?.status === 'IN_PLAY' || res?.status === 'PAUSED'
+          const isLive = res?.status === 'IN_PLAY'
+          const isPaused = res?.status === 'PAUSED'
+          const isFinished = res?.status === 'FINISHED'
+          const isPostponed = res?.status === 'POSTPONED'
 
           return (
             <div key={match.key} style={{
@@ -383,16 +386,17 @@ function PronosChatteuxContent() {
                         ⚽ SCORER
                       </div>
                     )}
-                    {isLive && (
+                    {(isLive || isPaused || isPostponed) && (
                       <div style={{
                         display:'flex', alignItems:'center', gap:3, flexShrink:0,
                         padding:'2px 6px', borderRadius:20,
-                        background:'rgba(248,68,68,.15)', border:'1px solid rgba(248,68,68,.4)',
-                        fontSize:9, fontWeight:900, color:'#FF4444', letterSpacing:'.06em',
-                        animation:'pulse 1.5s infinite',
+                        background: isPaused ? 'var(--a-dim)' : 'rgba(248,68,68,.15)',
+                        border: `1px solid ${isPaused ? 'var(--a-b)' : 'rgba(248,68,68,.4)'}`,
+                        fontSize:9, fontWeight:900, color:isPaused ? 'var(--a)' : '#FF4444', letterSpacing:'.06em',
+                        animation:isLive ? 'pulse 1.5s infinite' : undefined,
                       }}>
-                        <span style={{ width:4, height:4, borderRadius:'50%', background:'#FF4444', display:'inline-block' }} />
-                        LIVE
+                        {isLive && <span style={{ width:4, height:4, borderRadius:'50%', background:'#FF4444', display:'inline-block' }} />}
+                        {isLive ? 'LIVE' : isPaused ? '⏸ MI-TEMPS' : '⚠️ REPORTÉ'}
                       </div>
                     )}
                   </div>
@@ -407,32 +411,33 @@ function PronosChatteuxContent() {
                 {hasScore ? (
                   <div style={{
                     fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
-                    color: isLive ? 'var(--tx)' : 'var(--tx)',
+                    color:'var(--tx)',
                     padding:'4px 9px', borderRadius:'var(--Rs)', flexShrink:0,
-                    background: isLive ? 'rgba(155,226,45,.08)' : 'rgba(255,255,255,.05)',
-                    border: `1px solid ${isLive ? 'var(--g-b)' : 'var(--bd)'}`,
+                    background: isLive ? 'rgba(248,68,68,.10)' : isPaused ? 'var(--a-dim)' : isFinished ? 'rgba(155,226,45,.08)' : 'rgba(255,255,255,.05)',
+                    border: `1px solid ${isLive ? 'rgba(248,68,68,.4)' : isPaused ? 'var(--a-b)' : isFinished ? 'var(--g-b)' : 'var(--bd)'}`,
                     display:'flex', flexDirection:'column', alignItems:'center', gap:2,
                   }}>
                     <div style={{ display:'flex', alignItems:'center', gap:4, whiteSpace:'nowrap' }}>
-                      {isLive && <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--g)', display:'inline-block', flexShrink:0 }} />}
+                      {isLive && <span style={{ width:6, height:6, borderRadius:'50%', background:'#FF4444', display:'inline-block', flexShrink:0 }} />}
                       {res.h} - {res.a}
                     </div>
-                    {isLive && res.elapsed !== undefined && res.elapsed !== null && (
-                      <div style={{ fontSize:11, color:'var(--g)', fontWeight:700, lineHeight:1 }}>
-                        {res.status === 'PAUSED' ? 'Mi-temps' : `${res.elapsed}'`}
+                    {(isLive || isPaused) && (
+                      <div style={{ fontSize:11, color:isPaused ? 'var(--a)' : '#FF4444', fontWeight:700, lineHeight:1 }}>
+                        {isPaused ? 'Mi-temps' : res.elapsed !== undefined && res.elapsed !== null ? `${res.elapsed}'` : 'En cours'}
                       </div>
                     )}
-                    {res.status === 'FINISHED' && (
-                      <div style={{ fontSize:10, fontWeight:900, letterSpacing:'.06em', color:'var(--tx3)', lineHeight:1 }}>Terminé</div>
+                    {isFinished && (
+                      <div style={{ fontSize:10, fontWeight:900, letterSpacing:'.06em', color:'var(--g)', lineHeight:1 }}>✓ Terminé</div>
                     )}
                   </div>
                 ) : (
                   <div style={{
                     padding:'3px 10px', borderRadius:20, fontSize:10, fontWeight:900, letterSpacing:'.06em',
-                    background:'rgba(255,255,255,.05)', border:'1px solid var(--bd)',
-                    color:'var(--tx3)',
+                    background:isPostponed ? 'rgba(248,68,68,.12)' : 'rgba(96,165,250,.12)',
+                    border:`1px solid ${isPostponed ? 'rgba(248,68,68,.4)' : 'rgba(96,165,250,.35)'}`,
+                    color:isPostponed ? '#FF4444' : 'var(--b)',
                   }}>
-                    À venir
+                    {isPostponed ? '⚠️ Reporté' : '🕐 À venir'}
                   </div>
                 )}
               </div>
@@ -611,7 +616,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
