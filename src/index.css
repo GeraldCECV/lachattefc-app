@@ -536,6 +536,43 @@ body.modal-open .tab-bar {
   50% { opacity: .3; }
 }
 
+/* Contour animé du cockpit Live */
+@property --live-border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.live-dashboard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 2px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--live-border-angle),
+    transparent 0 18%,
+    rgba(96, 165, 250, .95) 27%,
+    rgba(155, 226, 45, .95) 35%,
+    transparent 44% 68%,
+    rgba(96, 165, 250, .55) 78%,
+    transparent 88% 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: live-border-turn 6s linear infinite;
+}
+
+@keyframes live-border-turn {
+  to { --live-border-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dashboard::after { animation: none; }
+}
 
 
 

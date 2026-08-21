@@ -480,7 +480,7 @@ function PronosChatteuxContent() {
       </div>
 
       {maSituation && (
-        <div style={{ margin:'0 12px 24px', padding:'15px', borderRadius:18, background:'linear-gradient(145deg, rgba(8,20,34,.98), rgba(14,31,29,.96))', border:'1.5px solid rgba(96,165,250,.48)', boxShadow:'0 10px 28px rgba(0,0,0,.34), 0 0 22px rgba(96,165,250,.09)', position:'relative', overflow:'hidden' }}>
+        <div className="live-dashboard" style={{ margin:'0 12px 24px', padding:'15px', borderRadius:18, background:'linear-gradient(145deg, rgba(8,20,34,.98), rgba(14,31,29,.96))', border:'1.5px solid rgba(96,165,250,.48)', boxShadow:'0 10px 28px rgba(0,0,0,.34), 0 0 22px rgba(96,165,250,.09)', position:'relative', overflow:'hidden' }}>
           <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:'linear-gradient(90deg, var(--b), var(--g))' }} />
           <div style={{ fontSize:10, fontWeight:900, letterSpacing:'.12em', color:'var(--tx)', textTransform:'uppercase', marginBottom:10 }}>
             ⚡ Ma situation live
