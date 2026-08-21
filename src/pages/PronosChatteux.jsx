@@ -381,9 +381,8 @@ function PronosChatteuxContent() {
           return (
             <div key={match.key} style={{
               borderRadius:'var(--R)',
-              border: `1px solid ${estMatchScorer ? 'rgba(96,165,250,.55)' : match.isEuro ? 'rgba(251,146,60,.15)' : 'var(--bd)'}`,
-              borderLeft:estMatchScorer ? '4px solid var(--b)' : undefined,
-              boxShadow:estMatchScorer ? '0 0 22px rgba(96,165,250,.10), inset 0 0 22px rgba(96,165,250,.025)' : undefined,
+              border: `${estMatchScorer ? '2px solid rgba(255,215,0,.78)' : `1px solid ${match.isEuro ? 'rgba(251,146,60,.15)' : 'var(--bd)'}`}`,
+              boxShadow:estMatchScorer ? '0 0 25px rgba(255,215,0,.18), inset 0 0 20px rgba(255,215,0,.035)' : undefined,
               overflow:'hidden',
               background:estMatchScorer ? 'linear-gradient(135deg, rgba(96,165,250,.075), var(--bg2) 42%)' : 'var(--bg2)',
             }}>
@@ -411,22 +410,13 @@ function PronosChatteuxContent() {
                       </span>
                     </div>
                     {estMatchScorer && (
-                      <div style={{ display:'flex', alignItems:'center', gap:4, flexShrink:0 }}>
-                        <div style={{
-                          padding:'3px 7px', borderRadius:20,
-                          background:'rgba(96,165,250,.18)', border:'1px solid rgba(96,165,250,.55)',
-                          fontSize:9, fontWeight:900, color:'#93C5FD', letterSpacing:'.06em',
-                          boxShadow:'0 0 10px rgba(96,165,250,.16)',
-                        }}>
-                          🎯 MATCH À SCORER
-                        </div>
-                        <div style={{
-                          padding:'3px 6px', borderRadius:20,
-                          background:'rgba(255,215,0,.11)', border:'1px solid rgba(255,215,0,.32)',
-                          fontSize:8, fontWeight:900, color:'#FFD700', letterSpacing:'.04em',
-                        }}>
-                          3 PTS MAX
-                        </div>
+                      <div style={{
+                        flexShrink:0, padding:'3px 7px', borderRadius:20,
+                        background:'rgba(255,215,0,.11)', border:'1px solid rgba(255,215,0,.48)',
+                        fontSize:9, fontWeight:900, color:'#FFD700', letterSpacing:'.06em',
+                        boxShadow:'0 0 10px rgba(255,215,0,.15)',
+                      }}>
+                        🎯 MATCH À SCORER
                       </div>
                     )}
                     {(isLive || isPaused || isPostponed) && (
@@ -676,7 +666,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
