@@ -255,6 +255,25 @@ function PronosChatteuxContent() {
     return calcPoints1N2(p, prono.val, issue, bonCount, allTotal, key)
   }
 
+  // Même indicateur que dans l'admin : un choix 1/N/2 joué par 25 % des
+  // participants ou moins est signalé comme surprise. Les matchs à scorer,
+  // Double Chance et pronos imposés par missile ne sont pas concernés.
+  const isSurprise = (uid, key, isScorer) => {
+    if (isScorer || journee.scorerOnly || matchBlocks.find(b => b.key === key)?.isMatchScorer) return false
+    const prono = getProno(uid, key)
+    if (!prono?.val || prono.isDC || prono.isMissile) return false
+
+    const total = Object.keys(pronos).length
+    if (total === 0) return false
+
+    const votes = Object.keys(pronos).filter(otherUid => {
+      const autreProno = getProno(otherUid, key)
+      return autreProno?.val === prono.val && !autreProno.isDC
+    }).length
+
+    return votes / total <= 0.25
+  }
+
   const getBonusLabels = (uid, key) => {
     const p = pronos[uid]
     if (!p) return []
@@ -447,6 +466,7 @@ function PronosChatteuxContent() {
                   const prono = getProno(j.id, match.key)
                   const correct = getCorrect(j.id, match.key, match.isScorer)
                   const pts = getPtsMatch(j.id, match.key, match.isScorer)
+                  const surprise = isSurprise(j.id, match.key, match.isScorer)
                   const bonuses = getBonusLabels(j.id, match.key)
                   const missilesRecus = missiles.filter(m => m.cible === j.id && m.matchKey === match.key)
                   const missilesLances = missiles.filter(m => m.lanceur === j.id && m.matchKey === match.key)
@@ -518,6 +538,15 @@ function PronosChatteuxContent() {
                         {/* Prono + points en dessous */}
                         {prono ? (
                           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
+                            {surprise && (
+                              <span
+                                title='Prono surprise — choisi par 25 % des joueurs ou moins'
+                                aria-label='Prono surprise'
+                                style={{ fontSize:10, color:'var(--p)', lineHeight:1 }}
+                              >
+                                ⚡
+                              </span>
+                            )}
                             <div style={{
                               fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
                               minWidth:42, textAlign:'center',
@@ -557,7 +586,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
