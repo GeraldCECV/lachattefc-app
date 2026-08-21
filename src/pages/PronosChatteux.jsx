@@ -441,7 +441,6 @@ function PronosChatteuxContent() {
     return { ...joueur, rang, gainProvisoire:gainsProvisoires[joueur.id] || 0 }
   })
   const maSituation = classementProvisoire.find(joueur => joueur.id === profil?.id)
-  const gainNetProvisoire = maSituation ? Math.round((maSituation.gainProvisoire - 5) * 100) / 100 : null
   const rangLibelle = maSituation?.rang === 1 ? '1er' : maSituation ? `${maSituation.rang}e` : '—'
   const resumeMatchs = [
     nbLive > 0 ? `🔴 ${nbLive} live` : null,
@@ -500,9 +499,6 @@ function PronosChatteuxContent() {
               <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:800 }}>GAIN PROV.</div>
             </div>
           </div>
-          {calculProvisoireActif && <div style={{ marginTop:9, textAlign:'center', fontSize:10, color:gainNetProvisoire >= 0 ? 'var(--g)' : 'var(--r)', fontWeight:800 }}>
-            Net après mise de 5€ : {gainNetProvisoire >= 0 ? '+' : ''}{gainNetProvisoire.toFixed(2)}€
-          </div>}
         </div>
       )}
 
