@@ -20,7 +20,6 @@ function PronosChatteuxContent() {
   const [loadingJournee, setLoadingJournee] = useState(true)
   const [erreur, setErreur] = useState('')
   const [detailPoints, setDetailPoints] = useState(null)
-  const [matchsDeplies, setMatchsDeplies] = useState({})
 
   useEffect(() => {
     const load = async () => {
@@ -447,7 +446,6 @@ function PronosChatteuxContent() {
           const isFinished = res?.status === 'FINISHED'
           const isPostponed = res?.status === 'POSTPONED'
           const estMatchScorer = match.isScorer || match.isMatchScorer || journee.scorerOnly
-          const estDeplie = Boolean(matchsDeplies[match.key])
 
           return (
             <div key={match.key} style={{
@@ -517,21 +515,8 @@ function PronosChatteuxContent() {
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={() => setMatchsDeplies(prev => ({ ...prev, [match.key]: !prev[match.key] }))}
-                aria-expanded={estDeplie}
-                style={{
-                  width:'100%', padding:'6px 12px', background:'rgba(255,255,255,.018)',
-                  border:0, borderBottom:'1px solid var(--bd)', color:'var(--tx3)',
-                  fontSize:10, fontWeight:800, letterSpacing:'.04em', cursor:'pointer',
-                }}
-              >
-                {estDeplie ? '▲ Masquer les détails' : '▼ Afficher les détails'}
-              </button>
-
               {/* Sagesse du groupe — répartition des pronos une fois la deadline passée */}
-              {estDeplie && (journee.statut === 'fermee' || journee.statut === 'resultats') && (() => {
+              {(journee.statut === 'fermee' || journee.statut === 'resultats') && (() => {
                 const counts = { '1': 0, 'N': 0, '2': 0 }
                 let total = 0
                 const estMatchScorer = match.isScorer || match.isMatchScorer || journee.scorerOnly
@@ -634,7 +619,7 @@ function PronosChatteuxContent() {
                       <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                         {/* Pastilles bonus/missile à gauche */}
                         <div style={{ display:'flex', flexDirection:'column', gap:3, alignItems:'flex-end' }}>
-                          {estDeplie ? bonuses.map((bonus, bi) => (
+                          {bonuses.map((bonus, bi) => (
                             <div key={bi} style={{
                               display:'flex', alignItems:'center', gap:3,
                               padding:'2px 6px', borderRadius:20,
@@ -645,12 +630,8 @@ function PronosChatteuxContent() {
                             }}>
                               {bonus.icon} {bonus.label}
                             </div>
-                          )) : bonuses.length > 0 && (
-                            <div style={{ display:'flex', gap:2 }}>
-                              {bonuses.map((bonus, bi) => <span key={bi} title={bonus.label} aria-label={bonus.label} style={{ fontSize:12 }}>{bonus.icon}</span>)}
-                            </div>
-                          )}
-                          {estDeplie ? missilesRecus.map(m => (
+                          ))}
+                          {missilesRecus.map(m => (
                             <div key={m.id} style={{
                               display:'flex', alignItems:'center', gap:3,
                               padding:'2px 6px', borderRadius:20,
@@ -660,10 +641,8 @@ function PronosChatteuxContent() {
                             }}>
                               🚀 {joueurs.find(u => u.id === m.lanceur)?.nom?.split(' ')[0] || '?'}
                             </div>
-                          )) : missilesRecus.length > 0 && (
-                            <span title={`${missilesRecus.length} missile${missilesRecus.length > 1 ? 's' : ''} reçu${missilesRecus.length > 1 ? 's' : ''}`} aria-label="Missile reçu" style={{ fontSize:12 }}>🚀</span>
-                          )}
-                          {estDeplie ? missilesLances.map(m => (
+                          ))}
+                          {missilesLances.map(m => (
                             <div key={m.id} style={{
                               display:'flex', alignItems:'center', gap:3,
                               padding:'2px 6px', borderRadius:20,
@@ -673,9 +652,7 @@ function PronosChatteuxContent() {
                             }}>
                               ↗ {joueurs.find(u => u.id === m.cible)?.nom?.split(' ')[0] || '?'}
                             </div>
-                          )) : missilesLances.length > 0 && (
-                            <span title={`${missilesLances.length} missile${missilesLances.length > 1 ? 's' : ''} lancé${missilesLances.length > 1 ? 's' : ''}`} aria-label="Missile lancé" style={{ fontSize:12, color:'var(--o)' }}>↗</span>
-                          )}
+                          ))}
                         </div>
                         {/* Prono + points en dessous */}
                         {prono ? (
@@ -710,11 +687,6 @@ function PronosChatteuxContent() {
                                 +{pts} pt{pts > 1 ? 's' : ''}
                               </button>
                             )}
-                            {estDeplie && explicationPoints && (
-                              <div style={{ maxWidth:120, textAlign:'center', fontSize:9, lineHeight:1.25, color:'var(--tx3)', fontWeight:700 }}>
-                                {explicationPoints.raison}
-                              </div>
-                            )}
                           </div>
                         ) : (
                           <div style={{ minWidth:42, textAlign:'center', color:'var(--bd2)', fontSize:16 }}>—</div>
@@ -736,3 +708,5 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
+
+
