@@ -17,6 +17,7 @@ function PronosChatteuxContent() {
   const [pronos, setPronos] = useState({})
   const [missiles, setMissiles] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingJournee, setLoadingJournee] = useState(true)
   const [erreur, setErreur] = useState('')
 
   useEffect(() => {
@@ -45,6 +46,7 @@ function PronosChatteuxContent() {
           ? ouvertes.reduce((a, b) => (a.numero < b.numero ? a : b))
           : liste[liste.length - 1]
         if (defaultJ) setSelectedJId(defaultJ.id)
+        else setLoadingJournee(false)
         setLoading(false)
       } catch(e) {
         console.error(e)
@@ -61,6 +63,8 @@ function PronosChatteuxContent() {
 
     const load = async () => {
       try {
+        setLoadingJournee(true)
+        setJournee(null)
         setErreur('')
         // Le statut de la journee conditionne la lecture : tant qu'elle est
         // ouverte, les pronos des autres restent secrets (regle du jeu, et
@@ -81,27 +85,38 @@ function PronosChatteuxContent() {
           setPronos({})
           setMissiles([])
         } else {
-          const pronosSnap = await getDocs(collection(db,'journees',selectedJId,'pronos'))
+          // Ces deux lectures sont indépendantes : les lancer ensemble réduit
+          // sensiblement l'attente sur mobile.
+          const [pronosSnap, missilesSnap] = await Promise.all([
+            getDocs(collection(db,'journees',selectedJId,'pronos')),
+            getDocs(collection(db,'journees',selectedJId,'missiles')),
+          ])
           if (annule) return
           const pronosData = {}
           pronosSnap.docs.forEach(d => { pronosData[d.id] = d.data() })
           setPronos(pronosData)
-          const missilesSnap = await getDocs(collection(db,'journees',selectedJId,'missiles'))
-          if (annule) return
           setMissiles(missilesSnap.docs.map(d => ({ id:d.id, ...d.data() })))
         }
 
         unsub = onSnapshot(
           doc(db,'journees',selectedJId),
           d => {
-            if (!d.exists()) return
+            if (!d.exists()) {
+              setLoadingJournee(false)
+              return
+            }
             setJournee({ id:d.id, ...d.data() })
+            setLoadingJournee(false)
           },
-          e => console.error('Erreur listener journee (PronosChatteux):', e)
+          e => {
+            console.error('Erreur listener journee (PronosChatteux):', e)
+            setLoadingJournee(false)
+          }
         )
       } catch (e) {
         console.error('Erreur chargement pronos des chatteux:', e)
         setErreur('Impossible de charger les pronos. Verifie ta connexion et reessaie.')
+        setLoadingJournee(false)
       }
     }
 
@@ -109,7 +124,7 @@ function PronosChatteuxContent() {
     return () => { annule = true; if (unsub) unsub() }
   }, [selectedJId])
 
-  if (loading) return (
+  if (loading || loadingJournee) return (
     <div style={{ display:'flex', justifyContent:'center', padding:60 }}>
       <div className="spinner" style={{ width:28, height:28 }} />
     </div>
@@ -616,7 +631,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
