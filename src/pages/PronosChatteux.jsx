@@ -274,6 +274,28 @@ function PronosChatteuxContent() {
     return votes / total <= 0.25
   }
 
+  // Avant le coup d'envoi, différencie visuellement les choix 1/N/2. Dès
+  // qu'un résultat live existe, les couleurs exact/écart/issue/erreur prennent
+  // le relais plus bas.
+  const getPendingPronoPalette = (prono, isScorer) => {
+    if (prono?.isMissile) {
+      return { color:'#FF4444', background:'rgba(255,68,68,.12)', border:'rgba(255,68,68,.35)' }
+    }
+    if (isScorer) {
+      return { color:'var(--b)', background:'rgba(96,165,250,.12)', border:'rgba(96,165,250,.35)' }
+    }
+    if (prono?.val === '1') {
+      return { color:'var(--b)', background:'rgba(96,165,250,.12)', border:'rgba(96,165,250,.35)' }
+    }
+    if (prono?.val === 'N') {
+      return { color:'var(--o)', background:'rgba(251,146,60,.12)', border:'rgba(251,146,60,.35)' }
+    }
+    if (prono?.val === '2') {
+      return { color:'var(--p)', background:'rgba(192,132,252,.12)', border:'rgba(192,132,252,.35)' }
+    }
+    return { color:'var(--tx)', background:'rgba(255,255,255,.04)', border:'rgba(255,255,255,.06)' }
+  }
+
   const getBonusLabels = (uid, key) => {
     const p = pronos[uid]
     if (!p) return []
@@ -467,6 +489,7 @@ function PronosChatteuxContent() {
                   const correct = getCorrect(j.id, match.key, match.isScorer)
                   const pts = getPtsMatch(j.id, match.key, match.isScorer)
                   const surprise = isSurprise(j.id, match.key, match.isScorer)
+                  const pendingPalette = getPendingPronoPalette(prono, match.isScorer)
                   const bonuses = getBonusLabels(j.id, match.key)
                   const missilesRecus = missiles.filter(m => m.cible === j.id && m.matchKey === match.key)
                   const missilesLances = missiles.filter(m => m.lanceur === j.id && m.matchKey === match.key)
@@ -552,9 +575,9 @@ function PronosChatteuxContent() {
                                 fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
                                 minWidth:42, textAlign:'center',
                                 padding:'4px 8px', borderRadius:'var(--Rs)',
-                                color: correct === 'exact' ? '#FFD700' : correct === 'ecart' ? '#9BE22D' : correct === 'correct' ? '#9BE22D' : correct === 'issue' ? '#FB923C' : correct === 'wrong' ? '#FF4444' : prono.isMissile ? '#FF4444' : match.isScorer ? 'var(--b)' : 'var(--tx)',
-                                background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.18)' : correct === 'issue' ? 'rgba(251,146,60,.18)' : correct === 'wrong' ? 'rgba(255,68,68,.18)' : 'rgba(255,255,255,.04)',
-                                border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.6)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.5)' : correct === 'issue' ? 'rgba(251,146,60,.5)' : correct === 'wrong' ? 'rgba(255,68,68,.5)' : 'rgba(255,255,255,.06)'}`,
+                                color: correct === 'exact' ? '#FFD700' : correct === 'ecart' ? '#9BE22D' : correct === 'correct' ? '#9BE22D' : correct === 'issue' ? '#FB923C' : correct === 'wrong' ? '#FF4444' : pendingPalette.color,
+                                background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.18)' : correct === 'issue' ? 'rgba(251,146,60,.18)' : correct === 'wrong' ? 'rgba(255,68,68,.18)' : pendingPalette.background,
+                                border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.6)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.5)' : correct === 'issue' ? 'rgba(251,146,60,.5)' : correct === 'wrong' ? 'rgba(255,68,68,.5)' : pendingPalette.border}`,
                               }}>
                                 {prono.val}
                               </div>
@@ -588,7 +611,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
