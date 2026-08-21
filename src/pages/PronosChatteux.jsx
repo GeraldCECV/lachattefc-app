@@ -191,12 +191,26 @@ function PronosChatteuxContent() {
   const matchesMain = (journee.matchesL1 || []).filter(m => m?.dom)
   const euro = journee.matchEuro?.dom ? journee.matchEuro : null
 
-  // Construire la liste des matchs à afficher
+  const horaireMatch = (match) => {
+    if (typeof match.utcDate?.toMillis === 'function') return match.utcDate.toMillis()
+    if (match.utcDate?.seconds) return match.utcDate.seconds * 1000
+    const timestamp = Date.parse(match.utcDate || '')
+    return Number.isFinite(timestamp) ? timestamp : Number.MAX_SAFE_INTEGER
+  }
+
+  // Construire la liste sans modifier les clés d'origine des pronos, puis :
+  // 1) matchs non terminés en premier, par ordre chronologique ;
+  // 2) matchs terminés en bas, également par ordre chronologique.
   const matchBlocks = [
-    scorer?.dom ? { key:'scorer', dom: scorer.dom, ext: scorer.ext, jour: scorer.jour, heure: scorer.heure, isScorer: true, label: '⚽ Match Scorer' } : null,
-    ...matchesMain.map((m, i) => ({ key: `l1_${i}`, dom: m.dom, ext: m.ext, jour: m.jour, heure: m.heure, label: `Match ${i+1}`, isMatchScorer: m.scorer === true })),
-    euro ? { key:'euro', dom: euro.dom, ext: euro.ext, jour: euro.jour, heure: euro.heure, isEuro: true, label: '🌍 Affiche Européenne' } : null,
-  ].filter(Boolean)
+    scorer?.dom ? { key:'scorer', dom: scorer.dom, ext: scorer.ext, jour: scorer.jour, heure: scorer.heure, utcDate: scorer.utcDate, isScorer: true, label: '⚽ Match Scorer', ordreInitial: -1 } : null,
+    ...matchesMain.map((m, i) => ({ key: `l1_${i}`, dom: m.dom, ext: m.ext, jour: m.jour, heure: m.heure, utcDate: m.utcDate, label: `Match ${i+1}`, isMatchScorer: m.scorer === true, ordreInitial: i })),
+    euro ? { key:'euro', dom: euro.dom, ext: euro.ext, jour: euro.jour, heure: euro.heure, utcDate: euro.utcDate, isEuro: true, label: '🌍 Affiche Européenne', ordreInitial: matchesMain.length + 1 } : null,
+  ].filter(Boolean).sort((a, b) => {
+    const aTermine = journee.resultats?.[a.key]?.status === 'FINISHED'
+    const bTermine = journee.resultats?.[b.key]?.status === 'FINISHED'
+    if (aTermine !== bTermine) return aTermine ? 1 : -1
+    return horaireMatch(a) - horaireMatch(b) || a.ordreInitial - b.ordreInitial
+  })
 
   const getProno = (uid, key) => {
     const p = pronos[uid]
@@ -650,7 +664,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
