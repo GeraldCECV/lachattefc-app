@@ -204,10 +204,33 @@ function ProfilContent() {
     const load = async () => {
       if (!user) return;
       const snap = await getDoc(doc(db, 'joueurs', user.uid));
-      if (snap.exists()) setStats(snap.data());
+      if (snap.exists()) {
+        const mesStats = snap.data();
+        let ranking = null;
+        let rankingTotal = null;
+        try {
+          const joueursSnap = await getDocs(collection(db, 'joueurs'));
+          const classement = joueursSnap.docs
+            .map(d => {
+              const joueur = d.data();
+              const net = Math.round(((joueur.gainsTotal || 0) - (joueur.journeesJouees || 0) * 5) * 100) / 100;
+              return { id: d.id, net };
+            })
+            .sort((a, b) => b.net - a.net || a.id.localeCompare(b.id));
+          const monIndex = classement.findIndex(joueur => joueur.id === user.uid);
+          if (monIndex >= 0) {
+            ranking = classement.findIndex(joueur => joueur.net === classement[monIndex].net) + 1;
+            rankingTotal = classement.length;
+          }
+        } catch (e) {
+          console.error('Erreur calcul classement profil:', e);
+          Sentry.captureException(e, { tags: { context: 'profil-ranking' } });
+        }
+        setStats({ ...mesStats, ranking, rankingTotal });
+      }
       const jSnap = await getDocs(query(collection(db, 'journees'), orderBy('numero', 'desc')));
       const hist = [];
-      for (const jDoc of jSnap.docs.slice(0, 10)) {
+      for (const jDoc of jSnap.docs) {
         const j = jDoc.data();
         if (j.pointsJoueurs?.[user.uid] !== undefined) {
           hist.push({
@@ -922,13 +945,17 @@ function ProfilContent() {
                   const total = stats?.gainsTotal || 0;
                   const played = stats?.journeesJouees || 0;
                   const avg = played > 0 ? (total / played).toFixed(1) : '0.0';
-                  const ranking = stats?.ranking || 0;
+                  const ranking = stats?.ranking;
+                  const rankingTotal = stats?.rankingTotal;
+                  const plusValue = Math.round((total - played * 5) * 100) / 100;
+                  const pointsTotal = stats?.pointsTotal || 0;
+                  const absences = stats?.absences || 0;
 
                   let best = { numero: 0, gain: 0 };
                   let worst = { numero: 0, gain: 0 };
                   if (historique.length > 0) {
-                    best = historique.reduce((a, b) => (b.gain > a.gain ? b : a), historique[0]);
-                    worst = historique.reduce((a, b) => (b.gain < a.gain ? b : a), historique[0]);
+                    best = historique.reduce((a, b) => (b.gain > a.gain || (b.gain === a.gain && b.pts > a.pts) ? b : a), historique[0]);
+                    worst = historique.reduce((a, b) => (b.gain < a.gain || (b.gain === a.gain && b.pts < a.pts) ? b : a), historique[0]);
                   }
 
                   return (
@@ -955,8 +982,9 @@ function ProfilContent() {
                             Classement
                           </div>
                           <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--g)' }}>
-                            #{ranking}
+                            {ranking ? `#${ranking}` : '—'}
                           </div>
+                          {rankingTotal && <div style={{ fontSize: 9, color: 'var(--tx3)', marginTop: 2 }}>sur {rankingTotal}</div>}
                         </div>
                         <div
                           style={{
@@ -971,7 +999,7 @@ function ProfilContent() {
                             Plus-value
                           </div>
                           <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--g)' }}>
-                            {total}€
+                            <span style={{ color: plusValue >= 0 ? 'var(--g)' : 'var(--r)' }}>{plusValue > 0 ? '+' : ''}{plusValue.toFixed(2)}€</span>
                           </div>
                         </div>
                         <div
@@ -984,7 +1012,7 @@ function ProfilContent() {
                           }}
                         >
                           <div style={{ fontSize: 11, color: 'var(--tx3)', marginBottom: 6 }}>
-                            Moyenne
+                            Gain moyen brut
                           </div>
                           <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--g)' }}>
                             {avg}€
@@ -1004,6 +1032,38 @@ function ProfilContent() {
                           </div>
                           <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--g)' }}>
                             {played}
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            background: 'rgba(96,165,250,.08)',
+                            border: '1px solid rgba(96,165,250,.2)',
+                            borderRadius: 'var(--Rs)',
+                            padding: 14,
+                            textAlign: 'center',
+                          }}
+                        >
+                          <div style={{ fontSize: 11, color: 'var(--tx3)', marginBottom: 6 }}>
+                            Points saison
+                          </div>
+                          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--b)' }}>
+                            {pointsTotal}
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            background: absences > 0 ? 'rgba(252,165,165,.08)' : 'rgba(255,255,255,.035)',
+                            border: `1px solid ${absences > 0 ? 'rgba(252,165,165,.2)' : 'var(--bd)'}`,
+                            borderRadius: 'var(--Rs)',
+                            padding: 14,
+                            textAlign: 'center',
+                          }}
+                        >
+                          <div style={{ fontSize: 11, color: 'var(--tx3)', marginBottom: 6 }}>
+                            Absences
+                          </div>
+                          <div style={{ fontSize: 20, fontWeight: 700, color: absences > 0 ? 'var(--r)' : 'var(--tx2)' }}>
+                            {absences}
                           </div>
                         </div>
                       </div>
@@ -1027,8 +1087,9 @@ function ProfilContent() {
                             }}
                           >
                             <span style={{ fontSize: 13, color: 'var(--tx2)' }}>J{best.numero}</span>
-                            <span style={{ fontSize: 16, fontWeight: 700, color: '#9BE22D' }}>
-                              +{best.gain}€
+                            <span style={{ textAlign:'right' }}>
+                              <span style={{ display:'block', fontSize: 15, fontWeight: 700, color: '#9BE22D' }}>{best.gain}€ gagnés</span>
+                              <span style={{ display:'block', fontSize: 10, color:'var(--tx3)', marginTop:2 }}>{best.pts} pts</span>
                             </span>
                           </div>
 
@@ -1047,8 +1108,9 @@ function ProfilContent() {
                             }}
                           >
                             <span style={{ fontSize: 13, color: 'var(--tx2)' }}>J{worst.numero}</span>
-                            <span style={{ fontSize: 16, fontWeight: 700, color: '#FCA5A5' }}>
-                              {worst.gain}€
+                            <span style={{ textAlign:'right' }}>
+                              <span style={{ display:'block', fontSize: 15, fontWeight: 700, color: '#FCA5A5' }}>{worst.gain}€ gagnés</span>
+                              <span style={{ display:'block', fontSize: 10, color:'var(--tx3)', marginTop:2 }}>{worst.pts} pts</span>
                             </span>
                           </div>
                         </div>
