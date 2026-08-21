@@ -376,24 +376,27 @@ function PronosChatteuxContent() {
           const isPaused = res?.status === 'PAUSED'
           const isFinished = res?.status === 'FINISHED'
           const isPostponed = res?.status === 'POSTPONED'
+          const estMatchScorer = match.isScorer || match.isMatchScorer || journee.scorerOnly
 
           return (
             <div key={match.key} style={{
               borderRadius:'var(--R)',
-              border: `1px solid ${match.isScorer ? 'rgba(96,165,250,.15)' : match.isEuro ? 'rgba(251,146,60,.15)' : 'var(--bd)'}`,
+              border: `1px solid ${estMatchScorer ? 'rgba(96,165,250,.55)' : match.isEuro ? 'rgba(251,146,60,.15)' : 'var(--bd)'}`,
+              borderLeft:estMatchScorer ? '4px solid var(--b)' : undefined,
+              boxShadow:estMatchScorer ? '0 0 22px rgba(96,165,250,.10), inset 0 0 22px rgba(96,165,250,.025)' : undefined,
               overflow:'hidden',
-              background:'var(--bg2)',
+              background:estMatchScorer ? 'linear-gradient(135deg, rgba(96,165,250,.075), var(--bg2) 42%)' : 'var(--bg2)',
             }}>
               {/* Header match */}
               <div style={{
                 padding:'10px 14px',
-                background: match.isScorer ? 'rgba(96,165,250,.06)' : match.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(255,255,255,.03)',
+                background: estMatchScorer ? 'rgba(96,165,250,.10)' : match.isEuro ? 'rgba(251,146,60,.06)' : 'rgba(255,255,255,.03)',
                 borderBottom:'1px solid var(--bd)',
                 display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:8,
               }}>
                 {/* Équipes */}
                 <div style={{ display:'flex', flexDirection:'column', gap:2, flex:'1 1 auto', minWidth:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, minWidth:0, flexWrap:'wrap' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
                       <TeamLogo name={match.dom} size={20} />
                       <span style={{ fontSize:11, fontWeight:700, color:'var(--tx2)', textTransform:'uppercase', letterSpacing:'.02em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
@@ -407,14 +410,23 @@ function PronosChatteuxContent() {
                         {translateTeam(match.ext)}
                       </span>
                     </div>
-                    {(match.isScorer || match.isMatchScorer) && (
-                      <div style={{
-                        display:'flex', alignItems:'center', gap:3, flexShrink:0,
-                        padding:'2px 6px', borderRadius:20,
-                        background:'rgba(96,165,250,.15)', border:'1px solid rgba(96,165,250,.4)',
-                        fontSize:9, fontWeight:900, color:'var(--b)', letterSpacing:'.06em',
-                      }}>
-                        ⚽ SCORER
+                    {estMatchScorer && (
+                      <div style={{ display:'flex', alignItems:'center', gap:4, flexShrink:0 }}>
+                        <div style={{
+                          padding:'3px 7px', borderRadius:20,
+                          background:'rgba(96,165,250,.18)', border:'1px solid rgba(96,165,250,.55)',
+                          fontSize:9, fontWeight:900, color:'#93C5FD', letterSpacing:'.06em',
+                          boxShadow:'0 0 10px rgba(96,165,250,.16)',
+                        }}>
+                          🎯 MATCH À SCORER
+                        </div>
+                        <div style={{
+                          padding:'3px 6px', borderRadius:20,
+                          background:'rgba(255,215,0,.11)', border:'1px solid rgba(255,215,0,.32)',
+                          fontSize:8, fontWeight:900, color:'#FFD700', letterSpacing:'.04em',
+                        }}>
+                          3 PTS MAX
+                        </div>
                       </div>
                     )}
                     {(isLive || isPaused || isPostponed) && (
@@ -664,8 +676,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
-
 
 
 
