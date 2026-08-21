@@ -22,6 +22,7 @@ function PronosChatteuxContent() {
   const [erreur, setErreur] = useState('')
   const [detailPoints, setDetailPoints] = useState(null)
   const [cartesDepliees, setCartesDepliees] = useState({})
+  const [podiumVisible, setPodiumVisible] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -503,6 +504,39 @@ function PronosChatteuxContent() {
               <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:800 }}>GAIN PROV.</div>
             </div>
           </div>
+          {calculProvisoireActif && (
+            <div style={{ marginTop:11, paddingTop:10, borderTop:'1px solid rgba(255,255,255,.07)' }}>
+              <button
+                type="button"
+                onClick={() => setPodiumVisible(visible => !visible)}
+                aria-expanded={podiumVisible}
+                style={{ width:'100%', border:0, background:'none', color:'#FFD700', fontSize:11, fontWeight:900, letterSpacing:'.045em', cursor:'pointer', padding:'3px 0' }}
+              >
+                {podiumVisible ? '▲ Masquer le podium' : '🏆 Voir le podium provisoire'}
+              </button>
+              {podiumVisible && (
+                <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:6 }}>
+                  {classementProvisoire.slice(0, 3).map(joueur => {
+                    const estMoi = joueur.id === profil?.id
+                    const medaille = joueur.rang === 1 ? '🥇' : joueur.rang === 2 ? '🥈' : '🥉'
+                    return (
+                      <div key={joueur.id} style={{ display:'grid', gridTemplateColumns:'26px minmax(0, 1fr) auto auto', alignItems:'center', gap:7, padding:'7px 9px', borderRadius:'var(--Rs)', background:estMoi ? 'rgba(155,226,45,.09)' : 'rgba(255,255,255,.035)', border:`1px solid ${estMoi ? 'rgba(155,226,45,.22)' : 'rgba(255,255,255,.055)'}` }}>
+                        <span style={{ fontSize:17 }}>{medaille}</span>
+                        <span style={{ minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontSize:12, fontWeight:900, color:estMoi ? 'var(--g)' : 'var(--tx)' }}>{joueur.nom?.split(' ')[0] || joueur.initiales || '?'}</span>
+                        <span style={{ fontSize:11, fontWeight:900, color:'var(--tx2)', whiteSpace:'nowrap' }}>{joueur.pointsProvisoires} pts</span>
+                        <span style={{ minWidth:48, textAlign:'right', fontSize:11, fontWeight:900, color:joueur.gainProvisoire > 0 ? 'var(--g)' : 'var(--tx3)', whiteSpace:'nowrap' }}>{joueur.gainProvisoire.toFixed(2)}€</span>
+                      </div>
+                    )
+                  })}
+                  {maSituation.rang > 3 && (
+                    <div style={{ textAlign:'center', marginTop:2, fontSize:10, color:'var(--tx3)', fontWeight:800 }}>
+                      Ton classement : <span style={{ color:'var(--b)' }}>{rangLibelle} sur {joueurs.length}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
