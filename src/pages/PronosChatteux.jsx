@@ -458,17 +458,28 @@ function PronosChatteuxContent() {
               </div>
 
               {/* Sagesse du groupe — répartition des pronos une fois la deadline passée */}
-              {!match.isScorer && (journee.statut === 'fermee' || journee.statut === 'resultats') && (() => {
+              {(journee.statut === 'fermee' || journee.statut === 'resultats') && (() => {
                 const counts = { '1': 0, 'N': 0, '2': 0 }
                 let total = 0
+                const estMatchScorer = match.isScorer || match.isMatchScorer || journee.scorerOnly
                 joueurs.forEach(j => {
                   const p = pronos[j.id]
                   if (!p) return
-                  const missile = missiles.find(m => m.cible === j.id && m.matchKey === match.key && m.applique)
-                  if (missile) {
-                    if (['1','N','2'].includes(missile.pronoImpose)) { counts[missile.pronoImpose] += 1; total++ }
+
+                  const pronoJoueur = getProno(j.id, match.key)
+                  if (!pronoJoueur?.val) return
+
+                  // Pour un match à scorer, on transforme chaque score en
+                  // issue 1/N/2 afin d'afficher le même bandeau statistique.
+                  if (estMatchScorer) {
+                    const score = String(pronoJoueur.val).match(/^(\d+)-(\d+)$/)
+                    if (!score) return
+                    const issue = issueMatch(Number(score[1]), Number(score[2]))
+                    counts[issue] += 1
+                    total++
                     return
                   }
+
                   // DC active : le joueur mise sur 2 issues — on répartit son vote (0.5 + 0.5)
                   // pour que le total reste cohérent avec le nombre de joueurs.
                   const dcChoicesIci = getDcChoicesFor(p, match.key)
@@ -477,9 +488,7 @@ function PronosChatteuxContent() {
                     total++
                     return
                   }
-                  const idx = parseInt(match.key.replace('l1_', ''))
-                  const arr = p.matchesL1
-                  const v = arr?.[idx]
+                  const v = pronoJoueur.val
                   if (v === '1' || v === 'N' || v === '2') { counts[v] += 1; total++ }
                 })
                 if (total === 0) return null
@@ -487,6 +496,11 @@ function PronosChatteuxContent() {
                 const COLORS = { '1': 'var(--b)', 'N': 'var(--a)', '2': 'var(--p)' }
                 return (
                   <div style={{ padding:'8px 14px', borderBottom:'1px solid var(--bd)' }}>
+                    {estMatchScorer && (
+                      <div style={{ marginBottom:5, fontSize:9, color:'var(--tx3)', fontWeight:900, textTransform:'uppercase', letterSpacing:'.06em' }}>
+                        Issue des scores pronostiqués
+                      </div>
+                    )}
                     <div style={{ display:'flex', height:8, borderRadius:5, overflow:'hidden', background:'rgba(255,255,255,.05)' }}>
                       {['1','N','2'].map(v => counts[v] > 0 && (
                         <div key={v} style={{ width:`${pct(v)}%`, background:COLORS[v] }} title={`${v}: ${pct(v)}%`} />
@@ -631,7 +645,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
