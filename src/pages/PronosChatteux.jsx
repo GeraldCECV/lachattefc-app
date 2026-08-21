@@ -448,7 +448,10 @@ function PronosChatteuxContent() {
           const isPostponed = res?.status === 'POSTPONED'
           const estMatchScorer = match.isScorer || match.isMatchScorer || journee.scorerOnly
           const cleCarte = `${journee.id}:${match.key}`
-          const carteDepliee = Boolean(cartesDepliees[cleCarte])
+          const statutCarte = res?.status || 'SCHEDULED'
+          const ouvertureAuto = isLive || isPaused
+          const choixManuel = cartesDepliees[cleCarte]
+          const carteDepliee = choixManuel?.statut === statutCarte ? choixManuel.ouverte : ouvertureAuto
 
           return (
             <div key={match.key} style={{
@@ -520,7 +523,7 @@ function PronosChatteuxContent() {
 
               <button
                 type="button"
-                onClick={() => setCartesDepliees(prev => ({ ...prev, [cleCarte]: !prev[cleCarte] }))}
+                onClick={() => setCartesDepliees(prev => ({ ...prev, [cleCarte]: { statut:statutCarte, ouverte:!carteDepliee } }))}
                 aria-expanded={carteDepliee}
                 style={{
                   width:'100%', minHeight:38, padding:'8px 12px',
