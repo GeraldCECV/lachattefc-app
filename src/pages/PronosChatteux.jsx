@@ -10,6 +10,7 @@ import ErrorBoundary from '../components/ErrorBoundary'
 import { GAINS_JOURNEE } from '../firebase/constants'
 
 function formatLiveMinute(resultat) {
+  if (resultat?.minute === null || resultat?.minute === undefined || resultat?.minute === '') return null
   const minute = Number(resultat?.minute)
   if (!Number.isFinite(minute) || minute < 0) return null
   const injuryTime = Number(resultat?.injuryTime)
