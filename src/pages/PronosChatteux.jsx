@@ -482,23 +482,27 @@ function PronosChatteuxContent() {
       </div>
 
       {maSituation && (
-        <div style={{ margin:'0 12px 14px', padding:'14px', borderRadius:'var(--R)', background:'linear-gradient(135deg, rgba(96,165,250,.10), rgba(155,226,45,.055))', border:'1px solid rgba(96,165,250,.25)' }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, marginBottom:12 }}>
+        <div style={{ margin:'0 12px 24px', padding:'15px', borderRadius:18, background:'linear-gradient(145deg, rgba(8,20,34,.98), rgba(14,31,29,.96))', border:'1.5px solid rgba(96,165,250,.48)', boxShadow:'0 10px 28px rgba(0,0,0,.34), 0 0 22px rgba(96,165,250,.09)', position:'relative', overflow:'hidden' }}>
+          <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:'linear-gradient(90deg, var(--b), var(--g))' }} />
+          <div style={{ fontSize:10, fontWeight:900, letterSpacing:'.12em', color:'var(--tx)', textTransform:'uppercase', marginBottom:10 }}>
+            ⚡ Ma situation live
+          </div>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, marginBottom:13, paddingBottom:10, borderBottom:'1px solid rgba(255,255,255,.07)' }}>
             <div style={{ fontSize:11, fontWeight:900, letterSpacing:'.07em', color:nbLive ? '#FF4444' : nbPause ? 'var(--a)' : nbTermines ? 'var(--g)' : 'var(--b)', textTransform:'uppercase' }}>
               {resumeMatchs || '🕐 Matchs à venir'}
             </div>
             {derniereActualisation && <div style={{ fontSize:9, color:'var(--tx3)', whiteSpace:'nowrap' }}>À {derniereActualisation.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' })}</div>}
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
-            <div style={{ padding:'9px 6px', borderRadius:'var(--Rs)', background:'rgba(255,255,255,.035)', textAlign:'center' }}>
+            <div style={{ padding:'10px 6px', borderRadius:'var(--Rs)', background:'rgba(255,255,255,.045)', border:'1px solid rgba(255,255,255,.065)', textAlign:'center' }}>
               <div style={{ fontFamily:'var(--D)', fontSize:22, color:'var(--tx)', fontWeight:900 }}>{calculProvisoireActif ? maSituation.pointsProvisoires : '—'}</div>
               <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:800 }}>POINTS PROV.</div>
             </div>
-            <div style={{ padding:'9px 6px', borderRadius:'var(--Rs)', background:'rgba(255,255,255,.035)', textAlign:'center' }}>
+            <div style={{ padding:'10px 6px', borderRadius:'var(--Rs)', background:'rgba(96,165,250,.07)', border:'1px solid rgba(96,165,250,.13)', textAlign:'center' }}>
               <div style={{ fontFamily:'var(--D)', fontSize:22, color:'var(--b)', fontWeight:900 }}>{calculProvisoireActif ? rangLibelle : '—'}</div>
               <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:800 }}>CLASSEMENT</div>
             </div>
-            <div style={{ padding:'9px 6px', borderRadius:'var(--Rs)', background:'rgba(255,255,255,.035)', textAlign:'center' }}>
+            <div style={{ padding:'10px 6px', borderRadius:'var(--Rs)', background:'rgba(155,226,45,.06)', border:'1px solid rgba(155,226,45,.12)', textAlign:'center' }}>
               <div style={{ fontFamily:'var(--D)', fontSize:22, color:maSituation.gainProvisoire > 0 ? 'var(--g)' : 'var(--tx3)', fontWeight:900 }}>{calculProvisoireActif ? `${maSituation.gainProvisoire.toFixed(2)}€` : '—'}</div>
               <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:800 }}>GAIN PROV.</div>
             </div>
@@ -511,6 +515,10 @@ function PronosChatteuxContent() {
           {erreur}
         </div>
       )}
+
+      <div style={{ padding:'0 16px 9px', fontSize:10, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', letterSpacing:'.11em' }}>
+        ⚽ Matchs de la journée
+      </div>
 
       {/* Blocs par match */}
       <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'0 12px' }}>
