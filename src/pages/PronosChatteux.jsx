@@ -284,16 +284,28 @@ function PronosChatteuxContent() {
     return calcPoints1N2(p, prono.val, issue, bonCount, allTotal, key)
   }
 
-  // Même indicateur que dans l'admin : un choix 1/N/2 joué par 25 % des
-  // participants ou moins est signalé comme surprise. Les matchs à scorer,
-  // Double Chance et pronos imposés par missile ne sont pas concernés.
+  // Un choix joué par 25 % des participants ou moins est signalé comme
+  // surprise. Pour un match à scorer, on compare l'issue du score pronostiqué
+  // (1/N/2), comme pour le bonus surprise utilisé dans son calcul de points.
   const isSurprise = (uid, key, isScorer) => {
-    if (isScorer || journee.scorerOnly || matchBlocks.find(b => b.key === key)?.isMatchScorer) return false
     const prono = getProno(uid, key)
     if (!prono?.val || prono.isDC || prono.isMissile) return false
 
     const total = Object.keys(pronos).length
     if (total === 0) return false
+
+    const estMatchScorer = isScorer || journee.scorerOnly || matchBlocks.find(b => b.key === key)?.isMatchScorer
+    if (estMatchScorer) {
+      const score = String(prono.val).match(/^(\d+)-(\d+)$/)
+      if (!score) return false
+      const issuePronostiquee = issueMatch(Number(score[1]), Number(score[2]))
+      const votes = Object.keys(pronos).filter(otherUid => {
+        const autreProno = getProno(otherUid, key)
+        const autreScore = String(autreProno?.val || '').match(/^(\d+)-(\d+)$/)
+        return autreScore && issueMatch(Number(autreScore[1]), Number(autreScore[2])) === issuePronostiquee
+      }).length
+      return votes / total <= 0.25
+    }
 
     const votes = Object.keys(pronos).filter(otherUid => {
       const autreProno = getProno(otherUid, key)
@@ -637,7 +649,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
