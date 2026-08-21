@@ -296,16 +296,18 @@ function PronosChatteuxContent() {
     if (prono?.isMissile) {
       return { color:'#FF4444', background:'rgba(255,68,68,.12)', border:'rgba(255,68,68,.35)' }
     }
+    let issue = prono?.val
     if (isScorer) {
+      const score = String(prono?.val || '').match(/^(\d+)-(\d+)$/)
+      issue = score ? issueMatch(Number(score[1]), Number(score[2])) : null
+    }
+    if (issue === '1') {
       return { color:'var(--b)', background:'rgba(96,165,250,.12)', border:'rgba(96,165,250,.35)' }
     }
-    if (prono?.val === '1') {
-      return { color:'var(--b)', background:'rgba(96,165,250,.12)', border:'rgba(96,165,250,.35)' }
-    }
-    if (prono?.val === 'N') {
+    if (issue === 'N') {
       return { color:'var(--a)', background:'var(--a-dim)', border:'var(--a-b)' }
     }
-    if (prono?.val === '2') {
+    if (issue === '2') {
       return { color:'var(--p)', background:'rgba(192,132,252,.12)', border:'rgba(192,132,252,.35)' }
     }
     return { color:'var(--tx)', background:'rgba(255,255,255,.04)', border:'rgba(255,255,255,.06)' }
@@ -523,7 +525,10 @@ function PronosChatteuxContent() {
                   const correct = getCorrect(j.id, match.key, match.isScorer)
                   const pts = getPtsMatch(j.id, match.key, match.isScorer)
                   const surprise = isSurprise(j.id, match.key, match.isScorer)
-                  const pendingPalette = getPendingPronoPalette(prono, match.isScorer)
+                  const pendingPalette = getPendingPronoPalette(
+                    prono,
+                    match.isScorer || match.isMatchScorer || journee.scorerOnly
+                  )
                   const bonuses = getBonusLabels(j.id, match.key)
                   const missilesRecus = missiles.filter(m => m.cible === j.id && m.matchKey === match.key)
                   const missilesLances = missiles.filter(m => m.lanceur === j.id && m.matchKey === match.key)
@@ -645,7 +650,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
