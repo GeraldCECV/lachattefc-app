@@ -19,6 +19,7 @@ function PronosChatteuxContent() {
   const [loading, setLoading] = useState(true)
   const [loadingJournee, setLoadingJournee] = useState(true)
   const [erreur, setErreur] = useState('')
+  const [detailPoints, setDetailPoints] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -315,6 +316,49 @@ function PronosChatteuxContent() {
     return votes / total <= 0.25
   }
 
+  const expliquerPoints = (uid, key, isScorer, correct, pts, surprise) => {
+    if (pts === null) return null
+    const p = pronos[uid]
+    const prono = getProno(uid, key)
+    const estScorer = isScorer || journee.scorerOnly || matchBlocks.find(b => b.key === key)?.isMatchScorer
+    const jackpot = !estScorer && isJackpotOn(p, key)
+    const dcChoices = !estScorer ? getDcChoicesFor(p, key) : null
+    const missile = missiles.find(m => m.cible === uid && m.matchKey === key && m.applique)
+
+    let raison = 'Mauvaise issue'
+    if (estScorer) {
+      if (correct === 'exact') raison = 'Score exact'
+      else if (correct === 'ecart') raison = 'Bon écart'
+      else if (correct === 'issue') raison = surprise ? 'Bonne issue surprise' : 'Bonne issue'
+    } else if (correct === 'correct') {
+      raison = surprise ? 'Bonne issue surprise' : dcChoices?.length ? 'Bonne issue avec Double Chance' : 'Bonne issue'
+    }
+
+    if (jackpot && pts > 0) raison += ' · Jackpot ×2'
+    if (missile) raison += ' · Prono imposé par missile'
+
+    let repartition = null
+    if (surprise && prono?.val) {
+      const total = Object.keys(pronos).length
+      let votes = 0
+      if (estScorer) {
+        const score = String(prono.val).match(/^(\d+)-(\d+)$/)
+        if (score) {
+          const issue = issueMatch(Number(score[1]), Number(score[2]))
+          votes = Object.keys(pronos).filter(otherUid => {
+            const autre = String(getProno(otherUid, key)?.val || '').match(/^(\d+)-(\d+)$/)
+            return autre && issueMatch(Number(autre[1]), Number(autre[2])) === issue
+          }).length
+        }
+      } else {
+        votes = Object.keys(pronos).filter(otherUid => getProno(otherUid, key)?.val === prono.val).length
+      }
+      repartition = `Choisi par ${votes} joueur${votes > 1 ? 's' : ''} sur ${total}`
+    }
+
+    return { points:pts, raison, repartition }
+  }
+
   // Avant le coup d'envoi, différencie visuellement les choix 1/N/2. Dès
   // qu'un résultat live existe, les couleurs exact/écart/issue/erreur prennent
   // le relais plus bas.
@@ -359,6 +403,19 @@ function PronosChatteuxContent() {
 
   return (
     <div style={{ padding:'16px 0 32px' }}>
+      {detailPoints && (
+        <div onClick={() => setDetailPoints(null)} style={{ position:'fixed', inset:0, zIndex:700, background:'rgba(0,0,0,.72)', display:'flex', alignItems:'flex-end', justifyContent:'center', padding:16 }}>
+          <div role="dialog" aria-modal="true" aria-label="Détail des points" onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:420, padding:'20px 18px', borderRadius:'18px 18px 12px 12px', background:'var(--bg2)', border:'1px solid var(--bd2)', boxShadow:'0 -10px 40px rgba(0,0,0,.45)', textAlign:'center' }}>
+            <div style={{ fontFamily:'var(--D)', fontSize:30, fontWeight:900, color:detailPoints.points >= 3 ? '#FFD700' : detailPoints.points > 0 ? 'var(--g)' : 'var(--tx3)' }}>
+              +{detailPoints.points} pt{detailPoints.points > 1 ? 's' : ''}
+            </div>
+            <div style={{ marginTop:6, fontSize:15, fontWeight:900, color:'var(--tx)' }}>{detailPoints.raison}</div>
+            {detailPoints.repartition && <div style={{ marginTop:7, fontSize:12, color:'var(--p)', fontWeight:700 }}>⚡ {detailPoints.repartition}</div>}
+            <button type="button" className="btn btn-secondary" onClick={() => setDetailPoints(null)} style={{ width:'100%', marginTop:18 }}>Fermer</button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ padding:'0 16px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <div>
@@ -524,6 +581,7 @@ function PronosChatteuxContent() {
                   const correct = getCorrect(j.id, match.key, match.isScorer)
                   const pts = getPtsMatch(j.id, match.key, match.isScorer)
                   const surprise = isSurprise(j.id, match.key, match.isScorer)
+                  const explicationPoints = expliquerPoints(j.id, match.key, match.isScorer, correct, pts, surprise)
                   const pendingPalette = getPendingPronoPalette(
                     prono,
                     match.isScorer || match.isMatchScorer || journee.scorerOnly
@@ -621,12 +679,13 @@ function PronosChatteuxContent() {
                               </div>
                             </div>
                             {pts !== null && (
-                              <div style={{
+                              <button type="button" onClick={() => setDetailPoints(explicationPoints)} aria-label={`Voir le détail des ${pts} points`} style={{
                                 fontSize:15, fontWeight:900, lineHeight:1,
                                 color: pts === 0 ? 'var(--tx3)' : pts >= 3 ? '#FFD700' : 'var(--g)',
+                                background:'none', border:0, padding:'3px 5px', margin:0, cursor:'pointer', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:3,
                               }}>
                                 +{pts} pt{pts > 1 ? 's' : ''}
-                              </div>
+                              </button>
                             )}
                           </div>
                         ) : (
@@ -649,7 +708,5 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
-
 
 
