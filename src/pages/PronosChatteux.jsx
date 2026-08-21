@@ -1,5 +1,6 @@
 import { translateTeam } from '../utils/teamName'
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { collection, getDocs, getDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { issueMatch, calcPoints1N2, calcPointsScorer, isJackpotOn, getDcChoicesFor, joueurADevineIssue as joueurADevineIssuePure } from '../scoring'
@@ -461,9 +462,9 @@ function PronosChatteuxContent() {
 
   return (
     <div style={{ padding:'16px 0 32px' }}>
-      {detailPoints && (
-        <div onClick={() => setDetailPoints(null)} style={{ position:'fixed', inset:0, zIndex:700, background:'rgba(0,0,0,.72)', display:'flex', alignItems:'flex-end', justifyContent:'center', padding:16 }}>
-          <div role="dialog" aria-modal="true" aria-label="Détail des points" onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:420, padding:'20px 18px', borderRadius:'18px 18px 12px 12px', background:'var(--bg2)', border:'1px solid var(--bd2)', boxShadow:'0 -10px 40px rgba(0,0,0,.45)', textAlign:'center' }}>
+      {detailPoints && createPortal(
+        <div onClick={() => setDetailPoints(null)} style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(0,0,0,.72)', display:'flex', alignItems:'flex-end', justifyContent:'center', overflowY:'auto', padding:'16px 16px max(16px, env(safe-area-inset-bottom))' }}>
+          <div role="dialog" aria-modal="true" aria-label="Détail des points" onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:420, maxHeight:'calc(100dvh - 32px - env(safe-area-inset-bottom))', overflowY:'auto', padding:'20px 18px', borderRadius:'18px 18px 12px 12px', background:'var(--bg2)', border:'1px solid var(--bd2)', boxShadow:'0 -10px 40px rgba(0,0,0,.45)', textAlign:'center' }}>
             <div style={{ fontFamily:'var(--D)', fontSize:30, fontWeight:900, color:detailPoints.points >= 3 ? '#FFD700' : detailPoints.points > 0 ? 'var(--g)' : 'var(--tx3)' }}>
               +{detailPoints.points} pt{detailPoints.points > 1 ? 's' : ''}
             </div>
@@ -471,7 +472,8 @@ function PronosChatteuxContent() {
             {detailPoints.repartition && <div style={{ marginTop:7, fontSize:12, color:'var(--p)', fontWeight:700 }}>⚡ {detailPoints.repartition}</div>}
             <button type="button" className="btn btn-secondary" onClick={() => setDetailPoints(null)} style={{ width:'100%', marginTop:18 }}>Fermer</button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Header */}
