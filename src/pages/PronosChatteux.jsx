@@ -538,24 +538,26 @@ function PronosChatteuxContent() {
                         {/* Prono + points en dessous */}
                         {prono ? (
                           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
-                            {surprise && (
-                              <span
-                                title='Prono surprise — choisi par 25 % des joueurs ou moins'
-                                aria-label='Prono surprise'
-                                style={{ fontSize:10, color:'var(--p)', lineHeight:1 }}
-                              >
-                                ⚡
-                              </span>
-                            )}
-                            <div style={{
-                              fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
-                              minWidth:42, textAlign:'center',
-                              padding:'4px 8px', borderRadius:'var(--Rs)',
-                              color: correct === 'exact' ? '#FFD700' : correct === 'ecart' ? '#9BE22D' : correct === 'correct' ? '#9BE22D' : correct === 'issue' ? '#FB923C' : correct === 'wrong' ? '#FF4444' : prono.isMissile ? '#FF4444' : match.isScorer ? 'var(--b)' : 'var(--tx)',
-                              background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.18)' : correct === 'issue' ? 'rgba(251,146,60,.18)' : correct === 'wrong' ? 'rgba(255,68,68,.18)' : 'rgba(255,255,255,.04)',
-                              border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.6)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.5)' : correct === 'issue' ? 'rgba(251,146,60,.5)' : correct === 'wrong' ? 'rgba(255,68,68,.5)' : 'rgba(255,255,255,.06)'}`,
-                            }}>
-                              {prono.val}
+                            <div style={{ display:'flex', alignItems:'center', gap:3 }}>
+                              {surprise && (
+                                <span
+                                  title='Prono surprise — choisi par 25 % des joueurs ou moins'
+                                  aria-label='Prono surprise'
+                                  style={{ fontSize:10, color:'var(--p)', lineHeight:1 }}
+                                >
+                                  ⚡
+                                </span>
+                              )}
+                              <div style={{
+                                fontFamily:'var(--D)', fontSize:18, fontWeight:900, letterSpacing:'.04em',
+                                minWidth:42, textAlign:'center',
+                                padding:'4px 8px', borderRadius:'var(--Rs)',
+                                color: correct === 'exact' ? '#FFD700' : correct === 'ecart' ? '#9BE22D' : correct === 'correct' ? '#9BE22D' : correct === 'issue' ? '#FB923C' : correct === 'wrong' ? '#FF4444' : prono.isMissile ? '#FF4444' : match.isScorer ? 'var(--b)' : 'var(--tx)',
+                                background: correct === 'exact' ? 'rgba(255,200,0,.18)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.18)' : correct === 'issue' ? 'rgba(251,146,60,.18)' : correct === 'wrong' ? 'rgba(255,68,68,.18)' : 'rgba(255,255,255,.04)',
+                                border: `1px solid ${correct === 'exact' ? 'rgba(255,200,0,.6)' : correct === 'ecart' || correct === 'correct' ? 'rgba(155,226,45,.5)' : correct === 'issue' ? 'rgba(251,146,60,.5)' : correct === 'wrong' ? 'rgba(255,68,68,.5)' : 'rgba(255,255,255,.06)'}`,
+                              }}>
+                                {prono.val}
+                              </div>
                             </div>
                             {pts !== null && (
                               <div style={{
@@ -586,7 +588,6 @@ function PronosChatteuxContent() {
 export default function PronosChatteux() {
   return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
 }
-
 
 
 
