@@ -553,12 +553,11 @@ body.modal-open .tab-bar {
   pointer-events: none;
   background: conic-gradient(
     from var(--live-border-angle),
-    transparent 0 18%,
-    rgba(96, 165, 250, .95) 27%,
-    rgba(155, 226, 45, .95) 35%,
-    transparent 44% 68%,
-    rgba(96, 165, 250, .55) 78%,
-    transparent 88% 100%
+    transparent 0 72%,
+    rgba(248, 68, 68, .12) 76%,
+    rgba(255, 74, 74, .98) 84%,
+    rgba(248, 68, 68, .45) 91%,
+    transparent 97% 100%
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
@@ -573,6 +572,5 @@ body.modal-open .tab-bar {
 @media (prefers-reduced-motion: reduce) {
   .live-dashboard::after { animation: none; }
 }
-
 
 
