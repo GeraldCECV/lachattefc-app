@@ -1,7 +1,7 @@
 import { translateTeam } from '../utils/teamName'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { collection, getDocs, getDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, getDoc, getDocFromServer, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { issueMatch, calcPoints1N2, calcPointsScorer, isJackpotOn, getDcChoicesFor, joueurADevineIssue as joueurADevineIssuePure } from '../scoring'
 import { useUser } from '../App'
@@ -32,6 +32,10 @@ function PronosChatteuxContent() {
   const [detailPoints, setDetailPoints] = useState(null)
   const [cartesDepliees, setCartesDepliees] = useState({})
   const [podiumVisible, setPodiumVisible] = useState(false)
+  const [actualisation, setActualisation] = useState('idle')
+  const [distanceTiree, setDistanceTiree] = useState(0)
+  const debutTirer = useRef(null)
+  const distanceTireeRef = useRef(0)
 
   useEffect(() => {
     const load = async () => {
@@ -136,6 +140,41 @@ function PronosChatteuxContent() {
     load()
     return () => { annule = true; if (unsub) unsub() }
   }, [selectedJId])
+
+  const rafraichirJournee = async () => {
+    if (!selectedJId || actualisation === 'loading') return
+    setActualisation('loading')
+    try {
+      const snapshot = await getDocFromServer(doc(db, 'journees', selectedJId))
+      if (snapshot.exists()) setJournee({ id:snapshot.id, ...snapshot.data() })
+      setActualisation('done')
+    } catch (e) {
+      console.error('Erreur actualisation manuelle du Live:', e)
+      setActualisation('error')
+    } finally {
+      window.setTimeout(() => setActualisation('idle'), 1600)
+    }
+  }
+
+  const commencerTirer = e => {
+    const zone = e.currentTarget.closest('.screen-content')
+    if ((zone?.scrollTop || 0) <= 0) debutTirer.current = e.touches[0].clientY
+  }
+
+  const continuerTirer = e => {
+    if (debutTirer.current === null || actualisation === 'loading') return
+    const distance = Math.max(0, e.touches[0].clientY - debutTirer.current)
+    distanceTireeRef.current = Math.min(90, distance * 0.55)
+    setDistanceTiree(distanceTireeRef.current)
+  }
+
+  const terminerTirer = () => {
+    const doitActualiser = distanceTireeRef.current >= 55
+    debutTirer.current = null
+    distanceTireeRef.current = 0
+    setDistanceTiree(0)
+    if (doitActualiser) rafraichirJournee()
+  }
 
   if (loading || loadingJournee) return (
     <div style={{ display:'flex', justifyContent:'center', padding:60 }}>
@@ -461,7 +500,18 @@ function PronosChatteuxContent() {
   ].filter(Boolean).join(' · ')
 
   return (
-    <div style={{ padding:'16px 0 32px' }}>
+    <div
+      onTouchStart={commencerTirer}
+      onTouchMove={continuerTirer}
+      onTouchEnd={terminerTirer}
+      onTouchCancel={terminerTirer}
+      style={{ padding:'16px 0 32px', position:'relative' }}
+    >
+      {(distanceTiree > 0 || actualisation !== 'idle') && (
+        <div style={{ height:distanceTiree || 38, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--g)', fontSize:12, fontWeight:900, transition:distanceTiree ? 'none' : 'height .2s ease' }}>
+          {actualisation === 'loading' ? '↻ Actualisation…' : actualisation === 'done' ? '✓ Live actualisé' : actualisation === 'error' ? '⚠️ Actualisation impossible' : distanceTiree >= 55 ? 'Relâche pour actualiser' : '↓ Tire pour actualiser'}
+        </div>
+      )}
       {detailPoints && createPortal(
         <div onClick={() => setDetailPoints(null)} style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(0,0,0,.72)', display:'flex', alignItems:'flex-end', justifyContent:'center', overflowY:'auto', padding:'16px 16px max(16px, env(safe-area-inset-bottom))' }}>
           <div role="dialog" aria-modal="true" aria-label="Détail des points" onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:420, maxHeight:'calc(100dvh - 32px - env(safe-area-inset-bottom))', overflowY:'auto', padding:'20px 18px', borderRadius:'18px 18px 12px 12px', background:'var(--bg2)', border:'1px solid var(--bd2)', boxShadow:'0 -10px 40px rgba(0,0,0,.45)', textAlign:'center' }}>
