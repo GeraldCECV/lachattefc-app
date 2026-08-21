@@ -22,7 +22,6 @@ function PronosChatteuxContent() {
   const [erreur, setErreur] = useState('')
   const [detailPoints, setDetailPoints] = useState(null)
   const [cartesDepliees, setCartesDepliees] = useState({})
-  const [derniereActualisation, setDerniereActualisation] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -110,7 +109,6 @@ function PronosChatteuxContent() {
               return
             }
             setJournee({ id:d.id, ...d.data() })
-            setDerniereActualisation(new Date())
             setLoadingJournee(false)
           },
           e => {
@@ -487,11 +485,10 @@ function PronosChatteuxContent() {
           <div style={{ fontSize:10, fontWeight:900, letterSpacing:'.12em', color:'var(--tx)', textTransform:'uppercase', marginBottom:10 }}>
             ⚡ Ma situation live
           </div>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, marginBottom:13, paddingBottom:10, borderBottom:'1px solid rgba(255,255,255,.07)' }}>
+          <div style={{ marginBottom:13, paddingBottom:10, borderBottom:'1px solid rgba(255,255,255,.07)' }}>
             <div style={{ fontSize:11, fontWeight:900, letterSpacing:'.07em', color:nbLive ? '#FF4444' : nbPause ? 'var(--a)' : nbTermines ? 'var(--g)' : 'var(--b)', textTransform:'uppercase' }}>
               {resumeMatchs || '🕐 Matchs à venir'}
             </div>
-            {derniereActualisation && <div style={{ fontSize:9, color:'var(--tx3)', whiteSpace:'nowrap' }}>À {derniereActualisation.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' })}</div>}
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
             <div style={{ padding:'10px 6px', borderRadius:'var(--Rs)', background:'rgba(255,255,255,.045)', border:'1px solid rgba(255,255,255,.065)', textAlign:'center' }}>
