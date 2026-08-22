@@ -10,6 +10,7 @@ import JerseyAvatar from '../components/JerseyAvatar'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { GAINS_JOURNEE } from '../firebase/constants'
 import { LIVE_ORDER, trierMatchsLive } from '../utils/liveMatchOrder'
+import { coteEvenement, libelleMinuteEvenement } from '../utils/matchEvents'
 
 const LIVE_ORDER_STORAGE_KEY = 'lachattefc.liveOrdreMatchs'
 
@@ -662,6 +663,26 @@ function PronosChatteuxContent() {
             ...(res?.buts || []).map(evenement => ({ ...evenement, nature:'but' })),
             ...(res?.cartonsRouges || []).map(evenement => ({ ...evenement, nature:'rouge' })),
           ].sort((a, b) => (a.minute || 0) - (b.minute || 0) || (a.injuryTime || 0) - (b.injuryTime || 0))
+          const evenementsDom = evenementsMatch.filter(evenement => coteEvenement(evenement.equipe, match.dom, match.ext) !== 'exterieur')
+          const evenementsExt = evenementsMatch.filter(evenement => coteEvenement(evenement.equipe, match.dom, match.ext) === 'exterieur')
+
+          const afficherEvenement = (evenement, index, cote) => {
+            const minute = libelleMinuteEvenement(evenement)
+            const penalty = evenement.nature === 'but' && /penalty/i.test(evenement.type || '')
+            const icone = evenement.nature === 'rouge' ? '🟥' : '⚽'
+            const texte = (
+              <span style={{ minWidth:0, overflowWrap:'anywhere', fontSize:10, lineHeight:1.25, color:'var(--tx)', fontWeight:850 }}>
+                <span>{evenement.joueur || 'Joueur inconnu'}</span>
+                {(minute || penalty) && <span style={{ color:evenement.nature === 'rouge' ? 'var(--r)' : 'var(--tx2)', whiteSpace:'nowrap' }}> ({minute}{penalty ? `${minute ? ' ' : ''}PEN` : ''})</span>}
+                {evenement.nature === 'but' && evenement.passeur && <span style={{ display:'block', marginTop:2, color:'var(--tx3)', fontSize:8, fontWeight:650 }}>Passe : {evenement.passeur}</span>}
+              </span>
+            )
+            return (
+              <div key={`${cote}-${evenement.nature}-${evenement.minute}-${evenement.joueur}-${index}`} style={{ display:'grid', gridTemplateColumns:cote === 'domicile' ? '16px minmax(0, 1fr)' : 'minmax(0, 1fr) 16px', alignItems:'start', gap:4, textAlign:cote === 'domicile' ? 'left' : 'right' }}>
+                {cote === 'domicile' ? <><span style={{ fontSize:11 }}>{icone}</span>{texte}</> : <>{texte}<span style={{ fontSize:11 }}>{icone}</span></>}
+              </div>
+            )
+          }
 
           return (
             <div key={match.key} style={{
@@ -731,23 +752,18 @@ function PronosChatteuxContent() {
                 )}
 
                 {evenementsMatch.length > 0 && (
-                  <div style={{ width:'100%', marginTop:2, padding:'8px 10px', borderRadius:'var(--Rs)', background:'rgba(0,0,0,.18)', border:'1px solid rgba(255,255,255,.065)', display:'flex', flexDirection:'column', gap:6 }}>
-                    {evenementsMatch.map((evenement, index) => {
-                      const minute = evenement.minute === null || evenement.minute === undefined
-                        ? ''
-                        : `${evenement.minute}${evenement.injuryTime ? `+${evenement.injuryTime}` : ''}’`
-                      return (
-                        <div key={`${evenement.nature}-${evenement.minute}-${evenement.joueur}-${index}`} style={{ display:'grid', gridTemplateColumns:'24px 34px minmax(0, 1fr)', alignItems:'center', gap:5, textAlign:'left' }}>
-                          <span style={{ fontSize:15, textAlign:'center' }}>{evenement.nature === 'rouge' ? '🟥' : '⚽'}</span>
-                          <span style={{ fontSize:10, fontWeight:900, color:evenement.nature === 'rouge' ? 'var(--r)' : 'var(--tx2)' }}>{minute}</span>
-                          <span style={{ minWidth:0, fontSize:11, color:'var(--tx)', fontWeight:800 }}>
-                            {evenement.joueur || 'Joueur inconnu'}
-                            {evenement.equipe && <span style={{ color:'var(--tx3)', fontWeight:600 }}> · {translateTeam(evenement.equipe)}</span>}
-                            {evenement.nature === 'but' && evenement.passeur && <span style={{ display:'block', color:'var(--tx3)', fontSize:9, fontWeight:600 }}>Passe : {evenement.passeur}</span>}
-                          </span>
-                        </div>
-                      )
-                    })}
+                  <div style={{ width:'100%', marginTop:2, padding:'8px 9px 9px', borderRadius:'var(--Rs)', background:'rgba(0,0,0,.18)', border:'1px solid rgba(255,255,255,.065)' }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'minmax(0, 1fr) 1px minmax(0, 1fr)', gap:8 }}>
+                      <div style={{ minWidth:0, display:'flex', flexDirection:'column', gap:6 }}>
+                        <div style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontSize:8, color:'var(--tx3)', fontWeight:900, textTransform:'uppercase', letterSpacing:'.04em', textAlign:'left' }}>{translateTeam(match.dom)}</div>
+                        {evenementsDom.map((evenement, index) => afficherEvenement(evenement, index, 'domicile'))}
+                      </div>
+                      <div aria-hidden="true" style={{ width:1, background:'rgba(255,255,255,.09)' }} />
+                      <div style={{ minWidth:0, display:'flex', flexDirection:'column', gap:6 }}>
+                        <div style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontSize:8, color:'var(--tx3)', fontWeight:900, textTransform:'uppercase', letterSpacing:'.04em', textAlign:'right' }}>{translateTeam(match.ext)}</div>
+                        {evenementsExt.map((evenement, index) => afficherEvenement(evenement, index, 'exterieur'))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
