@@ -14,14 +14,6 @@ import { coteEvenement, libelleMinuteEvenement } from '../utils/matchEvents'
 
 const LIVE_ORDER_STORAGE_KEY = 'lachattefc.liveOrdreMatchs'
 
-function formatLiveMinute(resultat) {
-  if (resultat?.minute === null || resultat?.minute === undefined || resultat?.minute === '') return null
-  const minute = Number(resultat?.minute)
-  if (!Number.isFinite(minute) || minute < 0) return null
-  const injuryTime = Number(resultat?.injuryTime)
-  return Number.isFinite(injuryTime) && injuryTime > 0 ? `${minute}+${injuryTime}'` : `${minute}'`
-}
-
 function PronosChatteuxContent() {
   const { profil } = useUser()
   const [journeesList, setJourneesList] = useState([])
@@ -652,7 +644,6 @@ function PronosChatteuxContent() {
           const isPaused = res?.status === 'PAUSED'
           const isFinished = res?.status === 'FINISHED'
           const isPostponed = res?.status === 'POSTPONED'
-          const minuteLive = isLive ? formatLiveMinute(res) : null
           const estMatchScorer = match.isScorer || match.isMatchScorer || journee.scorerOnly
           const cleCarte = `${journee.id}:${match.key}`
           const statutCarte = res?.status || 'SCHEDULED'
@@ -734,7 +725,7 @@ function PronosChatteuxContent() {
                   border:`1px solid ${isLive ? 'rgba(248,68,68,.4)' : isPaused ? 'var(--a-b)' : isFinished ? 'var(--g-b)' : isPostponed ? 'rgba(248,68,68,.4)' : 'rgba(96,165,250,.35)'}`,
                   color:isLive || isPostponed ? '#FF4444' : isPaused ? 'var(--a)' : isFinished ? 'var(--g)' : 'var(--b)',
                 }}>
-                  {isLive ? `LIVE${minuteLive ? ` · ${minuteLive}` : ''}` : isPaused ? '⏸ MI-TEMPS' : isFinished ? '✓ TERMINÉ' : isPostponed ? '⚠️ REPORTÉ' : '🕐 À VENIR'}
+                  {isLive ? 'LIVE' : isPaused ? '⏸ MI-TEMPS' : isFinished ? '✓ TERMINÉ' : isPostponed ? '⚠️ REPORTÉ' : '🕐 À VENIR'}
                 </div>
 
                 {/* Score */}
