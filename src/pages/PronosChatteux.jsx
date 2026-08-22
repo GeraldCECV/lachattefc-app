@@ -9,6 +9,9 @@ import TeamLogo from '../components/TeamLogo'
 import JerseyAvatar from '../components/JerseyAvatar'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { GAINS_JOURNEE } from '../firebase/constants'
+import { LIVE_ORDER, trierMatchsLive } from '../utils/liveMatchOrder'
+
+const LIVE_ORDER_STORAGE_KEY = 'lachattefc.liveOrdreMatchs'
 
 function formatLiveMinute(resultat) {
   if (resultat?.minute === null || resultat?.minute === undefined || resultat?.minute === '') return null
@@ -34,8 +37,24 @@ function PronosChatteuxContent() {
   const [podiumVisible, setPodiumVisible] = useState(false)
   const [actualisation, setActualisation] = useState('idle')
   const [distanceTiree, setDistanceTiree] = useState(0)
+  const [ordreMatchs, setOrdreMatchs] = useState(() => {
+    try {
+      const memorise = window.localStorage.getItem(LIVE_ORDER_STORAGE_KEY)
+      return Object.values(LIVE_ORDER).includes(memorise) ? memorise : LIVE_ORDER.A_JOUER
+    } catch {
+      return LIVE_ORDER.A_JOUER
+    }
+  })
   const debutTirer = useRef(null)
   const distanceTireeRef = useRef(0)
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LIVE_ORDER_STORAGE_KEY, ordreMatchs)
+    } catch {
+      // Le tri reste utilisable même si le stockage local est indisponible.
+    }
+  }, [ordreMatchs])
 
   useEffect(() => {
     const load = async () => {
@@ -243,26 +262,14 @@ function PronosChatteuxContent() {
   const matchesMain = (journee.matchesL1 || []).filter(m => m?.dom)
   const euro = journee.matchEuro?.dom ? journee.matchEuro : null
 
-  const horaireMatch = (match) => {
-    if (typeof match.utcDate?.toMillis === 'function') return match.utcDate.toMillis()
-    if (match.utcDate?.seconds) return match.utcDate.seconds * 1000
-    const timestamp = Date.parse(match.utcDate || '')
-    return Number.isFinite(timestamp) ? timestamp : Number.MAX_SAFE_INTEGER
-  }
-
-  // Construire la liste sans modifier les clés d'origine des pronos, puis :
-  // 1) matchs non terminés en premier, par ordre chronologique ;
-  // 2) matchs terminés en bas, également par ordre chronologique.
-  const matchBlocks = [
+  // Construire la liste sans modifier les clés d'origine des pronos. Le
+  // joueur peut ensuite choisir le tri chronologique strict ou conserver
+  // les matchs à jouer devant les rencontres terminées.
+  const matchBlocks = trierMatchsLive([
     scorer?.dom ? { key:'scorer', dom: scorer.dom, ext: scorer.ext, jour: scorer.jour, heure: scorer.heure, utcDate: scorer.utcDate, isScorer: true, label: '⚽ Match Scorer', ordreInitial: -1 } : null,
     ...matchesMain.map((m, i) => ({ key: `l1_${i}`, dom: m.dom, ext: m.ext, jour: m.jour, heure: m.heure, utcDate: m.utcDate, label: `Match ${i+1}`, isMatchScorer: m.scorer === true, ordreInitial: i })),
     euro ? { key:'euro', dom: euro.dom, ext: euro.ext, jour: euro.jour, heure: euro.heure, utcDate: euro.utcDate, isEuro: true, label: '🌍 Affiche Européenne', ordreInitial: matchesMain.length + 1 } : null,
-  ].filter(Boolean).sort((a, b) => {
-    const aTermine = journee.resultats?.[a.key]?.status === 'FINISHED'
-    const bTermine = journee.resultats?.[b.key]?.status === 'FINISHED'
-    if (aTermine !== bTermine) return aTermine ? 1 : -1
-    return horaireMatch(a) - horaireMatch(b) || a.ordreInitial - b.ordreInitial
-  })
+  ].filter(Boolean), journee.resultats, ordreMatchs)
 
   const getProno = (uid, key) => {
     const p = pronos[uid]
@@ -610,8 +617,29 @@ function PronosChatteuxContent() {
         </div>
       )}
 
-      <div style={{ padding:'0 16px 9px', fontSize:10, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', letterSpacing:'.11em' }}>
-        ⚽ Matchs de la journée
+      <div style={{ padding:'0 16px 9px', display:'flex', flexDirection:'column', gap:9 }}>
+        <div style={{ fontSize:10, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', letterSpacing:'.11em' }}>
+          ⚽ Matchs de la journée
+        </div>
+        <div role="group" aria-label="Ordre d’affichage des matchs" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', padding:3, borderRadius:12, background:'rgba(255,255,255,.045)', border:'1px solid var(--bd)' }}>
+          {[
+            [LIVE_ORDER.CHRONOLOGIQUE, '🕐 Chronologique'],
+            [LIVE_ORDER.A_JOUER, '⚡ À jouer en premier'],
+          ].map(([valeur, libelle]) => {
+            const actif = ordreMatchs === valeur
+            return (
+              <button
+                key={valeur}
+                type="button"
+                aria-pressed={actif}
+                onClick={() => setOrdreMatchs(valeur)}
+                style={{ border:0, borderRadius:9, padding:'8px 6px', background:actif ? 'rgba(155,226,45,.14)' : 'transparent', color:actif ? 'var(--g)' : 'var(--tx3)', boxShadow:actif ? 'inset 0 0 0 1px rgba(155,226,45,.25)' : 'none', fontSize:10, fontWeight:900, cursor:'pointer' }}
+              >
+                {libelle}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Blocs par match */}
