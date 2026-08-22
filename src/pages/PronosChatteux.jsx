@@ -630,6 +630,10 @@ function PronosChatteuxContent() {
           const ouvertureAuto = isLive || isPaused
           const choixManuel = cartesDepliees[cleCarte]
           const carteDepliee = choixManuel?.statut === statutCarte ? choixManuel.ouverte : ouvertureAuto
+          const evenementsMatch = [
+            ...(res?.buts || []).map(evenement => ({ ...evenement, nature:'but' })),
+            ...(res?.cartonsRouges || []).map(evenement => ({ ...evenement, nature:'rouge' })),
+          ].sort((a, b) => (a.minute || 0) - (b.minute || 0) || (a.injuryTime || 0) - (b.injuryTime || 0))
 
           return (
             <div key={match.key} style={{
@@ -695,6 +699,27 @@ function PronosChatteuxContent() {
                     whiteSpace:'nowrap',
                   }}>
                     {res.h} - {res.a}
+                  </div>
+                )}
+
+                {evenementsMatch.length > 0 && (
+                  <div style={{ width:'100%', marginTop:2, padding:'8px 10px', borderRadius:'var(--Rs)', background:'rgba(0,0,0,.18)', border:'1px solid rgba(255,255,255,.065)', display:'flex', flexDirection:'column', gap:6 }}>
+                    {evenementsMatch.map((evenement, index) => {
+                      const minute = evenement.minute === null || evenement.minute === undefined
+                        ? ''
+                        : `${evenement.minute}${evenement.injuryTime ? `+${evenement.injuryTime}` : ''}’`
+                      return (
+                        <div key={`${evenement.nature}-${evenement.minute}-${evenement.joueur}-${index}`} style={{ display:'grid', gridTemplateColumns:'24px 34px minmax(0, 1fr)', alignItems:'center', gap:5, textAlign:'left' }}>
+                          <span style={{ fontSize:15, textAlign:'center' }}>{evenement.nature === 'rouge' ? '🟥' : '⚽'}</span>
+                          <span style={{ fontSize:10, fontWeight:900, color:evenement.nature === 'rouge' ? 'var(--r)' : 'var(--tx2)' }}>{minute}</span>
+                          <span style={{ minWidth:0, fontSize:11, color:'var(--tx)', fontWeight:800 }}>
+                            {evenement.joueur || 'Joueur inconnu'}
+                            {evenement.equipe && <span style={{ color:'var(--tx3)', fontWeight:600 }}> · {translateTeam(evenement.equipe)}</span>}
+                            {evenement.nature === 'but' && evenement.passeur && <span style={{ display:'block', color:'var(--tx3)', fontSize:9, fontWeight:600 }}>Passe : {evenement.passeur}</span>}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
