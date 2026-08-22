@@ -492,12 +492,12 @@ function PronosChatteuxContent() {
   const maSituation = classementProvisoire.find(joueur => joueur.id === profil?.id)
   const rangLibelle = maSituation?.rang === 1 ? '1er' : maSituation ? `${maSituation.rang}e` : '—'
   const resumeMatchs = [
-    nbLive > 0 ? `🔴 ${nbLive} match${nbLive > 1 ? 's' : ''} en live` : null,
-    nbPause > 0 ? `🟠 ${nbPause} match${nbPause > 1 ? 's' : ''} en pause` : null,
-    nbTermines > 0 ? `🟢 ${nbTermines} match${nbTermines > 1 ? 's' : ''} terminé${nbTermines > 1 ? 's' : ''}` : null,
-    nbAVenir > 0 ? `🕐 ${nbAVenir} match${nbAVenir > 1 ? 's' : ''} à venir` : null,
-    nbReportes > 0 ? `⚠️ ${nbReportes} match${nbReportes > 1 ? 's' : ''} reporté${nbReportes > 1 ? 's' : ''}` : null,
-  ].filter(Boolean).join(' · ')
+    nbLive > 0 ? { texte:`🔴 ${nbLive} match${nbLive > 1 ? 's' : ''} en live`, couleur:'#FF4444' } : null,
+    nbPause > 0 ? { texte:`🟠 ${nbPause} match${nbPause > 1 ? 's' : ''} en pause`, couleur:'var(--a)' } : null,
+    nbTermines > 0 ? { texte:`🟢 ${nbTermines} match${nbTermines > 1 ? 's' : ''} terminé${nbTermines > 1 ? 's' : ''}`, couleur:'var(--g)' } : null,
+    nbAVenir > 0 ? { texte:`🔵 ${nbAVenir} match${nbAVenir > 1 ? 's' : ''} à venir`, couleur:'var(--b)' } : null,
+    nbReportes > 0 ? { texte:`⚠️ ${nbReportes} match${nbReportes > 1 ? 's' : ''} reporté${nbReportes > 1 ? 's' : ''}`, couleur:'var(--r)' } : null,
+  ].filter(Boolean)
 
   return (
     <div
@@ -545,10 +545,14 @@ function PronosChatteuxContent() {
           <div style={{ fontSize:10, fontWeight:900, letterSpacing:'.12em', color:'var(--tx)', textTransform:'uppercase', marginBottom:10 }}>
             ⚡ Ma situation live
           </div>
-          <div style={{ marginBottom:13, paddingBottom:10, borderBottom:'1px solid rgba(255,255,255,.07)' }}>
-            <div style={{ fontSize:11, fontWeight:900, letterSpacing:'.07em', color:nbLive ? '#FF4444' : nbPause ? 'var(--a)' : nbTermines ? 'var(--g)' : 'var(--b)', textTransform:'uppercase' }}>
-              {resumeMatchs || '🕐 Matchs à venir'}
-            </div>
+          <div style={{ marginBottom:13, paddingBottom:10, borderBottom:'1px solid rgba(255,255,255,.07)', display:'flex', flexDirection:'column', alignItems:'flex-start', gap:5 }}>
+            {resumeMatchs.length > 0 ? resumeMatchs.map(item => (
+              <div key={item.texte} style={{ fontSize:11, fontWeight:900, letterSpacing:'.07em', color:item.couleur, textTransform:'uppercase' }}>
+                {item.texte}
+              </div>
+            )) : (
+              <div style={{ fontSize:11, fontWeight:900, letterSpacing:'.07em', color:'var(--b)', textTransform:'uppercase' }}>🔵 Matchs à venir</div>
+            )}
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
             <div style={{ padding:'10px 6px', borderRadius:'var(--Rs)', background:'rgba(255,255,255,.045)', border:'1px solid rgba(255,255,255,.065)', textAlign:'center' }}>
