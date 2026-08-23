@@ -646,6 +646,9 @@ function PronosChatteuxContent() {
           const isPostponed = res?.status === 'POSTPONED'
           const estMatchScorer = match.isScorer || match.isMatchScorer || journee.scorerOnly
           const monProno = profil?.id ? getProno(profil.id, match.key) : null
+          const paletteMonProno = monProno
+            ? getPendingPronoPalette(monProno, estMatchScorer)
+            : { color:'var(--r)', background:'rgba(248,68,68,.10)', border:'rgba(248,68,68,.35)' }
           const mesPoints = profil?.id ? getPtsMatch(profil.id, match.key, match.isScorer) : null
           const monDetailPoints = profil?.id && mesPoints !== null
             ? expliquerPoints(
@@ -768,7 +771,7 @@ function PronosChatteuxContent() {
                 </div>
 
                 {/* Score et points personnels visibles sans déplier la carte */}
-                {(hasScore || (isFinished && profil?.id)) && (
+                {(hasScore || profil?.id) && (
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:7 }}>
                     {hasScore && (
                       <div style={{
@@ -780,6 +783,18 @@ function PronosChatteuxContent() {
                         whiteSpace:'nowrap',
                       }}>
                         {res.h} - {res.a}
+                      </div>
+                    )}
+                    {profil?.id && (
+                      <div style={{
+                        padding:'4px 10px', borderRadius:20,
+                        background:paletteMonProno.background,
+                        border:`1px solid ${paletteMonProno.border}`,
+                        color:paletteMonProno.color,
+                        fontSize:10, fontWeight:900, letterSpacing:'.025em',
+                        whiteSpace:'nowrap',
+                      }}>
+                        Mon prono : {monProno?.val || 'ABS'}
                       </div>
                     )}
                     {isFinished && profil?.id && (
