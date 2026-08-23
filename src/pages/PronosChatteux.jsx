@@ -14,7 +14,7 @@ import { coteEvenement, libelleMinuteEvenement } from '../utils/matchEvents'
 
 const LIVE_ORDER_STORAGE_KEY = 'lachattefc.liveOrdreMatchs'
 
-function PronosChatteuxContent() {
+function PronosChatteuxContent({ active = true }) {
   const { profil } = useUser()
   const [journeesList, setJourneesList] = useState([])
   const [selectedJId, setSelectedJId] = useState(null)
@@ -50,6 +50,7 @@ function PronosChatteuxContent() {
   }, [ordreMatchs])
 
   useEffect(() => {
+    if (!active) return
     const load = async () => {
       try {
         const allSnap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
@@ -74,7 +75,7 @@ function PronosChatteuxContent() {
           : ouvertes.length > 0
           ? ouvertes.reduce((a, b) => (a.numero < b.numero ? a : b))
           : liste[liste.length - 1]
-        if (defaultJ) setSelectedJId(defaultJ.id)
+        if (defaultJ && !selectedJId) setSelectedJId(defaultJ.id)
         else setLoadingJournee(false)
         setLoading(false)
       } catch(e) {
@@ -83,17 +84,16 @@ function PronosChatteuxContent() {
       }
     }
     load()
-  }, [])
+  }, [active])
 
   useEffect(() => {
-    if (!selectedJId) return
+    if (!active || !selectedJId) return
     let unsub = null
     let annule = false
 
     const load = async () => {
       try {
-        setLoadingJournee(true)
-        setJournee(null)
+        if (!journee) setLoadingJournee(true)
         setErreur('')
         // Le statut de la journee conditionne la lecture : tant qu'elle est
         // ouverte, les pronos des autres restent secrets (regle du jeu, et
@@ -151,7 +151,7 @@ function PronosChatteuxContent() {
 
     load()
     return () => { annule = true; if (unsub) unsub() }
-  }, [selectedJId])
+  }, [active, selectedJId])
 
   const rafraichirJournee = async () => {
     if (!selectedJId || actualisation === 'loading') return
@@ -1050,6 +1050,6 @@ function PronosChatteuxContent() {
   )
 }
 
-export default function PronosChatteux() {
-  return <ErrorBoundary><PronosChatteuxContent /></ErrorBoundary>
+export default function PronosChatteux({ active = true }) {
+  return <ErrorBoundary><PronosChatteuxContent active={active} /></ErrorBoundary>
 }

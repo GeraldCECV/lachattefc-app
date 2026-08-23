@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useUser } from '../App';
+import { memo, useState, useEffect } from 'react';
 import ErrorBoundary from './ErrorBoundary';
 import Pronos from '../pages/Pronos';
 import PronosChatteux from '../pages/PronosChatteux';
@@ -7,6 +6,17 @@ import Classement from '../pages/Classement';
 import Bonus from '../pages/Bonus';
 import Reglement from '../pages/Reglement';
 import Profil from '../pages/Profil';
+
+// Les pages déjà visitées restent montées pour permettre un retour immédiat.
+// Sans mémoïsation, chaque clic dans la barre recalculait aussi toutes les
+// pages masquées (notamment les centaines de lignes du Live), ce qui créait
+// des saccades visibles sur ordinateur.
+const ProfilMemo = memo(Profil);
+const PronosMemo = memo(Pronos);
+const PronosChatteuxMemo = memo(PronosChatteux);
+const ClassementMemo = memo(Classement);
+const BonusMemo = memo(Bonus);
+const ReglementMemo = memo(Reglement);
 
 function TabIcon({ name, size = 22 }) {
   const common = {
@@ -87,8 +97,6 @@ export default function AppShell() {
   const [tab, setTab] = useState('classement');
   const [ongletsVisites, setOngletsVisites] = useState(() => new Set(['classement']));
   const [actualisations, setActualisations] = useState({});
-  const { profil } = useUser();
-
   const changerOnglet = (id) => {
     setOngletsVisites((precedents) => {
       if (precedents.has(id)) return precedents;
@@ -154,12 +162,12 @@ export default function AppShell() {
   }, []);
 
   const pages = {
-    vestiaire: <Profil refreshKey={actualisations.vestiaire || 0} />,
-    pronos: <Pronos refreshKey={actualisations.pronos || 0} />,
-    chatteux: <PronosChatteux />,
-    classement: <Classement />,
-    bonus: <Bonus refreshKey={actualisations.bonus || 0} />,
-    reglement: <Reglement />,
+    vestiaire: <ProfilMemo refreshKey={actualisations.vestiaire || 0} />,
+    pronos: <PronosMemo refreshKey={actualisations.pronos || 0} />,
+    chatteux: <PronosChatteuxMemo active={tab === 'chatteux'} />,
+    classement: <ClassementMemo active={tab === 'classement'} />,
+    bonus: <BonusMemo refreshKey={actualisations.bonus || 0} />,
+    reglement: <ReglementMemo />,
   };
 
   return (

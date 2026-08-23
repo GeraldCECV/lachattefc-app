@@ -29,7 +29,7 @@ const COLORS = [
 ];
 const getC = (i) => COLORS[i % COLORS.length];
 
-function ClassementContent() {
+function ClassementContent({ active = true }) {
   const { profil } = useUser();
   const [tab, setTab] = useState('journee');
   const [historiqueList, setHistoriqueList] = useState([]);
@@ -44,6 +44,7 @@ function ClassementContent() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!active) return undefined;
     let unsubJournee = null,
       unsubPronos = null,
       unsubMissiles = null;
@@ -311,10 +312,10 @@ function ClassementContent() {
       if (unsubPronos) unsubPronos();
       if (unsubMissiles) unsubMissiles();
     };
-  }, []);
+  }, [active]);
 
   useEffect(() => {
-    if (tab !== 'historique') return;
+    if (!active || tab !== 'historique') return;
     setHistoriqueList([]);
     setLoadingHistorique(true);
     const loadHist = async () => {
@@ -332,7 +333,7 @@ function ClassementContent() {
       setLoadingHistorique(false);
     };
     loadHist();
-  }, [tab]);
+  }, [active, tab]);
 
   const applyDenseRank = (arr, keyFn = (j) => `${j.gainJ}_${j.ptsJ}`) => {
     if (!arr.length) return arr;
@@ -903,6 +904,6 @@ function ClassementContent() {
   );
 }
 
-export default function Classement() {
-  return <ErrorBoundary><ClassementContent /></ErrorBoundary>
+export default function Classement({ active = true }) {
+  return <ErrorBoundary><ClassementContent active={active} /></ErrorBoundary>
 }
