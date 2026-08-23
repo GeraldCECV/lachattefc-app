@@ -85,9 +85,16 @@ const TABS = [
 
 export default function AppShell() {
   const [tab, setTab] = useState('classement');
+  const [ongletsVisites, setOngletsVisites] = useState(() => new Set(['classement']));
   const { profil } = useUser();
 
   const changerOnglet = (id) => {
+    setOngletsVisites((precedents) => {
+      if (precedents.has(id)) return precedents;
+      const suivants = new Set(precedents);
+      suivants.add(id);
+      return suivants;
+    });
     setTab(id);
     // Vérifie en tâche de fond si une nouvelle version de l'app est dispo —
     // si oui, rechargement auto (via onNeedRefresh dans main.jsx)
@@ -154,7 +161,11 @@ export default function AppShell() {
     <>
       <div className='app-shell'>
       <div className='screen-content'>
-        <ErrorBoundary key={tab}>{pages[tab]}</ErrorBoundary>
+        {TABS.filter(({ id }) => ongletsVisites.has(id)).map(({ id }) => (
+          <div key={id} hidden={tab !== id} aria-hidden={tab !== id} style={{ display:tab === id ? 'block' : 'none' }}>
+            <ErrorBoundary>{pages[id]}</ErrorBoundary>
+          </div>
+        ))}
       </div>
 
       <div className='tab-bar'>
