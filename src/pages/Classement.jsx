@@ -133,6 +133,37 @@ function ClassementContent() {
             }
           }
         });
+
+        // Match à scorer principal : il est stocké séparément des matchs L1
+        // (`prono.matchScorer` / `resultats.scorer`). Le calcul Live doit
+        // reprendre exactement le même barème que le serveur, sinon ses
+        // points disparaissent de l'onglet Classement jusqu'au calcul final.
+        const resScorer = resultats.scorer;
+        if (
+          resScorer &&
+          ['FINISHED', 'IN_PLAY', 'PAUSED'].includes(resScorer.status) &&
+          resScorer.h !== null &&
+          resScorer.a !== null
+        ) {
+          const rhScorer = parseInt(resScorer.h);
+          const raScorer = parseInt(resScorer.a);
+          const pronoScorer = p?.matchScorer;
+          const bonCountScorer = Object.values(pronosAvecMissiles).filter((pp) => {
+            const pr = pp?.matchScorer;
+            if (!pr || !/^\d+-\d+$/.test(pr)) return false;
+            const [ph, pa] = pr.split('-').map(Number);
+            return issueMatch(ph, pa) === issueMatch(rhScorer, raScorer);
+          }).length;
+          pointsParJoueur[uid] =
+            (pointsParJoueur[uid] || 0) +
+            calcPointsScorer(
+              pronoScorer,
+              rhScorer,
+              raScorer,
+              bonCountScorer,
+              totalJoueurs
+            );
+        }
       });
 
       const auMoinsUnMatch = Object.values(resultats).some((r) =>
