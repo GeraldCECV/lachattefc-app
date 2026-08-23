@@ -165,6 +165,45 @@ function ClassementContent() {
               totalJoueurs
             );
         }
+
+        // Affiche européenne : elle est stockée séparément des matchs L1
+        // (`prono.matchEuro` / `resultats.euro`). Comme pour le match scorer,
+        // elle doit être ajoutée explicitement au classement provisoire Live.
+        // Le calcul reprend exactement les règles serveur : surprise, Double
+        // Chance, Jackpot et missile déjà appliqué dans `pronosAvecMissiles`.
+        const resEuro = resultats.euro;
+        if (
+          resEuro &&
+          ['FINISHED', 'IN_PLAY', 'PAUSED'].includes(resEuro.status) &&
+          resEuro.h !== null &&
+          resEuro.a !== null
+        ) {
+          const issueEuro = issueMatch(parseInt(resEuro.h), parseInt(resEuro.a));
+          const dcEuro = getDcChoicesFor(p, 'euro');
+          if (dcEuro?.length === 2) {
+            if (dcEuro.includes(issueEuro)) {
+              pointsParJoueur[uid] =
+                (pointsParJoueur[uid] || 0) + (isJackpotOn(p, 'euro') ? 2 : 1);
+            }
+          } else {
+            const pronoEuro = p?.matchEuro;
+            if (pronoEuro === issueEuro) {
+              const bonCountEuro = Object.keys(pronosMap).filter((u) =>
+                joueurADevineIssue(pronosAvecMissiles[u], 'euro', issueEuro)
+              ).length;
+              pointsParJoueur[uid] =
+                (pointsParJoueur[uid] || 0) +
+                calcPoints1N2(
+                  p,
+                  pronoEuro,
+                  issueEuro,
+                  bonCountEuro,
+                  totalJoueurs,
+                  'euro'
+                );
+            }
+          }
+        }
       });
 
       const auMoinsUnMatch = Object.values(resultats).some((r) =>
