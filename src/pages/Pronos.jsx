@@ -13,7 +13,7 @@ import { RESULT_COLORS } from '../utils/resultColors'
 
 
 
-function PronosContent() {
+function PronosContent({ refreshKey = 0 }) {
   const { profil, user } = useUser()
   const [journee, setJournee] = useState(null)
   const [pronos, setPronos] = useState({ matchesL1: Array(8).fill(null), matchEuro: null, matchScorer: null })
@@ -53,76 +53,95 @@ function PronosContent() {
 
   useEffect(() => {
     const load = async () => {
-      // Charger la première journée ouverte
-      let snap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
-      // Trouver la première journée ouverte dont la deadline n'est pas passée
-      const now = new Date()
-      const openDocs = snap.docs.filter(d => {
-        const data = d.data()
-        // Une journée préparée à l'avance reste invisible tant qu'elle est
-        // "a-venir". Seule la finalisation de la journée précédente la fait
-        // passer à "ouverte".
-        if (data.statut !== 'ouverte') return false
-        const dl = data.deadline ? new Date(data.deadline.seconds * 1000) : null
-        return !dl || dl > now
-      })
-      if (openDocs.length === 0) { setLoading(false); return }
-      snap = { docs: [openDocs[0]], empty: false }
-      if (snap.empty) { setLoading(false); return }
-      const jDoc = snap.docs[0]
-      const j = { id:jDoc.id, ...jDoc.data() }
-      setJournee(j)
-      if (j.deadline) setDeadlinePassed(new Date() > new Date(j.deadline.seconds*1000))
-
-      if (user) {
-        // Charger prono existant
-        const pronoDoc = await getDoc(doc(db,'journees',jDoc.id,'pronos',user.uid))
-        if (pronoDoc.exists()) {
-          const data = pronoDoc.data()
-          setExistingProno(data)
-          setPronos(data)
-          if (data.matchScorer) {
-            const parts = data.matchScorer.split('-')
-            setScorerH(parseInt(parts[0])||0)
-            setScorerA(parseInt(parts[1])||0)
-          }
-          if (Array.isArray(data.jackpotMatches)) setJackpotMatches(data.jackpotMatches)
-          else if (data.jackpotMatch) setJackpotMatches([data.jackpotMatch]) // ancien format
-          if (Array.isArray(data.dcSelections)) setDcSelections(data.dcSelections)
-          else if (data.dcMatch) setDcSelections([{ matchKey: data.dcMatch, choices: data.dcChoices||[] }]) // ancien format
-          if (Array.isArray(data.matchesMultiplex)) {
-            setMultiplexScores(data.matchesMultiplex.map(score => {
-              const [h, a] = String(score || '0-0').split('-').map(Number)
-              return { h: Number.isFinite(h) ? h : 0, a: Number.isFinite(a) ? a : 0 }
-            }))
-          }
-          if (Array.isArray(data.matchesBoxing)) {
-            setBoxingScores(data.matchesBoxing.map(score => {
-              const [h, a] = String(score || '0-0').split('-').map(Number)
-              return { h: Number.isFinite(h) ? h : 0, a: Number.isFinite(a) ? a : 0 }
-            }))
-          }
-        } else {
-          if (j.type === 'multiplex') setMultiplexScores((j.matchesL1 || []).map(() => ({ h: 0, a: 0 })))
-          if (j.type === 'boxing-day') setBoxingScores((j.matchesBoxing || []).map(() => ({ h: 0, a: 0 })))
+      const premierChargement = !journee
+      try {
+        // Charger la première journée ouverte. Lors d'un retour sur l'onglet,
+        // cette vérification se fait silencieusement : l'ancien écran reste
+        // visible jusqu'à réception des données fraîches.
+        const snap = await getDocs(query(collection(db,'journees'), orderBy('numero','asc')))
+        const now = new Date()
+        const openDocs = snap.docs.filter(d => {
+          const data = d.data()
+          if (data.statut !== 'ouverte') return false
+          const dl = data.deadline ? new Date(data.deadline.seconds * 1000) : null
+          return !dl || dl > now
+        })
+        if (openDocs.length === 0) {
+          setJournee(null)
+          setDeadlinePassed(false)
+          return
         }
-        // Charger bonus
-        const joueurDoc = await getDoc(doc(db,'joueurs',user.uid))
-        if (joueurDoc.exists()) setBonusStock(joueurDoc.data().bonus || { missile:3, jackpot:3, doubleChance:4 })
-        // Charger joueurs pour missile
-        const jSnap = await getDocs(collection(db,'joueurs'))
-        setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(j=>j.id!==user.uid))
-        // Charger mes missiles déjà lancés pour cette journée
-        const missilesSnap = await getDocs(query(
-          collection(db,'journees',jDoc.id,'missiles'),
-          where('lanceur', '==', user.uid)
-        ))
-        setMesMissiles(missilesSnap.docs.map(d=>({id:d.id,...d.data()})))
+
+        const jDoc = openDocs[0]
+        const j = { id:jDoc.id, ...jDoc.data() }
+        const memeJournee = journee?.id === j.id
+        setJournee(j)
+        setDeadlinePassed(j.deadline ? now > new Date(j.deadline.seconds * 1000) : false)
+
+        if (user) {
+          const pronoDoc = await getDoc(doc(db,'journees',jDoc.id,'pronos',user.uid))
+          // Ne jamais écraser un brouillon local lors d'une actualisation
+          // silencieuse de la même journée. Les pronos Firebase ne sont
+          // réinjectés que lors du premier chargement ou d'un changement de J.
+          if (!memeJournee) {
+            setJackpotMatches([])
+            setDcSelections([])
+            setMultiplexScores([])
+            setBoxingScores([])
+            if (pronoDoc.exists()) {
+              const data = pronoDoc.data()
+              setExistingProno(data)
+              setPronos(data)
+              if (data.matchScorer) {
+                const parts = data.matchScorer.split('-')
+                setScorerH(parseInt(parts[0])||0)
+                setScorerA(parseInt(parts[1])||0)
+              }
+              if (Array.isArray(data.jackpotMatches)) setJackpotMatches(data.jackpotMatches)
+              else if (data.jackpotMatch) setJackpotMatches([data.jackpotMatch])
+              if (Array.isArray(data.dcSelections)) setDcSelections(data.dcSelections)
+              else if (data.dcMatch) setDcSelections([{ matchKey:data.dcMatch, choices:data.dcChoices||[] }])
+              if (Array.isArray(data.matchesMultiplex)) {
+                setMultiplexScores(data.matchesMultiplex.map(score => {
+                  const [h, a] = String(score || '0-0').split('-').map(Number)
+                  return { h:Number.isFinite(h) ? h : 0, a:Number.isFinite(a) ? a : 0 }
+                }))
+              }
+              if (Array.isArray(data.matchesBoxing)) {
+                setBoxingScores(data.matchesBoxing.map(score => {
+                  const [h, a] = String(score || '0-0').split('-').map(Number)
+                  return { h:Number.isFinite(h) ? h : 0, a:Number.isFinite(a) ? a : 0 }
+                }))
+              }
+            } else {
+              setExistingProno(null)
+              setPronos({ matchesL1:Array(8).fill(null), matchEuro:null, matchScorer:null })
+              setScorerH(0)
+              setScorerA(0)
+              if (j.type === 'multiplex') setMultiplexScores((j.matchesL1 || []).map(() => ({ h:0, a:0 })))
+              if (j.type === 'boxing-day') setBoxingScores((j.matchesBoxing || []).map(() => ({ h:0, a:0 })))
+            }
+          }
+
+          const [joueurDoc, jSnap, missilesSnap] = await Promise.all([
+            getDoc(doc(db,'joueurs',user.uid)),
+            getDocs(collection(db,'joueurs')),
+            getDocs(query(collection(db,'journees',jDoc.id,'missiles'), where('lanceur', '==', user.uid))),
+          ])
+          if (joueurDoc.exists()) setBonusStock(joueurDoc.data().bonus || { missile:3, jackpot:3, doubleChance:4 })
+          setJoueurs(jSnap.docs.map(d=>({id:d.id,...d.data()})).filter(joueur=>joueur.id!==user.uid))
+          setMesMissiles(missilesSnap.docs.map(d=>({id:d.id,...d.data()})))
+        }
+        setError('')
+      } catch (e) {
+        console.error('Erreur actualisation pronos:', e)
+        if (premierChargement) setError('Impossible de charger les pronostics. Vérifie ta connexion et réessaie.')
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     load()
-  }, [user])
+  }, [user, refreshKey])
 
   const setL1 = (idx, val) => {
     setPronos(prev => {
@@ -969,6 +988,6 @@ function deadlineFmt(j) {
 
 
 
-export default function Pronos() {
-  return <ErrorBoundary><PronosContent /></ErrorBoundary>
+export default function Pronos({ refreshKey = 0 }) {
+  return <ErrorBoundary><PronosContent refreshKey={refreshKey} /></ErrorBoundary>
 }

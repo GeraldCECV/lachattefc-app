@@ -9,7 +9,7 @@ import { useUser } from '../App';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Sentry from '../sentry';
 
-function ProfilContent() {
+function ProfilContent({ refreshKey = 0 }) {
   const { profil, user } = useUser();
   const [tab, setTab] = useState('infos'); // NEW: tab switch
   const [stats, setStats] = useState(null);
@@ -268,7 +268,7 @@ function ProfilContent() {
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, refreshKey]);
 
   const choisirClub = async club => {
     setSavingClub(true);
@@ -1412,10 +1412,10 @@ function ProfilContent() {
   );
 }
 
-export default function Profil() {
+export default function Profil({ refreshKey = 0 }) {
   return (
     <ErrorBoundary>
-      <ProfilContent />
+      <ProfilContent refreshKey={refreshKey} />
     </ErrorBoundary>
   );
 }

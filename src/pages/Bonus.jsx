@@ -5,7 +5,7 @@ import { useUser } from '../App';
 import { translateTeam } from '../utils/teamName';
 import ErrorBoundary from '../components/ErrorBoundary';
 
-function BonusContent() {
+function BonusContent({ refreshKey = 0 }) {
   const { profil, user } = useUser();
   const [bonus, setBonus] = useState(null);
   const [joueurs, setJoueurs] = useState([]);
@@ -103,6 +103,7 @@ function BonusContent() {
           );
           setHistorique(hist.sort((a, b) => b.journee - a.journee));
         }
+        setError(null);
       } catch (e) {
         console.error('Erreur chargement bonus:', e);
         setError('Impossible de charger tes bonus. Vérifie ta connexion et réessaie.');
@@ -110,7 +111,7 @@ function BonusContent() {
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, refreshKey]);
 
   const COLORS = [
     ['rgba(255,215,0,.14)', '#FFD700'],
@@ -402,10 +403,10 @@ function BonusContent() {
   );
 }
 
-export default function Bonus() {
+export default function Bonus({ refreshKey = 0 }) {
   return (
     <ErrorBoundary>
-      <BonusContent />
+      <BonusContent refreshKey={refreshKey} />
     </ErrorBoundary>
   );
 }

@@ -86,6 +86,7 @@ const TABS = [
 export default function AppShell() {
   const [tab, setTab] = useState('classement');
   const [ongletsVisites, setOngletsVisites] = useState(() => new Set(['classement']));
+  const [actualisations, setActualisations] = useState({});
   const { profil } = useUser();
 
   const changerOnglet = (id) => {
@@ -95,6 +96,10 @@ export default function AppShell() {
       suivants.add(id);
       return suivants;
     });
+    setActualisations((precedentes) => ({
+      ...precedentes,
+      [id]:(precedentes[id] || 0) + 1,
+    }));
     setTab(id);
     // Vérifie en tâche de fond si une nouvelle version de l'app est dispo —
     // si oui, rechargement auto (via onNeedRefresh dans main.jsx)
@@ -149,11 +154,11 @@ export default function AppShell() {
   }, []);
 
   const pages = {
-    vestiaire: <Profil />,
-    pronos: <Pronos />,
+    vestiaire: <Profil refreshKey={actualisations.vestiaire || 0} />,
+    pronos: <Pronos refreshKey={actualisations.pronos || 0} />,
     chatteux: <PronosChatteux />,
     classement: <Classement />,
-    bonus: <Bonus />,
+    bonus: <Bonus refreshKey={actualisations.bonus || 0} />,
     reglement: <Reglement />,
   };
 
