@@ -165,7 +165,7 @@ export default function AppShell() {
     vestiaire: <ProfilMemo refreshKey={actualisations.vestiaire || 0} />,
     pronos: <PronosMemo refreshKey={actualisations.pronos || 0} />,
     chatteux: <PronosChatteuxMemo active={tab === 'chatteux'} />,
-    classement: <ClassementMemo active={tab === 'classement'} />,
+    classement: <ClassementMemo />,
     bonus: <BonusMemo refreshKey={actualisations.bonus || 0} />,
     reglement: <ReglementMemo />,
   };

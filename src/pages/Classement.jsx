@@ -29,7 +29,7 @@ const COLORS = [
 ];
 const getC = (i) => COLORS[i % COLORS.length];
 
-function ClassementContent({ active = true }) {
+function ClassementContent() {
   const { profil } = useUser();
   const [tab, setTab] = useState('journee');
   const [historiqueList, setHistoriqueList] = useState([]);
@@ -44,10 +44,10 @@ function ClassementContent({ active = true }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!active) return undefined;
     let unsubJournee = null,
       unsubPronos = null,
-      unsubMissiles = null;
+      unsubMissiles = null,
+      unsubJoueurs = null;
     let map = {};
     let journeeData = null;
     let pronosMap = {};
@@ -224,6 +224,7 @@ function ClassementContent({ active = true }) {
             (j) => (j.gainsTotal || 0) - (j.journeesJouees || 0) * 5
           )
         );
+
       }
     };
 
@@ -244,6 +245,33 @@ function ClassementContent({ active = true }) {
             }),
             (j) => (j.gainsTotal || 0) - (j.journeesJouees || 0) * 5
           )
+        );
+
+        // Les totaux officiels des joueurs sont écrits lors de la clôture
+        // d'une journée. Sans listener sur cette collection, le classement
+        // général pouvait rester sur sa valeur provisoire jusqu'au prochain
+        // rechargement complet de la page.
+        unsubJoueurs = onSnapshot(
+          collection(db, 'joueurs'),
+          (joueursSnap) => {
+            map = {};
+            joueursSnap.docs.forEach((d, i) => {
+              map[d.id] = { id:d.id, idx:i, ...d.data() };
+            });
+            setJoueursMap(map);
+            setClassG(
+              applyDenseRank(
+                Object.values(map).sort((a, b) => {
+                  const netA = (a.gainsTotal || 0) - (a.journeesJouees || 0) * 5;
+                  const netB = (b.gainsTotal || 0) - (b.journeesJouees || 0) * 5;
+                  return netB - netA;
+                }),
+                (j) => (j.gainsTotal || 0) - (j.journeesJouees || 0) * 5
+              )
+            );
+            recalc();
+          },
+          (e) => console.error('Erreur listener joueurs:', e)
         );
 
         const allJ = await getDocs(query(collection(db, 'journees'), orderBy('numero', 'asc')));
@@ -311,11 +339,12 @@ function ClassementContent({ active = true }) {
       if (unsubJournee) unsubJournee();
       if (unsubPronos) unsubPronos();
       if (unsubMissiles) unsubMissiles();
+      if (unsubJoueurs) unsubJoueurs();
     };
-  }, [active]);
+  }, []);
 
   useEffect(() => {
-    if (!active || tab !== 'historique') return;
+    if (tab !== 'historique') return;
     setHistoriqueList([]);
     setLoadingHistorique(true);
     const loadHist = async () => {
@@ -333,7 +362,7 @@ function ClassementContent({ active = true }) {
       setLoadingHistorique(false);
     };
     loadHist();
-  }, [active, tab]);
+  }, [tab]);
 
   const applyDenseRank = (arr, keyFn = (j) => `${j.gainJ}_${j.ptsJ}`) => {
     if (!arr.length) return arr;
@@ -904,6 +933,6 @@ function ClassementContent({ active = true }) {
   );
 }
 
-export default function Classement({ active = true }) {
-  return <ErrorBoundary><ClassementContent active={active} /></ErrorBoundary>
+export default function Classement() {
+  return <ErrorBoundary><ClassementContent /></ErrorBoundary>
 }
