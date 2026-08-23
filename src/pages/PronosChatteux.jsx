@@ -786,37 +786,42 @@ function PronosChatteuxContent() {
                       </div>
                     )}
                     {profil?.id && (
-                      <div style={{
-                        padding:'4px 10px', borderRadius:20,
-                        background:paletteMonProno.background,
-                        border:`1px solid ${paletteMonProno.border}`,
-                        color:paletteMonProno.color,
-                        fontSize:10, fontWeight:900, letterSpacing:'.025em',
-                        whiteSpace:'nowrap',
-                      }}>
-                        Mon prono : {monProno?.val || 'ABS'}
-                      </div>
-                    )}
-                    {isFinished && profil?.id && (
-                      <button
-                        type="button"
-                        onClick={() => monDetailPoints && setDetailPoints(monDetailPoints)}
-                        disabled={!monDetailPoints}
-                        aria-label={monProno ? `Mes points : ${mesPoints}` : 'Pronostic absent'}
-                        style={{
-                          minWidth:78, padding:'4px 10px', borderRadius:'var(--Rs)',
+                      <div style={{ display:'flex', alignItems:'stretch', justifyContent:'center', gap:7 }}>
+                        <div style={{
+                          width:108, minHeight:42, padding:'4px 10px', boxSizing:'border-box', borderRadius:'var(--Rs)',
                           display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                          background:fondMesPoints,
-                          border:`1px solid ${bordMesPoints}`,
-                          color:couleurMesPoints, cursor:monDetailPoints ? 'pointer' : 'default',
-                          fontFamily:'inherit', opacity:1,
-                        }}
-                      >
-                        <span style={{ fontSize:7, fontWeight:900, letterSpacing:'.08em', lineHeight:1.1 }}>MES POINTS</span>
-                        <strong style={{ marginTop:2, fontFamily:'var(--D)', fontSize:15, lineHeight:1, whiteSpace:'nowrap' }}>
-                          {monProno && mesPoints !== null ? `+${mesPoints} PT${mesPoints > 1 ? 'S' : ''}` : 'ABS'}
-                        </strong>
-                      </button>
+                          background:paletteMonProno.background,
+                          border:`1px solid ${paletteMonProno.border}`,
+                          color:paletteMonProno.color,
+                          whiteSpace:'nowrap',
+                        }}>
+                          <span style={{ fontSize:7, fontWeight:900, letterSpacing:'.08em', lineHeight:1.1 }}>MON PRONO</span>
+                          <strong style={{ marginTop:2, fontFamily:'var(--D)', fontSize:15, lineHeight:1 }}>
+                            {monProno?.val || 'ABS'}
+                          </strong>
+                        </div>
+                        {isFinished && (
+                          <button
+                            type="button"
+                            onClick={() => monDetailPoints && setDetailPoints(monDetailPoints)}
+                            disabled={!monDetailPoints}
+                            aria-label={monProno ? `Mes points : ${mesPoints}` : 'Pronostic absent'}
+                            style={{
+                              width:108, minHeight:42, padding:'4px 10px', boxSizing:'border-box', borderRadius:'var(--Rs)',
+                              display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                              background:fondMesPoints,
+                              border:`1px solid ${bordMesPoints}`,
+                              color:couleurMesPoints, cursor:monDetailPoints ? 'pointer' : 'default',
+                              fontFamily:'inherit', opacity:1,
+                            }}
+                          >
+                            <span style={{ fontSize:7, fontWeight:900, letterSpacing:'.08em', lineHeight:1.1 }}>MES POINTS</span>
+                            <strong style={{ marginTop:2, fontFamily:'var(--D)', fontSize:15, lineHeight:1, whiteSpace:'nowrap' }}>
+                              {monProno && mesPoints !== null ? `+${mesPoints} PT${mesPoints > 1 ? 'S' : ''}` : 'ABS'}
+                            </strong>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
