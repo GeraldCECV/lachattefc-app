@@ -696,8 +696,9 @@ function PronosChatteuxContent({ active = true }) {
             ...(res?.buts || []).map(evenement => ({ ...evenement, nature:'but' })),
             ...(res?.cartonsRouges || []).map(evenement => ({ ...evenement, nature:'rouge' })),
           ].sort((a, b) => (a.minute || 0) - (b.minute || 0) || (a.injuryTime || 0) - (b.injuryTime || 0))
-          const evenementsDom = evenementsMatch.filter(evenement => coteEvenement(evenement.equipe, match.dom, match.ext) !== 'exterieur')
-          const evenementsExt = evenementsMatch.filter(evenement => coteEvenement(evenement.equipe, match.dom, match.ext) === 'exterieur')
+          const coteDe = evenement => evenement.cote || coteEvenement(evenement.equipe, match.dom, match.ext)
+          const evenementsDom = evenementsMatch.filter(evenement => coteDe(evenement) === 'domicile')
+          const evenementsExt = evenementsMatch.filter(evenement => coteDe(evenement) === 'exterieur')
 
           const afficherEvenement = (evenement, index, cote) => {
             const minute = libelleMinuteEvenement(evenement)
