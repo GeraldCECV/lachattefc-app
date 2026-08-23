@@ -769,7 +769,7 @@ function PronosChatteuxContent() {
 
                 {/* Score et points personnels visibles sans déplier la carte */}
                 {(hasScore || (isFinished && profil?.id)) && (
-                  <div style={{ display:'flex', alignItems:'stretch', justifyContent:'center', gap:7, flexWrap:'wrap' }}>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:7 }}>
                     {hasScore && (
                       <div style={{
                         fontFamily:'var(--D)', fontSize:21, fontWeight:900, letterSpacing:'.04em',
