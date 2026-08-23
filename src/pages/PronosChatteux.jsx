@@ -645,6 +645,45 @@ function PronosChatteuxContent() {
           const isFinished = res?.status === 'FINISHED'
           const isPostponed = res?.status === 'POSTPONED'
           const estMatchScorer = match.isScorer || match.isMatchScorer || journee.scorerOnly
+          const monProno = profil?.id ? getProno(profil.id, match.key) : null
+          const mesPoints = profil?.id ? getPtsMatch(profil.id, match.key, match.isScorer) : null
+          const monDetailPoints = profil?.id && mesPoints !== null
+            ? expliquerPoints(
+                profil.id,
+                match.key,
+                match.isScorer,
+                getCorrect(profil.id, match.key, match.isScorer),
+                mesPoints,
+                isSurprise(profil.id, match.key, match.isScorer)
+              )
+            : null
+          const couleurMesPoints = !monProno
+            ? 'var(--r)'
+            : mesPoints >= 3
+              ? '#FFD700'
+              : mesPoints === 2
+                ? 'var(--g)'
+                : mesPoints === 1
+                  ? 'var(--b)'
+                  : 'var(--tx3)'
+          const fondMesPoints = !monProno
+            ? 'rgba(248,68,68,.10)'
+            : mesPoints >= 3
+              ? 'rgba(255,215,0,.10)'
+              : mesPoints === 2
+                ? 'rgba(155,226,45,.10)'
+                : mesPoints === 1
+                  ? 'rgba(96,165,250,.10)'
+                  : 'rgba(255,255,255,.04)'
+          const bordMesPoints = !monProno
+            ? 'rgba(248,68,68,.42)'
+            : mesPoints >= 3
+              ? 'rgba(255,215,0,.42)'
+              : mesPoints === 2
+                ? 'rgba(155,226,45,.42)'
+                : mesPoints === 1
+                  ? 'rgba(96,165,250,.42)'
+                  : 'var(--bd)'
           const cleCarte = `${journee.id}:${match.key}`
           const statutCarte = res?.status || 'SCHEDULED'
           const ouvertureAuto = isLive || isPaused
@@ -728,17 +767,42 @@ function PronosChatteuxContent() {
                   {isLive ? 'LIVE' : isPaused ? '⏸ MI-TEMPS' : isFinished ? '✓ TERMINÉ' : isPostponed ? '⚠️ REPORTÉ' : '🕐 À VENIR'}
                 </div>
 
-                {/* Score */}
-                {hasScore && (
-                  <div style={{
-                    fontFamily:'var(--D)', fontSize:21, fontWeight:900, letterSpacing:'.04em',
-                    color:'var(--tx)',
-                    padding:'5px 12px', borderRadius:'var(--Rs)', flexShrink:0,
-                    background: isLive ? 'rgba(248,68,68,.10)' : isPaused ? 'var(--a-dim)' : isFinished ? 'rgba(155,226,45,.08)' : 'rgba(255,255,255,.05)',
-                    border: `1px solid ${isLive ? 'rgba(248,68,68,.4)' : isPaused ? 'var(--a-b)' : isFinished ? 'var(--g-b)' : 'var(--bd)'}`,
-                    whiteSpace:'nowrap',
-                  }}>
-                    {res.h} - {res.a}
+                {/* Score et points personnels visibles sans déplier la carte */}
+                {(hasScore || (isFinished && profil?.id)) && (
+                  <div style={{ display:'flex', alignItems:'stretch', justifyContent:'center', gap:7, flexWrap:'wrap' }}>
+                    {hasScore && (
+                      <div style={{
+                        fontFamily:'var(--D)', fontSize:21, fontWeight:900, letterSpacing:'.04em',
+                        color:'var(--tx)', display:'flex', alignItems:'center',
+                        padding:'5px 12px', borderRadius:'var(--Rs)', flexShrink:0,
+                        background: isLive ? 'rgba(248,68,68,.10)' : isPaused ? 'var(--a-dim)' : isFinished ? 'rgba(155,226,45,.08)' : 'rgba(255,255,255,.05)',
+                        border: `1px solid ${isLive ? 'rgba(248,68,68,.4)' : isPaused ? 'var(--a-b)' : isFinished ? 'var(--g-b)' : 'var(--bd)'}`,
+                        whiteSpace:'nowrap',
+                      }}>
+                        {res.h} - {res.a}
+                      </div>
+                    )}
+                    {isFinished && profil?.id && (
+                      <button
+                        type="button"
+                        onClick={() => monDetailPoints && setDetailPoints(monDetailPoints)}
+                        disabled={!monDetailPoints}
+                        aria-label={monProno ? `Mes points : ${mesPoints}` : 'Pronostic absent'}
+                        style={{
+                          minWidth:78, padding:'4px 10px', borderRadius:'var(--Rs)',
+                          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                          background:fondMesPoints,
+                          border:`1px solid ${bordMesPoints}`,
+                          color:couleurMesPoints, cursor:monDetailPoints ? 'pointer' : 'default',
+                          fontFamily:'inherit', opacity:1,
+                        }}
+                      >
+                        <span style={{ fontSize:7, fontWeight:900, letterSpacing:'.08em', lineHeight:1.1 }}>MES POINTS</span>
+                        <strong style={{ marginTop:2, fontFamily:'var(--D)', fontSize:15, lineHeight:1, whiteSpace:'nowrap' }}>
+                          {monProno && mesPoints !== null ? `+${mesPoints} PT${mesPoints > 1 ? 'S' : ''}` : 'ABS'}
+                        </strong>
+                      </button>
+                    )}
                   </div>
                 )}
 
