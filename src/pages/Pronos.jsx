@@ -11,17 +11,38 @@ import Confetti from '../components/Confetti'
 import { translateTeam } from '../utils/teamName'
 import { RESULT_COLORS } from '../utils/resultColors'
 
+const ORDRE_JOURS = {
+  lundi: 0, mardi: 1, mercredi: 2, jeudi: 3,
+  vendredi: 4, samedi: 5, dimanche: 6,
+}
+
+function horaireProno(match, index) {
+  if (typeof match?.utcDate?.toMillis === 'function') return { source: 0, valeur: match.utcDate.toMillis() }
+  if (match?.utcDate?.seconds) return { source: 0, valeur: match.utcDate.seconds * 1000 }
+
+  const utc = Date.parse(match?.utcDate || '')
+  if (Number.isFinite(utc)) return { source: 0, valeur: utc }
+
+  const jour = String(match?.jour || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+  const indexJour = Object.entries(ORDRE_JOURS).find(([nom]) => jour.includes(nom))?.[1]
+  const heure = String(match?.heure || '').match(/(\d{1,2})\s*[:h]\s*(\d{2})/i)
+  if (indexJour !== undefined && heure) {
+    return { source: 1, valeur: indexJour * 24 * 60 + Number(heure[1]) * 60 + Number(heure[2]) }
+  }
+  return { source: 2, valeur: index }
+}
+
 // Trie l'affichage sans modifier les index Firebase : les pronostics restent
 // enregistrés face au bon match même si l'ordre reçu de l'admin est différent.
 const matchsChronologiques = (matches = []) => matches
   .map((match, index) => ({ match, index }))
   .sort((a, b) => {
-    const dateA = Date.parse(a.match?.utcDate || '')
-    const dateB = Date.parse(b.match?.utcDate || '')
-    if (Number.isNaN(dateA) && Number.isNaN(dateB)) return a.index - b.index
-    if (Number.isNaN(dateA)) return 1
-    if (Number.isNaN(dateB)) return -1
-    return dateA - dateB || a.index - b.index
+    const ordreA = horaireProno(a.match, a.index)
+    const ordreB = horaireProno(b.match, b.index)
+    return ordreA.source - ordreB.source || ordreA.valeur - ordreB.valeur || a.index - b.index
   })
 
 function PronosContent({ refreshKey = 0 }) {
