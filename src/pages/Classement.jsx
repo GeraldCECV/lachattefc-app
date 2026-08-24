@@ -236,15 +236,22 @@ function ClassementContent() {
         )
       );
 
-      // Classement Général en live : si la journée courante est en cours
-      // (ouverte ou fermee), on ajoute ses points provisoires par-dessus les
+      // Classement Général en live : une fois la deadline passée, on ajoute
+      // les points provisoires de la journée par-dessus les
       // totaux déjà clôturés stockés sur chaque joueur (gainsTotal/journeesJouees).
       // Une fois la journée clôturée côté serveur (statut='resultats'), ces
       // champs stockés incluent déjà cette journée — on n'additionne alors plus
       // rien pour éviter un double comptage.
-      // IMPORTANT : ne pas incrémenter journeesJouees si la journée est 'a-venir'
-      // — elle ne compte que quand elle est réellement en jeu (ouverte/fermee).
-      if (data.statut === 'ouverte' || data.statut === 'fermee') {
+      // IMPORTANT : une journée simplement ouverte aux pronostics ne doit pas
+      // encore coûter 5 €. Elle compte seulement après sa deadline, même si le
+      // cron n'a pas encore eu le temps de passer son statut à "fermee".
+      const deadlineMs = data.deadline?.toMillis?.()
+        ?? (data.deadline?.seconds ? data.deadline.seconds * 1000 : null);
+      const deadlinePassee = data.statut === 'fermee'
+        || (deadlineMs !== null && Date.now() >= deadlineMs);
+      const journeeProvisoire = ['ouverte', 'fermee'].includes(data.statut);
+
+      if (journeeProvisoire && deadlinePassee) {
         const classGLive = Object.values(map).map((j) => {
           const enJeu = !!pronosMap[j.id];
           return {
@@ -263,7 +270,20 @@ function ClassementContent() {
             (j) => (j.gainsTotal || 0) - (j.journeesJouees || 0) * 5
           )
         );
-
+      } else {
+        // Réinitialise aussi explicitement le classement officiel : cela évite
+        // de conserver à l'écran une ancienne déduction provisoire après une
+        // mise à jour de la journée ou un retour sur l'onglet.
+        setClassG(
+          applyDenseRank(
+            Object.values(map).sort((a, b) => {
+              const netA = (a.gainsTotal || 0) - (a.journeesJouees || 0) * 5;
+              const netB = (b.gainsTotal || 0) - (b.journeesJouees || 0) * 5;
+              return netB - netA;
+            }),
+            (j) => (j.gainsTotal || 0) - (j.journeesJouees || 0) * 5
+          )
+        );
       }
     };
 
