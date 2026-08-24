@@ -554,6 +554,10 @@ function PronosChatteuxContent({ active = true }) {
                     const prono = getProno(joueur.id, match.key)
                     const points = getPtsMatch(joueur.id, match.key, match.isScorer)
                     const surprise = isSurprise(joueur.id, match.key, match.isScorer)
+                    const correct = getCorrect(joueur.id, match.key, match.isScorer)
+                    const explication = points !== null
+                      ? expliquerPoints(joueur.id, match.key, match.isScorer, correct, points, surprise)
+                      : null
                     const bonus = getBonusLabels(joueur.id, match.key).map(item => item.icon).join('')
                     const missile = missiles.some(m => m.cible === joueur.id && m.matchKey === match.key && m.applique)
                     const estMoi = joueur.id === profil?.id
@@ -561,7 +565,17 @@ function PronosChatteuxContent({ active = true }) {
                       <div key={joueur.id} style={{ textAlign:'center', color:estMoi ? 'var(--g)' : 'var(--tx)', fontSize:10, fontWeight:estMoi ? 900 : 700, lineHeight:1.25, overflowWrap:'anywhere' }}>
                         <div>{missile ? '🚀' : ''}{bonus}{surprise ? '⚡' : ''}{joueur.nom?.split(' ')[0] || joueur.initiales || '?'}</div>
                         {estScorer && <div style={{ color:palette.couleur, fontSize:9 }}>{prono?.val}</div>}
-                        {points !== null && <div style={{ color:points > 0 ? 'var(--g)' : 'var(--tx3)', fontSize:9 }}>+{points} pt{points > 1 ? 's' : ''}</div>}
+                        {points !== null && (
+                          <button
+                            type="button"
+                            onClick={() => explication && setDetailPoints(explication)}
+                            disabled={!explication}
+                            aria-label={`Voir le détail des ${points} points de ${joueur.nom?.split(' ')[0] || 'ce joueur'}`}
+                            style={{ margin:'1px auto 0', padding:'2px 4px', border:0, background:'none', color:points > 0 ? 'var(--g)' : 'var(--tx3)', fontSize:9, fontWeight:900, cursor:explication ? 'pointer' : 'default', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}
+                          >
+                            +{points} pt{points > 1 ? 's' : ''}
+                          </button>
+                        )}
                       </div>
                     )
                   })}
