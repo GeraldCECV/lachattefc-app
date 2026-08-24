@@ -534,6 +534,17 @@ function PronosContent({ refreshKey = 0 }) {
     </div>
   )
 
+  const matchsAPronostiquer = matchsChronologiques([
+    ...(journee.matchScorer?.dom
+      ? [{ ...journee.matchScorer, typeProno: 'scorer' }]
+      : []),
+    ...(journee.matchesL1 || []).map((match, index) => ({
+      ...match,
+      typeProno: 'l1',
+      indexProno: index,
+    })),
+  ])
+
   return (
     <div className="scroll-area">
 
@@ -751,26 +762,31 @@ function PronosContent({ refreshKey = 0 }) {
         </div>
       )}
 
-      {journee.matchScorer?.dom && (
-        <div id="prono-scorer" style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px',scrollMarginTop:20}}>
-          <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau</div>
-          <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
-            {journee.matchScorer?.dom||'?'} — {journee.matchScorer?.ext||'?'}
-            <span style={{marginLeft:8,fontSize:11,color:'var(--tx3)'}}>{journee.matchScorer?.jour} {journee.matchScorer?.heure}</span>
-          </div>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
-            <Stepper val={scorerH} onChange={setScorerH} />
-            <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
-            <Stepper val={scorerA} onChange={setScorerA} />
-          </div>
-          <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:10}}>Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt</div>
-        </div>
-      )}
-
       {/* ── MATCHS ── */}
-      <div className="section-lbl" style={{padding:'8px 20px'}}>🇫🇷 Ligue 1 — {(journee.matchesL1||[]).length} matchs {journee.scorerOnly ? 'scorer' : '1N2'}</div>
-      {matchsChronologiques(journee.matchesL1 || []).map(({ match: m, index: i }) => {
+      <div className="section-lbl" style={{padding:'8px 20px'}}>
+        🇫🇷 Ligue 1 — {(journee.matchesL1 || []).length + (journee.matchScorer?.dom ? 1 : 0)} matchs à pronostiquer
+      </div>
+      {matchsAPronostiquer.map(({ match: m, index: ordreAffichage }) => {
         if (!m?.dom) return null
+        if (m.typeProno === 'scorer') {
+          return (
+            <div key="scorer" id="prono-scorer" style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px',scrollMarginTop:20}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau · Match à scorer</div>
+              <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
+                {m.dom || '?'} — {m.ext || '?'}
+                <span style={{marginLeft:8,fontSize:11,color:'var(--tx3)'}}>{m.jour} {m.heure}</span>
+              </div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+                <Stepper val={scorerH} onChange={setScorerH} />
+                <div style={{fontSize:20,color:'var(--tx3)'}}>—</div>
+                <Stepper val={scorerA} onChange={setScorerA} />
+              </div>
+              <div style={{fontSize:11,color:'var(--tx3)',textAlign:'center',marginTop:10}}>Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt</div>
+            </div>
+          )
+        }
+
+        const i = m.indexProno ?? ordreAffichage
         const key = `l1_${i}`
         const sel = pronos.matchesL1?.[i]
         const isJP = jackpotMatches.includes(key)
