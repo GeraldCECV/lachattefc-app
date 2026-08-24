@@ -13,6 +13,7 @@ import { LIVE_ORDER, trierMatchsLive } from '../utils/liveMatchOrder'
 import { coteEvenement, libelleMinuteEvenement } from '../utils/matchEvents'
 
 const LIVE_ORDER_STORAGE_KEY = 'lachattefc.liveOrdreMatchs'
+const LIVE_VIEW_STORAGE_KEY = 'lachattefc.liveVuePreferee'
 
 function PronosChatteuxContent({ active = true }) {
   const { profil } = useUser()
@@ -38,6 +39,13 @@ function PronosChatteuxContent({ active = true }) {
       return LIVE_ORDER.A_JOUER
     }
   })
+  const [vuePreferee, setVuePreferee] = useState(() => {
+    try {
+      return window.localStorage.getItem(LIVE_VIEW_STORAGE_KEY) === 'synthese' ? 'synthese' : 'detail'
+    } catch {
+      return 'detail'
+    }
+  })
   const debutTirer = useRef(null)
   const distanceTireeRef = useRef(0)
 
@@ -48,6 +56,14 @@ function PronosChatteuxContent({ active = true }) {
       // Le tri reste utilisable même si le stockage local est indisponible.
     }
   }, [ordreMatchs])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LIVE_VIEW_STORAGE_KEY, vuePreferee)
+    } catch {
+      // La vue reste sélectionnable pendant la session si le stockage échoue.
+    }
+  }, [vuePreferee])
 
   useEffect(() => {
     if (!active) return
@@ -443,6 +459,92 @@ function PronosChatteuxContent({ active = true }) {
     return labels
   }
 
+  const renderCarteSynthese = match => {
+    const res = journee.resultats?.[match.key]
+    const scoreVisible = res && ['FINISHED', 'IN_PLAY', 'PAUSED'].includes(res.status)
+      && res.h !== null && res.a !== null
+    const issueActuelle = scoreVisible ? issueMatch(Number(res.h), Number(res.a)) : null
+    const estScorer = match.isScorer || match.isMatchScorer || journee.scorerOnly
+    const isLive = res?.status === 'IN_PLAY'
+    const isPaused = res?.status === 'PAUSED'
+    const isFinished = res?.status === 'FINISHED'
+    const statut = isLive ? '🔴 EN LIVE' : isPaused ? '🟠 MI-TEMPS' : isFinished ? '🟢 TERMINÉ' : '🔵 À VENIR'
+    const couleurStatut = isLive ? '#FF4444' : isPaused ? 'var(--a)' : isFinished ? 'var(--g)' : 'var(--b)'
+    const palettes = {
+      '1': { couleur:'var(--b)', fond:'rgba(96,165,250,.10)', actif:'rgba(96,165,250,.24)' },
+      'N': { couleur:'var(--a)', fond:'rgba(251,191,36,.09)', actif:'rgba(251,191,36,.22)' },
+      '2': { couleur:'var(--p)', fond:'rgba(192,132,252,.10)', actif:'rgba(192,132,252,.23)' },
+    }
+    const joueursAbsents = joueurs.filter(joueur => !pronos[joueur.id])
+
+    const choixDuJoueur = (joueur, issue) => {
+      const prono = getProno(joueur.id, match.key)
+      if (!prono?.val) return false
+      if (estScorer) {
+        const score = String(prono.val).match(/^(\d+)-(\d+)$/)
+        return !!score && issueMatch(Number(score[1]), Number(score[2])) === issue
+      }
+      return String(prono.val).split('/').includes(issue)
+    }
+
+    return (
+      <div key={match.key} style={{ overflow:'hidden', borderRadius:16, background:'var(--bg2)', border:`1px solid ${estScorer ? 'rgba(255,215,0,.52)' : 'var(--bd)'}`, boxShadow:estScorer ? '0 0 18px rgba(255,215,0,.10)' : '0 8px 20px rgba(0,0,0,.18)' }}>
+        <div style={{ padding:'11px 12px 10px', display:'grid', gridTemplateColumns:'minmax(0,1fr) auto minmax(0,1fr)', alignItems:'center', gap:7, borderBottom:'1px solid var(--bd)', background:estScorer ? 'linear-gradient(135deg, rgba(255,215,0,.08), rgba(255,255,255,.02))' : 'rgba(255,255,255,.025)' }}>
+          <div style={{ minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', gap:4, textAlign:'center' }}>
+            <TeamLogo name={match.dom} size={27} />
+            <strong style={{ maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', fontSize:11, textTransform:'uppercase' }}>{translateTeam(match.dom)}</strong>
+          </div>
+          <div style={{ minWidth:70, textAlign:'center' }}>
+            {estScorer && <div style={{ marginBottom:3, fontSize:8, fontWeight:900, color:'#FFD700' }}>🎯 SCORER</div>}
+            <div style={{ fontFamily:'var(--D)', fontSize:scoreVisible ? 22 : 11, fontWeight:900, color:'var(--tx)' }}>
+              {scoreVisible ? `${res.h} - ${res.a}` : match.heure || 'VS'}
+            </div>
+            <div style={{ marginTop:2, fontSize:8, fontWeight:900, color:couleurStatut }}>{statut}</div>
+          </div>
+          <div style={{ minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', gap:4, textAlign:'center' }}>
+            <TeamLogo name={match.ext} size={27} />
+            <strong style={{ maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', fontSize:11, textTransform:'uppercase' }}>{translateTeam(match.ext)}</strong>
+          </div>
+        </div>
+
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))' }}>
+          {['1','N','2'].map((issue, colonne) => {
+            const palette = palettes[issue]
+            const liste = joueursTriés.filter(joueur => pronos[joueur.id] && choixDuJoueur(joueur, issue))
+            return (
+              <div key={issue} style={{ minWidth:0, minHeight:112, background:issueActuelle === issue ? palette.actif : palette.fond, borderLeft:colonne ? '1px solid var(--bd)' : 0 }}>
+                <div style={{ padding:'7px 3px', textAlign:'center', borderBottom:'1px solid var(--bd)', color:palette.couleur, fontFamily:'var(--D)', fontSize:18, fontWeight:900 }}>{issue}</div>
+                <div style={{ padding:'7px 4px 9px', display:'flex', flexDirection:'column', gap:7 }}>
+                  {liste.length === 0 && <span style={{ textAlign:'center', color:'var(--tx3)', fontSize:11 }}>—</span>}
+                  {liste.map(joueur => {
+                    const prono = getProno(joueur.id, match.key)
+                    const points = getPtsMatch(joueur.id, match.key, match.isScorer)
+                    const surprise = isSurprise(joueur.id, match.key, match.isScorer)
+                    const bonus = getBonusLabels(joueur.id, match.key).map(item => item.icon).join('')
+                    const missile = missiles.some(m => m.cible === joueur.id && m.matchKey === match.key && m.applique)
+                    const estMoi = joueur.id === profil?.id
+                    return (
+                      <div key={joueur.id} style={{ textAlign:'center', color:estMoi ? 'var(--g)' : 'var(--tx)', fontSize:10, fontWeight:estMoi ? 900 : 700, lineHeight:1.25, overflowWrap:'anywhere' }}>
+                        <div>{missile ? '🚀' : ''}{bonus}{surprise ? '⚡' : ''}{joueur.nom?.split(' ')[0] || joueur.initiales || '?'}</div>
+                        {estScorer && <div style={{ color:palette.couleur, fontSize:9 }}>{prono?.val}</div>}
+                        {points !== null && <div style={{ color:points > 0 ? 'var(--g)' : 'var(--tx3)', fontSize:9 }}>+{points} pt{points > 1 ? 's' : ''}</div>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        {joueursAbsents.length > 0 && (
+          <div style={{ padding:'7px 10px', borderTop:'1px solid var(--bd)', color:'var(--r)', fontSize:9, fontWeight:800 }}>
+            ABS · {joueursAbsents.map(joueur => joueur.nom?.split(' ')[0] || joueur.initiales).join(', ')}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   // Trier joueurs : ceux qui ont proné en premier, ABS en bas
   const joueursTriés = [...joueurs].sort((a, b) => {
     const aHas = !!pronos[a.id]
@@ -614,6 +716,25 @@ function PronosChatteuxContent({ active = true }) {
         <div style={{ fontSize:10, fontWeight:900, color:'var(--tx3)', textTransform:'uppercase', letterSpacing:'.11em' }}>
           ⚽ Matchs de la journée
         </div>
+        <div role="group" aria-label="Vue des pronostics" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', padding:3, borderRadius:12, background:'rgba(255,255,255,.045)', border:'1px solid var(--bd)' }}>
+          {[
+            ['detail', '☷ Vue détaillée'],
+            ['synthese', '▦ Vue synthèse'],
+          ].map(([valeur, libelle]) => {
+            const actif = vuePreferee === valeur
+            return (
+              <button
+                key={valeur}
+                type="button"
+                aria-pressed={actif}
+                onClick={() => setVuePreferee(valeur)}
+                style={{ border:0, borderRadius:9, padding:'9px 6px', background:actif ? 'rgba(192,132,252,.15)' : 'transparent', color:actif ? 'var(--p)' : 'var(--tx3)', boxShadow:actif ? 'inset 0 0 0 1px rgba(192,132,252,.28)' : 'none', fontSize:10, fontWeight:900, cursor:'pointer' }}
+              >
+                {libelle}
+              </button>
+            )
+          })}
+        </div>
         <div role="group" aria-label="Ordre d’affichage des matchs" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', padding:3, borderRadius:12, background:'rgba(255,255,255,.045)', border:'1px solid var(--bd)' }}>
           {[
             [LIVE_ORDER.CHRONOLOGIQUE, '🕐 Chronologique'],
@@ -635,8 +756,14 @@ function PronosChatteuxContent({ active = true }) {
         </div>
       </div>
 
-      {/* Blocs par match */}
-      <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'0 12px' }}>
+      {vuePreferee === 'synthese' && (
+        <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'0 12px' }}>
+          {matchBlocks.map(renderCarteSynthese)}
+        </div>
+      )}
+
+      {/* Blocs détaillés par match */}
+      {vuePreferee === 'detail' && <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'0 12px' }}>
         {matchBlocks.map(match => {
           const res = journee.resultats?.[match.key]
           const hasScore = res && (res.status === 'FINISHED' || res.status === 'IN_PLAY' || res.status === 'PAUSED') && res.h !== null && res.a !== null
@@ -1046,7 +1173,7 @@ function PronosChatteuxContent({ active = true }) {
             </div>
           )
         })}
-      </div>
+      </div>}
     </div>
   )
 }
