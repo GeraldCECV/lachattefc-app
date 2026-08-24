@@ -11,7 +11,18 @@ import Confetti from '../components/Confetti'
 import { translateTeam } from '../utils/teamName'
 import { RESULT_COLORS } from '../utils/resultColors'
 
-
+// Trie l'affichage sans modifier les index Firebase : les pronostics restent
+// enregistrés face au bon match même si l'ordre reçu de l'admin est différent.
+const matchsChronologiques = (matches = []) => matches
+  .map((match, index) => ({ match, index }))
+  .sort((a, b) => {
+    const dateA = Date.parse(a.match?.utcDate || '')
+    const dateB = Date.parse(b.match?.utcDate || '')
+    if (Number.isNaN(dateA) && Number.isNaN(dateB)) return a.index - b.index
+    if (Number.isNaN(dateA)) return 1
+    if (Number.isNaN(dateB)) return -1
+    return dateA - dateB || a.index - b.index
+  })
 
 function PronosContent({ refreshKey = 0 }) {
   const { profil, user } = useUser()
@@ -384,7 +395,7 @@ function PronosContent({ refreshKey = 0 }) {
           ⚽ Multiplex — tous les matchs débutent en même temps. Score exact = 3pts · Bon écart = 2pts · Bonne issue = 1pt
         </div>
         <div className="section-lbl" style={{padding:'14px 20px 8px'}}>🇫🇷 Ligue 1 — {matchesL1.length} matchs à scorer</div>
-        {matchesL1.map((m, i) => (
+        {matchsChronologiques(matchesL1).map(({ match: m, index: i }) => (
           <div key={i} style={{margin:'0 16px 8px',background:'rgba(155,226,45,.04)',border:'1px solid var(--g-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
               <TeamLogo name={m.dom} size={22} />
@@ -451,7 +462,7 @@ function PronosContent({ refreshKey = 0 }) {
         {saved && <div className="alert alert-g" style={{margin:'12px 16px 0'}}>✅ Pronos envoyés !</div>}
         {error && <div className="alert alert-r" style={{margin:'12px 16px 0'}}>❌ {error}</div>}
         <div className="section-lbl" style={{padding:'14px 20px 8px'}}>🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League — 10 matchs à scorer</div>
-        {matchesBoxing.map((m, i) => (
+        {matchsChronologiques(matchesBoxing).map(({ match: m, index: i }) => (
           <div key={i} style={{margin:'0 16px 8px',background:'rgba(251,191,36,.04)',border:'1px solid var(--a-b)',borderRadius:'var(--R)',padding:'13px 14px'}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
               <TeamLogo name={m.dom} size={22} />
@@ -737,7 +748,7 @@ function PronosContent({ refreshKey = 0 }) {
 
       {/* ── MATCHS ── */}
       <div className="section-lbl" style={{padding:'8px 20px'}}>🇫🇷 Ligue 1 — {(journee.matchesL1||[]).length} matchs {journee.scorerOnly ? 'scorer' : '1N2'}</div>
-      {(journee.matchesL1||[]).map((m, i) => {
+      {matchsChronologiques(journee.matchesL1 || []).map(({ match: m, index: i }) => {
         if (!m?.dom) return null
         const key = `l1_${i}`
         const sel = pronos.matchesL1?.[i]
