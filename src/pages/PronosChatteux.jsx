@@ -476,6 +476,28 @@ function PronosChatteuxContent({ active = true }) {
       '2': { couleur:'var(--p)', fond:'rgba(192,132,252,.10)', actif:'rgba(192,132,252,.23)' },
     }
     const joueursAbsents = joueurs.filter(joueur => !pronos[joueur.id])
+    const evenements = [
+      ...(res?.buts || []).map(evenement => ({ ...evenement, nature:'but' })),
+      ...(res?.cartonsRouges || []).map(evenement => ({ ...evenement, nature:'rouge' })),
+    ].sort((a, b) => (a.minute || 0) - (b.minute || 0) || (a.injuryTime || 0) - (b.injuryTime || 0))
+    const coteDe = evenement => evenement.cote || coteEvenement(evenement.equipe, match.dom, match.ext)
+    const evenementsDom = evenements.filter(evenement => coteDe(evenement) === 'domicile')
+    const evenementsExt = evenements.filter(evenement => coteDe(evenement) === 'exterieur')
+
+    const evenementCompact = (evenement, cote, index) => {
+      const minute = libelleMinuteEvenement(evenement)
+      const penalty = evenement.nature === 'but' && /penalty/i.test(evenement.type || '')
+      return (
+        <div key={`${cote}-${evenement.nature}-${evenement.joueur}-${index}`} style={{ display:'flex', alignItems:'flex-start', justifyContent:cote === 'domicile' ? 'flex-start' : 'flex-end', gap:4, textAlign:cote === 'domicile' ? 'left' : 'right', fontSize:9, lineHeight:1.25 }}>
+          {cote === 'domicile' && <span>{evenement.nature === 'rouge' ? '🟥' : '⚽'}</span>}
+          <span style={{ minWidth:0, overflowWrap:'anywhere', color:'var(--tx2)', fontWeight:750 }}>
+            {evenement.joueur || 'Joueur inconnu'}
+            {(minute || penalty) && <span style={{ color:evenement.nature === 'rouge' ? 'var(--r)' : 'var(--tx3)', whiteSpace:'nowrap' }}> ({minute}{penalty ? `${minute ? ' ' : ''}PEN` : ''})</span>}
+          </span>
+          {cote === 'exterieur' && <span>{evenement.nature === 'rouge' ? '🟥' : '⚽'}</span>}
+        </div>
+      )
+    }
 
     const choixDuJoueur = (joueur, issue) => {
       const prono = getProno(joueur.id, match.key)
@@ -506,6 +528,18 @@ function PronosChatteuxContent({ active = true }) {
             <strong style={{ maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', fontSize:11, textTransform:'uppercase' }}>{translateTeam(match.ext)}</strong>
           </div>
         </div>
+
+        {evenements.length > 0 && (
+          <div style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) 1px minmax(0,1fr)', gap:7, padding:'8px 9px', borderBottom:'1px solid var(--bd)', background:'rgba(0,0,0,.13)' }}>
+            <div style={{ minWidth:0, display:'flex', flexDirection:'column', gap:5 }}>
+              {evenementsDom.length > 0 ? evenementsDom.map((evenement, index) => evenementCompact(evenement, 'domicile', index)) : <span style={{ color:'var(--tx3)', fontSize:9 }}>—</span>}
+            </div>
+            <div aria-hidden="true" style={{ width:1, background:'rgba(255,255,255,.09)' }} />
+            <div style={{ minWidth:0, display:'flex', flexDirection:'column', gap:5 }}>
+              {evenementsExt.length > 0 ? evenementsExt.map((evenement, index) => evenementCompact(evenement, 'exterieur', index)) : <span style={{ color:'var(--tx3)', fontSize:9, textAlign:'right' }}>—</span>}
+            </div>
+          </div>
+        )}
 
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))' }}>
           {['1','N','2'].map((issue, colonne) => {
