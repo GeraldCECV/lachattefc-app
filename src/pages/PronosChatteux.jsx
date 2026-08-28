@@ -523,7 +523,12 @@ function PronosChatteuxContent({ active = true }) {
           <div style={{ minWidth:70, textAlign:'center' }}>
             {estScorer && <div style={{ marginBottom:3, fontSize:8, fontWeight:900, color:'#FFD700' }}>🎯 SCORER</div>}
             <div style={{ fontFamily:'var(--D)', fontSize:scoreVisible ? 22 : 11, fontWeight:900, color:'var(--tx)' }}>
-              {scoreVisible ? `${res.h} - ${res.a}` : match.heure || 'VS'}
+              {scoreVisible ? `${res.h} - ${res.a}` : (match.jour || match.heure) ? (
+                <>
+                  {match.jour && <div style={{ fontSize:8, fontWeight:800, color:'var(--tx3)', textTransform:'uppercase', letterSpacing:'.03em' }}>{match.jour}</div>}
+                  <div>{match.heure || 'VS'}</div>
+                </>
+              ) : 'VS'}
             </div>
             <div style={{ marginTop:2, fontSize:8, fontWeight:900, color:couleurStatut }}>{statut}</div>
           </div>
