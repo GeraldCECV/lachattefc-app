@@ -8,6 +8,7 @@ import AppShell from './components/AppShell';
 import ErrorBoundary from './components/ErrorBoundary';
 import { synchroniserPushAuDemarrage } from './services/pushNotifications';
 
+
 export const UserContext = createContext(null);
 export const useUser = () => useContext(UserContext);
 
@@ -79,7 +80,11 @@ export default function App() {
           background: 'var(--bg)',
         }}
       >
-        <div style={{ fontSize: 48 }}>😼</div>
+        <img
+          src="/icon-512.png"
+          alt="La Chatte FC"
+          style={{ width: 120, height: 'auto' }}
+        />
         <div className='spinner' style={{ width: 24, height: 24 }}></div>
       </div>
     );

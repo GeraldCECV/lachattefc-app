@@ -235,7 +235,11 @@ function PronosChatteuxContent({ active = true }) {
         </div>
       )}
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:32, textAlign:'center' }}>
-        <div style={{ fontSize:48, marginBottom:16 }}>🐱</div>
+        <img
+          src="/icon-512.png"
+          alt="La Chatte FC"
+          style={{ width:88, height:'auto', marginBottom:16 }}
+        />
         <div style={{ fontFamily:'var(--D)', fontSize:22, letterSpacing:'.04em', marginBottom:12 }}>Espèce de chat de la casse...</div>
         <div style={{ fontSize:13, color:'var(--tx3)', lineHeight:1.7, maxWidth:280, margin:'0 auto' }}>
           Tu vas attendre la deadline comme tout le monde pour voir les pronos de tes amis chatteux.
