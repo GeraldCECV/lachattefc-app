@@ -513,6 +513,26 @@ function PronosChatteuxContent({ active = true }) {
       return String(prono.val).split('/').includes(issue)
     }
 
+    // Un joueur en Double Chance (ou scorer) n'a qu'un seul total de points
+    // pour ce match, mais peut apparaître dans 2 colonnes (ses 2 issues
+    // couvertes). On choisit UNE colonne d'affichage par joueur pour éviter
+    // d'afficher le même "+X pt" en double — priorité à l'issue réelle du
+    // match si elle fait partie de son pari, sinon la première de ses issues.
+    const colonnePointsParJoueur = {}
+    joueursTriés.forEach(joueur => {
+      const prono = getProno(joueur.id, match.key)
+      if (!prono?.val) return
+      let colonne = null
+      if (estScorer) {
+        const score = String(prono.val).match(/^(\d+)-(\d+)$/)
+        colonne = score ? issueMatch(Number(score[1]), Number(score[2])) : null
+      } else {
+        const choix = String(prono.val).split('/')
+        colonne = (issueActuelle && choix.includes(issueActuelle)) ? issueActuelle : choix[0]
+      }
+      colonnePointsParJoueur[joueur.id] = colonne
+    })
+
     return (
       <div key={match.key} style={{ overflow:'hidden', borderRadius:16, background:'var(--bg2)', border:`1px solid ${estScorer ? 'rgba(255,215,0,.52)' : 'var(--bd)'}`, boxShadow:estScorer ? '0 0 18px rgba(255,215,0,.10)' : '0 8px 20px rgba(0,0,0,.18)' }}>
         <div style={{ padding:'11px 12px 10px', display:'grid', gridTemplateColumns:'minmax(0,1fr) auto minmax(0,1fr)', alignItems:'center', gap:7, borderBottom:'1px solid var(--bd)', background:estScorer ? 'linear-gradient(135deg, rgba(255,215,0,.08), rgba(255,255,255,.02))' : 'rgba(255,255,255,.025)' }}>
@@ -574,7 +594,7 @@ function PronosChatteuxContent({ active = true }) {
                       <div key={joueur.id} style={{ textAlign:'center', color:estMoi ? 'var(--g)' : 'var(--tx)', fontSize:10, fontWeight:estMoi ? 900 : 700, lineHeight:1.25, overflowWrap:'anywhere' }}>
                         <div>{missile ? '🚀' : ''}{bonus}{surprise ? '⚡' : ''}{joueur.nom?.split(' ')[0] || joueur.initiales || '?'}</div>
                         {estScorer && <div style={{ color:palette.couleur, fontSize:9 }}>{prono?.val}</div>}
-                        {points !== null && (
+                        {points !== null && colonnePointsParJoueur[joueur.id] === issue && (
                           <button
                             type="button"
                             onClick={() => explication && setDetailPoints(explication)}
