@@ -1191,26 +1191,36 @@ function PronosChatteuxContent({ active = true }) {
                             </div>
                           ))}
                           {missilesRecus.map(m => (
-                            <div key={m.id} style={{
-                              display:'flex', alignItems:'center', gap:3,
-                              padding:'2px 6px', borderRadius:20,
-                              background:'rgba(248,68,68,.12)',
-                              border:'1px solid rgba(248,68,68,.3)',
-                              fontSize:10, fontWeight:700, color:'#FF4444',
-                            }}>
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => setDetailPoints({ points: null, raison: `🚀 Missile reçu de ${joueurs.find(u => u.id === m.lanceur)?.nom?.split(' ')[0] || '?'}`, repartition: null })}
+                              style={{
+                                display:'flex', alignItems:'center', gap:3,
+                                padding:'2px 6px', borderRadius:20,
+                                background:'rgba(248,68,68,.12)',
+                                border:'1px solid rgba(248,68,68,.3)',
+                                fontSize:10, fontWeight:700, color:'#FF4444',
+                                cursor:'pointer', fontFamily:'inherit', letterSpacing:'inherit', lineHeight:'inherit',
+                              }}>
                               🚀 {joueurs.find(u => u.id === m.lanceur)?.nom?.split(' ')[0] || '?'}
-                            </div>
+                            </button>
                           ))}
                           {missilesLances.map(m => (
-                            <div key={m.id} style={{
-                              display:'flex', alignItems:'center', gap:3,
-                              padding:'2px 6px', borderRadius:20,
-                              background:'rgba(251,146,60,.12)',
-                              border:'1px solid rgba(251,146,60,.3)',
-                              fontSize:10, fontWeight:700, color:'var(--o)',
-                            }}>
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => setDetailPoints({ points: null, raison: `🚀 Missile envoyé sur ${joueurs.find(u => u.id === m.cible)?.nom?.split(' ')[0] || '?'}`, repartition: null })}
+                              style={{
+                                display:'flex', alignItems:'center', gap:3,
+                                padding:'2px 6px', borderRadius:20,
+                                background:'rgba(251,146,60,.12)',
+                                border:'1px solid rgba(251,146,60,.3)',
+                                fontSize:10, fontWeight:700, color:'var(--o)',
+                                cursor:'pointer', fontFamily:'inherit', letterSpacing:'inherit', lineHeight:'inherit',
+                              }}>
                               ↗ {joueurs.find(u => u.id === m.cible)?.nom?.split(' ')[0] || '?'}
-                            </div>
+                            </button>
                           ))}
                         </div>
                         {/* Prono + points en dessous */}
