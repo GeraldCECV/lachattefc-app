@@ -588,11 +588,17 @@ function PronosChatteuxContent({ active = true }) {
                       ? expliquerPoints(joueur.id, match.key, match.isScorer, correct, points, surprise)
                       : null
                     const bonus = getBonusLabels(joueur.id, match.key).map(item => item.icon).join('')
-                    const missile = missiles.some(m => m.cible === joueur.id && m.matchKey === match.key && m.applique)
+                    const missileObj = missiles.find(m => m.cible === joueur.id && m.matchKey === match.key && m.applique)
                     const estMoi = joueur.id === profil?.id
                     return (
                       <div key={joueur.id} style={{ textAlign:'center', color:estMoi ? 'var(--g)' : 'var(--tx)', fontSize:10, fontWeight:estMoi ? 900 : 700, lineHeight:1.25, overflowWrap:'anywhere' }}>
-                        <div>{missile ? '🚀' : ''}{bonus}{surprise ? '⚡' : ''}{joueur.nom?.split(' ')[0] || joueur.initiales || '?'}</div>
+                        <div>{missileObj && (
+                          <span
+                            title={`Prono imposé par missile (${missileObj.lanceurNom || joueurs.find(j => j.id === missileObj.lanceur)?.nom?.split(' ')[0] || '?'})`}
+                            aria-label={`Missile de ${missileObj.lanceurNom || joueurs.find(j => j.id === missileObj.lanceur)?.nom?.split(' ')[0] || '?'}`}
+                            style={{ cursor:'help' }}
+                          >🚀</span>
+                        )}{bonus}{surprise ? '⚡' : ''}{joueur.nom?.split(' ')[0] || joueur.initiales || '?'}</div>
                         {estScorer && <div style={{ color:palette.couleur, fontSize:9 }}>{prono?.val}</div>}
                         {points !== null && colonnePointsParJoueur[joueur.id] === issue && (
                           <button
