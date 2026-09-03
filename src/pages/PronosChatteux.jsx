@@ -589,15 +589,17 @@ function PronosChatteuxContent({ active = true }) {
                       : null
                     const bonus = getBonusLabels(joueur.id, match.key).map(item => item.icon).join('')
                     const missileObj = missiles.find(m => m.cible === joueur.id && m.matchKey === match.key && m.applique)
+                    const missileLanceurNom = missileObj ? (missileObj.lanceurNom || joueurs.find(j => j.id === missileObj.lanceur)?.nom?.split(' ')[0] || '?') : null
                     const estMoi = joueur.id === profil?.id
                     return (
                       <div key={joueur.id} style={{ textAlign:'center', color:estMoi ? 'var(--g)' : 'var(--tx)', fontSize:10, fontWeight:estMoi ? 900 : 700, lineHeight:1.25, overflowWrap:'anywhere' }}>
                         <div>{missileObj && (
-                          <span
-                            title={`Prono imposé par missile (${missileObj.lanceurNom || joueurs.find(j => j.id === missileObj.lanceur)?.nom?.split(' ')[0] || '?'})`}
-                            aria-label={`Missile de ${missileObj.lanceurNom || joueurs.find(j => j.id === missileObj.lanceur)?.nom?.split(' ')[0] || '?'}`}
-                            style={{ cursor:'help' }}
-                          >🚀</span>
+                          <button
+                            type="button"
+                            onClick={() => setDetailPoints({ points: points, raison: `Prono imposé par missile (${missileLanceurNom})`, repartition: null })}
+                            aria-label={`Missile de ${missileLanceurNom}`}
+                            style={{ background:'none', border:0, padding:0, margin:0, cursor:'pointer', font:'inherit', color:'inherit' }}
+                          >🚀</button>
                         )}{bonus}{surprise ? '⚡' : ''}{joueur.nom?.split(' ')[0] || joueur.initiales || '?'}</div>
                         {estScorer && <div style={{ color:palette.couleur, fontSize:9 }}>{prono?.val}</div>}
                         {points !== null && colonnePointsParJoueur[joueur.id] === issue && (
@@ -700,9 +702,11 @@ function PronosChatteuxContent({ active = true }) {
       {detailPoints && createPortal(
         <div onClick={() => setDetailPoints(null)} style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(0,0,0,.72)', display:'flex', alignItems:'flex-end', justifyContent:'center', overflowY:'auto', padding:'16px 16px max(16px, env(safe-area-inset-bottom))' }}>
           <div role="dialog" aria-modal="true" aria-label="Détail des points" onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:420, maxHeight:'calc(100dvh - 32px - env(safe-area-inset-bottom))', overflowY:'auto', padding:'20px 18px', borderRadius:'18px 18px 12px 12px', background:'var(--bg2)', border:'1px solid var(--bd2)', boxShadow:'0 -10px 40px rgba(0,0,0,.45)', textAlign:'center' }}>
-            <div style={{ fontFamily:'var(--D)', fontSize:30, fontWeight:900, color:detailPoints.points >= 3 ? '#FFD700' : detailPoints.points > 0 ? 'var(--g)' : 'var(--tx3)' }}>
-              +{detailPoints.points} pt{detailPoints.points > 1 ? 's' : ''}
-            </div>
+            {(detailPoints.points !== null && detailPoints.points !== undefined) && (
+              <div style={{ fontFamily:'var(--D)', fontSize:30, fontWeight:900, color:detailPoints.points >= 3 ? '#FFD700' : detailPoints.points > 0 ? 'var(--g)' : 'var(--tx3)' }}>
+                +{detailPoints.points} pt{detailPoints.points > 1 ? 's' : ''}
+              </div>
+            )}
             <div style={{ marginTop:6, fontSize:15, fontWeight:900, color:'var(--tx)' }}>{detailPoints.raison}</div>
             {detailPoints.repartition && <div style={{ marginTop:7, fontSize:12, color:'var(--p)', fontWeight:700 }}>⚡ {detailPoints.repartition}</div>}
             <button type="button" className="btn btn-secondary" onClick={() => setDetailPoints(null)} style={{ width:'100%', marginTop:18 }}>Fermer</button>
