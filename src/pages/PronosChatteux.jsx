@@ -406,7 +406,7 @@ function PronosChatteuxContent({ active = true }) {
     }
 
     if (jackpot && pts > 0) raison += ' · Jackpot ×2'
-    if (missile) raison += ' · Prono imposé par missile'
+    if (missile) raison += ` · Prono imposé par missile (${missile.lanceurNom || joueurs.find(j => j.id === missile.lanceur)?.nom?.split(' ')[0] || '?'})`
 
     let repartition = null
     if (surprise && prono?.val) {
