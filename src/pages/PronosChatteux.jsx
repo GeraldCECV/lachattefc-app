@@ -459,7 +459,7 @@ function PronosChatteuxContent({ active = true }) {
     if (!p) return []
     const labels = []
     if (isJackpotOn(p, key)) labels.push({ icon: '🎰', label: 'Jackpot' })
-    if (getDcChoicesFor(p, key)?.length > 0) labels.push({ icon: '2️⃣', label: 'DC' })
+    if (getDcChoicesFor(p, key)?.length > 0) labels.push({ icon: 'DC', label: '' })
     return labels
   }
 
