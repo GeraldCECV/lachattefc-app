@@ -119,15 +119,16 @@ function ClassementContent() {
           } else {
             const issue = issueMatch(rh, ra);
             const dcChoicesIci = getDcChoicesFor(p, key);
+            const bonCount = Object.keys(pronosMap).filter((u) =>
+              joueurADevineIssue(pronosAvecMissiles[u], key, issue)
+            ).length;
             if (dcChoicesIci?.length === 2) {
-              // DC active sur ce match : exclusive — gagne (1 ou 2pts si jackpot) ou 0, jamais de repli sur le prono brut
+              // Une issue couverte par la DC conserve surprise et jackpot.
               if (dcChoicesIci.includes(issue)) {
-                pointsParJoueur[uid] = (pointsParJoueur[uid] || 0) + (isJackpotOn(p, key) ? 2 : 1);
+                pointsParJoueur[uid] = (pointsParJoueur[uid] || 0) +
+                  calcPoints1N2(p, issue, issue, bonCount, totalJoueurs, key);
               }
             } else if (prono === issue) {
-              const bonCount = Object.keys(pronosMap).filter((u) =>
-                joueurADevineIssue(pronosAvecMissiles[u], key, issue)
-              ).length;
               pointsParJoueur[uid] =
                 (pointsParJoueur[uid] || 0) +
                 calcPoints1N2(p, prono, issue, bonCount, totalJoueurs, key);

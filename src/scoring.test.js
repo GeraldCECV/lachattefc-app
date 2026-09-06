@@ -153,6 +153,13 @@ describe('Double Chance', () => {
   it('un seul choix renseigné → DC invalide', () => {
     expect(getDcChoicesFor({ dcSelections: [{ matchKey: 'l1_4', choices: ['1'] }] }, 'l1_4')).toBe(null)
   })
+
+  it('une issue surprise couverte par la DC rapporte 2pts', () => {
+    const p = { dcSelections: [{ matchKey: 'l1_0', choices: ['1', 'N'] }] }
+    const choices = getDcChoicesFor(p, 'l1_0')
+    expect(choices).toContain('N')
+    expect(calcPoints1N2(p, 'N', 'N', 3, 16, 'l1_0')).toBe(2)
+  })
 })
 
 describe('joueurADevineIssue — comptage du ratio surprise', () => {

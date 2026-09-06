@@ -347,12 +347,12 @@ function PronosChatteuxContent({ active = true }) {
     const issue = issueMatch(rh, ra)
     const missileIci = missiles.find(m => m.cible === uid && m.matchKey === key && m.applique)
     const dcChoicesIci = missileIci ? null : getDcChoicesFor(p, key)
+    const bonCount = Object.keys(pronos).filter(u => joueurADevineIssue(u, key, issue)).length
     if (dcChoicesIci?.length > 0) {
       if (!dcChoicesIci.includes(issue)) return 0
-      return isJackpotOn(p, key) ? 2 : 1
+      return calcPoints1N2(p, issue, issue, bonCount, allTotal, key)
     }
     if (prono.val !== issue) return 0
-    const bonCount = Object.keys(pronos).filter(u => joueurADevineIssue(u, key, issue)).length
     return calcPoints1N2(p, prono.val, issue, bonCount, allTotal, key)
   }
 
