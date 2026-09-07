@@ -772,9 +772,13 @@ function PronosContent({ refreshKey = 0 }) {
           return (
             <div key="scorer" id="prono-scorer" style={{margin:'0 16px 10px',background:'linear-gradient(135deg, var(--bg2), #0d1620)',border:'1px solid var(--b-b)',borderRadius:'var(--R)',padding:'16px',scrollMarginTop:20}}>
               <div style={{fontSize:10,fontWeight:700,color:'var(--b)',textTransform:'uppercase',letterSpacing:'.12em',marginBottom:8}}>Choisi par le bureau · Match à scorer</div>
-              <div style={{fontSize:15,fontWeight:600,marginBottom:14}}>
-                {m.dom || '?'} — {m.ext || '?'}
-                <span style={{marginLeft:8,fontSize:11,color:'var(--tx3)'}}>{m.jour} {m.heure}</span>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+                <TeamLogo name={m.dom} size={26} />
+                <div style={{minWidth:0,fontSize:15,fontWeight:600}}>
+                  {translateTeam(m.dom) || '?'} — {translateTeam(m.ext) || '?'}
+                  <span style={{marginLeft:8,fontSize:11,color:'var(--tx3)'}}>{m.jour} {m.heure}</span>
+                </div>
+                <TeamLogo name={m.ext} size={26} />
               </div>
               <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
                 <Stepper val={scorerH} onChange={setScorerH} />
