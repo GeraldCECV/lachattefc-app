@@ -361,7 +361,7 @@ function PronosChatteuxContent({ active = true }) {
   // (1/N/2), comme pour le bonus surprise utilisé dans son calcul de points.
   const isSurprise = (uid, key, isScorer) => {
     const prono = getProno(uid, key)
-    if (!prono?.val || prono.isDC || prono.isMissile) return false
+    if (!prono?.val || prono.isMissile) return false
 
     const total = Object.keys(pronos).length
     if (total === 0) return false
@@ -379,10 +379,17 @@ function PronosChatteuxContent({ active = true }) {
       return votes / total <= 0.25
     }
 
-    const votes = Object.keys(pronos).filter(otherUid => {
-      const autreProno = getProno(otherUid, key)
-      return autreProno?.val === prono.val && !autreProno.isDC
-    }).length
+    let issueCible = prono.val
+    if (prono.isDC) {
+      const resultat = journee.resultats?.[key]
+      if (!resultat || !['FINISHED', 'IN_PLAY', 'PAUSED'].includes(resultat.status)) return false
+      issueCible = issueMatch(Number(resultat.h), Number(resultat.a))
+      if (!String(prono.val).split('/').includes(issueCible)) return false
+    }
+
+    const votes = Object.keys(pronos).filter(otherUid =>
+      joueurADevineIssue(otherUid, key, issueCible)
+    ).length
 
     return votes / total <= 0.25
   }
@@ -513,26 +520,6 @@ function PronosChatteuxContent({ active = true }) {
       return String(prono.val).split('/').includes(issue)
     }
 
-    // Un joueur en Double Chance (ou scorer) n'a qu'un seul total de points
-    // pour ce match, mais peut apparaître dans 2 colonnes (ses 2 issues
-    // couvertes). On choisit UNE colonne d'affichage par joueur pour éviter
-    // d'afficher le même "+X pt" en double — priorité à l'issue réelle du
-    // match si elle fait partie de son pari, sinon la première de ses issues.
-    const colonnePointsParJoueur = {}
-    joueursTriés.forEach(joueur => {
-      const prono = getProno(joueur.id, match.key)
-      if (!prono?.val) return
-      let colonne = null
-      if (estScorer) {
-        const score = String(prono.val).match(/^(\d+)-(\d+)$/)
-        colonne = score ? issueMatch(Number(score[1]), Number(score[2])) : null
-      } else {
-        const choix = String(prono.val).split('/')
-        colonne = (issueActuelle && choix.includes(issueActuelle)) ? issueActuelle : choix[0]
-      }
-      colonnePointsParJoueur[joueur.id] = colonne
-    })
-
     return (
       <div key={match.key} style={{ overflow:'hidden', borderRadius:16, background:'var(--bg2)', border:`1px solid ${estScorer ? 'rgba(255,215,0,.52)' : 'var(--bd)'}`, boxShadow:estScorer ? '0 0 18px rgba(255,215,0,.10)' : '0 8px 20px rgba(0,0,0,.18)' }}>
         <div style={{ padding:'11px 12px 10px', display:'grid', gridTemplateColumns:'minmax(0,1fr) auto minmax(0,1fr)', alignItems:'center', gap:7, borderBottom:'1px solid var(--bd)', background:estScorer ? 'linear-gradient(135deg, rgba(255,215,0,.08), rgba(255,255,255,.02))' : 'rgba(255,255,255,.025)' }}>
@@ -587,7 +574,7 @@ function PronosChatteuxContent({ active = true }) {
                     const explication = points !== null
                       ? expliquerPoints(joueur.id, match.key, match.isScorer, correct, points, surprise)
                       : null
-                    const bonus = getBonusLabels(joueur.id, match.key).map(item => item.icon).join('')
+                    const bonus = getBonusLabels(joueur.id, match.key)
                     const missileObj = missiles.find(m => m.cible === joueur.id && m.matchKey === match.key && m.applique)
                     const missileLanceurNom = missileObj ? (missileObj.lanceurNom || joueurs.find(j => j.id === missileObj.lanceur)?.nom?.split(' ')[0] || '?') : null
                     const estMoi = joueur.id === profil?.id
@@ -600,9 +587,11 @@ function PronosChatteuxContent({ active = true }) {
                             aria-label={`Missile de ${missileLanceurNom}`}
                             style={{ background:'none', border:0, padding:0, margin:0, cursor:'pointer', font:'inherit', color:'inherit' }}
                           >🚀</button>
-                        )}{bonus}{surprise ? '⚡' : ''}{joueur.nom?.split(' ')[0] || joueur.initiales || '?'}</div>
+                        )}{bonus.map((item, index) => (
+                          <span key={`${item.icon}-${index}`} style={{ display:'inline-block', marginRight:3, padding:'1px 4px', borderRadius:5, background:item.icon === '🎰' ? 'rgba(255,200,0,.14)' : 'rgba(96,165,250,.16)', border:`1px solid ${item.icon === '🎰' ? 'rgba(255,200,0,.4)' : 'rgba(96,165,250,.42)'}`, color:item.icon === '🎰' ? '#FFD700' : 'var(--b)', fontSize:8, fontWeight:900, verticalAlign:'middle' }}>{item.icon}</span>
+                        ))}{surprise ? '⚡' : ''}{joueur.nom?.split(' ')[0] || joueur.initiales || '?'}</div>
                         {estScorer && <div style={{ color:palette.couleur, fontSize:9 }}>{prono?.val}</div>}
-                        {points !== null && colonnePointsParJoueur[joueur.id] === issue && (
+                        {points !== null && (
                           <button
                             type="button"
                             onClick={() => explication && setDetailPoints(explication)}
