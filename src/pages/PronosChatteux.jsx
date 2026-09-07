@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { collection, getDocs, getDoc, getDocFromServer, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
-import { issueMatch, calcPoints1N2, calcPointsScorer, isJackpotOn, getDcChoicesFor, joueurADevineIssue as joueurADevineIssuePure } from '../scoring'
+import { issueMatch, calcPoints1N2, calcPointsScorer, isJackpotOn, getDcChoicesFor, joueurADevineIssue as joueurADevineIssuePure, colonneAffichagePoints } from '../scoring'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
 import JerseyAvatar from '../components/JerseyAvatar'
@@ -527,16 +527,11 @@ function PronosChatteuxContent({ active = true }) {
     joueursTriés.forEach(joueur => {
       const prono = getProno(joueur.id, match.key)
       if (!prono?.val) return
-      if (estScorer) {
-        const score = String(prono.val).match(/^(\d+)-(\d+)$/)
-        colonnePointsParJoueur[joueur.id] = score
-          ? issueMatch(Number(score[1]), Number(score[2]))
-          : null
-        return
-      }
-      const choix = String(prono.val).split('/')
-      colonnePointsParJoueur[joueur.id] =
-        issueActuelle && choix.includes(issueActuelle) ? issueActuelle : choix[0]
+      colonnePointsParJoueur[joueur.id] = colonneAffichagePoints(
+        prono.val,
+        issueActuelle,
+        estScorer
+      )
     })
 
     return (

@@ -102,6 +102,20 @@ function calcPoints1N2(pronoData, prono, result, bonCount, totalJoueurs, matchKe
   return pts;
 }
 
+// Colonne unique dans laquelle afficher le total d'un prono en vue synthèse.
+// Une DC figure visuellement dans deux colonnes, mais ses points ne doivent
+// jamais être dupliqués.
+function colonneAffichagePoints(prono, issueActuelle, estScorer = false) {
+  if (!prono) return null;
+  const valeur = String(prono);
+  if (estScorer) {
+    const score = valeur.match(/^(\d+)-(\d+)$/);
+    return score ? issueMatch(Number(score[1]), Number(score[2])) : null;
+  }
+  const choix = valeur.split('/');
+  return issueActuelle && choix.includes(issueActuelle) ? issueActuelle : choix[0] || null;
+}
+
 export {
   POINTS,
   issueMatch,
@@ -112,4 +126,5 @@ export {
   getDcChoicesFor,
   joueurADevineIssue,
   calcPoints1N2,
+  colonneAffichagePoints,
 };

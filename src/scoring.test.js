@@ -7,6 +7,7 @@ import {
   isJackpotOn,
   getDcChoicesFor,
   joueurADevineIssue,
+  colonneAffichagePoints,
 } from './scoring.js'
 
 // ════════════════════════════════════════════════
@@ -159,6 +160,19 @@ describe('Double Chance', () => {
     const choices = getDcChoicesFor(p, 'l1_0')
     expect(choices).toContain('N')
     expect(calcPoints1N2(p, 'N', 'N', 3, 16, 'l1_0')).toBe(2)
+  })
+
+  it('affiche les points une seule fois sous l issue réelle couverte', () => {
+    expect(colonneAffichagePoints('N/2', 'N')).toBe('N')
+  })
+
+  it('ne rattache jamais les points aux deux colonnes de la DC', () => {
+    const colonne = colonneAffichagePoints('N/2', 'N')
+    expect(['N', '2'].filter(issue => issue === colonne)).toHaveLength(1)
+  })
+
+  it('place une DC perdante sous son premier choix pour afficher le zéro une seule fois', () => {
+    expect(colonneAffichagePoints('1/N', '2')).toBe('1')
   })
 })
 
