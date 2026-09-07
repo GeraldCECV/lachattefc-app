@@ -919,12 +919,16 @@ function PronosContent({ refreshKey = 0 }) {
           borderRadius:'var(--R)',padding:'13px 14px',scrollMarginTop:20,
         }}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-            <div>
+            <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+              <TeamLogo name={journee.matchEuro.dom} size={22} />
+              <div style={{minWidth:0}}>
               <div style={{fontSize:14,fontWeight:600}}>
-                {journee.matchEuro.dom} — {journee.matchEuro.ext}
+                {translateTeam(journee.matchEuro.dom)} — {translateTeam(journee.matchEuro.ext)}
                 <span style={{marginLeft:8,fontSize:10,background:'var(--o-dim)',color:'var(--o)',padding:'1px 6px',borderRadius:4,fontWeight:700}}>{journee.matchEuro.ligue}</span>
               </div>
               <div style={{fontSize:11,color:'var(--tx3)',marginTop:1}}>{journee.matchEuro.jour} {journee.matchEuro.heure}</div>
+              </div>
+              <TeamLogo name={journee.matchEuro.ext} size={22} />
             </div>
             <div style={{display:'flex',gap:6,alignItems:'center'}}>
               {!pronos.matchEuro && !isDCEuro && !activeBonus && <span style={{fontSize:9,fontWeight:900,color:'var(--o)',textTransform:'uppercase',letterSpacing:'.05em'}}>À compléter</span>}
