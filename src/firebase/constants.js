@@ -6,7 +6,7 @@ export const JOUEURS = [
   { id: 'kmel', nom: 'Kamel Menlaikhaf', initiales: 'KM', role: 'admin' },
   { id: 'sim', nom: 'Simon Galloyer', initiales: 'SG', role: 'joueur' },
   { id: 'mat', nom: 'Mathieu Plet', initiales: 'MP', role: 'admin' },
-  { id: 'tibo', nom: 'Thibaut Plet', initiales: 'TP', role: 'joueur' },
+  { id: 'tibo', nom: 'Thibault Plet', initiales: 'TP', role: 'joueur' },
   { id: 'jo', nom: 'Jonathan', initiales: 'JO', role: 'joueur' },
   { id: 'batist', nom: 'Baptiste Claire', initiales: 'BC', role: 'admin' },
   { id: 'krim', nom: 'Karim', initiales: 'KR', role: 'joueur' },

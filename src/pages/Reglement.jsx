@@ -2,8 +2,8 @@ import ErrorBoundary from '../components/ErrorBoundary'
 
 function ReglementContent() {
   const PALMARES = [
-    { s:'2014-2015', or:'Jérémie GALLOYER', pb:'Thibaut PLET' },
-    { s:'2015-2016', or:'Frédéric BOURRIER', pb:'Thibaut PLET' },
+    { s:'2014-2015', or:'Jérémie GALLOYER', pb:'Thibault PLET' },
+    { s:'2015-2016', or:'Frédéric BOURRIER', pb:'Thibault PLET' },
     { s:'2016-2017', or:'Karim MENLAIKHAF', pb:'Christophe TIZON' },
     { s:'2017-2018', or:'Michaël DAIGNEAU', pb:'Simon GALLOYER' },
     { s:'2018-2019', or:'Rafaël SORTAIS', pb:'Frédéric BOURRIER' },
