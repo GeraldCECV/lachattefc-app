@@ -520,6 +520,25 @@ function PronosChatteuxContent({ active = true }) {
       return String(prono.val).split('/').includes(issue)
     }
 
+    // Une Double Chance apparaît dans ses deux colonnes, mais son total de
+    // points ne doit être affiché qu'une fois. Si l'issue réelle est couverte,
+    // les points sont placés sous cette issue ; sinon sous le premier choix.
+    const colonnePointsParJoueur = {}
+    joueursTriés.forEach(joueur => {
+      const prono = getProno(joueur.id, match.key)
+      if (!prono?.val) return
+      if (estScorer) {
+        const score = String(prono.val).match(/^(\d+)-(\d+)$/)
+        colonnePointsParJoueur[joueur.id] = score
+          ? issueMatch(Number(score[1]), Number(score[2]))
+          : null
+        return
+      }
+      const choix = String(prono.val).split('/')
+      colonnePointsParJoueur[joueur.id] =
+        issueActuelle && choix.includes(issueActuelle) ? issueActuelle : choix[0]
+    })
+
     return (
       <div key={match.key} style={{ overflow:'hidden', borderRadius:16, background:'var(--bg2)', border:`1px solid ${estScorer ? 'rgba(255,215,0,.52)' : 'var(--bd)'}`, boxShadow:estScorer ? '0 0 18px rgba(255,215,0,.10)' : '0 8px 20px rgba(0,0,0,.18)' }}>
         <div style={{ padding:'11px 12px 10px', display:'grid', gridTemplateColumns:'minmax(0,1fr) auto minmax(0,1fr)', alignItems:'center', gap:7, borderBottom:'1px solid var(--bd)', background:estScorer ? 'linear-gradient(135deg, rgba(255,215,0,.08), rgba(255,255,255,.02))' : 'rgba(255,255,255,.025)' }}>
@@ -591,7 +610,7 @@ function PronosChatteuxContent({ active = true }) {
                           <span key={`${item.icon}-${index}`} style={{ display:'inline-block', marginRight:3, padding:'1px 4px', borderRadius:5, background:item.icon === '🎰' ? 'rgba(255,200,0,.14)' : 'rgba(96,165,250,.16)', border:`1px solid ${item.icon === '🎰' ? 'rgba(255,200,0,.4)' : 'rgba(96,165,250,.42)'}`, color:item.icon === '🎰' ? '#FFD700' : 'var(--b)', fontSize:8, fontWeight:900, verticalAlign:'middle' }}>{item.icon}</span>
                         ))}{surprise ? '⚡' : ''}{joueur.nom?.split(' ')[0] || joueur.initiales || '?'}</div>
                         {estScorer && <div style={{ color:palette.couleur, fontSize:9 }}>{prono?.val}</div>}
-                        {points !== null && (
+                        {points !== null && colonnePointsParJoueur[joueur.id] === issue && (
                           <button
                             type="button"
                             onClick={() => explication && setDetailPoints(explication)}
