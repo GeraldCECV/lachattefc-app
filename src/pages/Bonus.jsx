@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import { useUser } from '../App';
 import { translateTeam } from '../utils/teamName';
 import ErrorBoundary from '../components/ErrorBoundary';
+import ParisAnnexes from './ParisAnnexes';
 
 function BonusContent({ refreshKey = 0 }) {
   const { profil, user } = useUser();
@@ -13,6 +14,7 @@ function BonusContent({ refreshKey = 0 }) {
   const [loading, setLoading] = useState(true);
   const [historique, setHistorique] = useState([]);
   const [error, setError] = useState(null);
+  const [showParisAnnexes, setShowParisAnnexes] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -149,6 +151,10 @@ function BonusContent({ refreshKey = 0 }) {
     },
   ];
 
+  if (showParisAnnexes) {
+    return <ParisAnnexes onBack={() => setShowParisAnnexes(false)} />;
+  }
+
   return (
     <div className="scroll-area">
       <div style={{ padding: '16px 20px 0' }}>
@@ -235,6 +241,34 @@ function BonusContent({ refreshKey = 0 }) {
               })}
             </div>
           </div>
+
+          {/* Paris annexes saison */}
+          <div className="section-lbl">🏆 Pronostics saison</div>
+          <button
+            type="button"
+            onClick={() => setShowParisAnnexes(true)}
+            style={{
+              width: 'calc(100% - 32px)',
+              margin: '0 16px 14px',
+              padding: 16,
+              color: 'var(--tx)',
+              textAlign: 'left',
+              background: 'linear-gradient(135deg, rgba(32,56,42,.98), rgba(22,12,41,.98))',
+              border: '1px solid var(--p-b)',
+              borderRadius: 'var(--R)',
+              boxShadow: '0 0 22px rgba(167,91,255,.10)',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 30 }}>🎁</span>
+              <span style={{ flex: 1 }}>
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 900, color: 'var(--p)' }}>Paris annexes</span>
+                <span style={{ display: 'block', marginTop: 4, fontSize: 11, color: 'var(--tx2)', lineHeight: 1.5 }}>Podium L1 · Buteur · Passeur · LDC · Europa League</span>
+              </span>
+              <span style={{ color: 'var(--g)', fontSize: 22 }}>›</span>
+            </div>
+          </button>
 
           {/* Règles */}
           <div className="section-lbl">📖 Règles</div>
