@@ -3,6 +3,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useUser } from '../App';
 import TeamLogo from '../components/TeamLogo';
 import { MISES_PARIS_ANNEXE } from '../firebase/constants';
+import { clubKey, clubLabel } from '../utils/clubName';
 
 const CATEGORIES = [
   { key: 'podium', icon: '🏆', label: 'Podium L1' },
@@ -12,18 +13,15 @@ const CATEGORIES = [
   { key: 'europa', icon: '🏅', label: 'Vainqueur Europa' },
 ];
 
-const normaliser = (valeur) => String(valeur || '').trim().toLocaleLowerCase('fr');
-const podiumIdentique = (a, b) =>
-  Array.isArray(a) && Array.isArray(b) &&
-  a.length === 3 && b.length === 3 && a.every((club, i) => normaliser(club) === normaliser(b[i]));
+const normaliser = (valeur) => String(valeur || '').trim().toLocaleLowerCase('fr').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const initiales = (nom) => String(nom || '?').split(/\s+/).filter(Boolean).map(mot => mot[0]).join('').slice(0, 2).toUpperCase();
 
 function Club({ name, compact = false }) {
   if (!name) return <span style={{ color: 'var(--tx3)' }}>—</span>;
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-      <TeamLogo name={name} size={compact ? 18 : 24} />
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+      <TeamLogo name={clubKey(name)} size={compact ? 18 : 24} />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{clubLabel(name)}</span>
     </span>
   );
 }
@@ -82,7 +80,8 @@ export default function ParisAnnexes({ onBack }) {
   ), [participants]);
   const estGagnant = (prono, key) => {
     if (!prono || !data?.resultats) return false;
-    if (key === 'podium') return podiumIdentique(prono.podium, data.resultats.podium);
+    if (key === 'podium') return Array.isArray(prono.podium) && Array.isArray(data.resultats.podium) && prono.podium.every((club, index) => clubKey(club) === clubKey(data.resultats.podium[index]));
+    if (key === 'ldc' || key === 'europa') return clubKey(prono[key]) === clubKey(data.resultats[key]);
     return normaliser(prono[key]) === normaliser(data.resultats[key]);
   };
 

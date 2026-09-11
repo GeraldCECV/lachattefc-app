@@ -34,6 +34,7 @@ const LOCAL_LOGOS = {
   'ogc nice': '/logos/nice.svg',
   'paris fc': '/logos/paris-fc.svg',
   psg: '/logos/psg.svg',
+  paris: '/logos/psg.svg',
   'paris saint-germain': '/logos/psg.svg',
   'paris s-g': '/logos/psg.svg',
   'paris sg': '/logos/psg.svg',
@@ -105,7 +106,9 @@ const LOCAL_LOGOS = {
   'sunderland afc': '/logos/sunderland.png',
   // La Liga — fichiers locaux (10 premiers intégrés)
   barcelona: '/logos/barcelona.png',
+  barcelone: '/logos/barcelona.png',
   'fc barcelona': '/logos/barcelona.png',
+  'fc barcelone': '/logos/barcelona.png',
   'atletico madrid': '/logos/atletico-madrid.png',
   'atletico de madrid': '/logos/atletico-madrid.png',
   'club atletico de madrid': '/logos/atletico-madrid.png',
@@ -244,7 +247,7 @@ const LOCAL_LOGOS = {
 };
 
 function normalize(name) {
-  return name?.toLowerCase().trim().replace(/\s+/g, ' ') || '';
+  return name?.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ') || '';
 }
 
 function getLogo(name) {
