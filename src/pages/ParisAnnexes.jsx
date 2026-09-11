@@ -56,15 +56,22 @@ export default function ParisAnnexes({ onBack }) {
   const charger = async () => {
     setLoading(true);
     setError('');
-    try {
-      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'consulterParisAnnexe');
-      const result = await fn();
-      setData(result.data);
-    } catch (e) {
-      setError(e?.message || 'Impossible de charger les paris annexes.');
-    } finally {
-      setLoading(false);
+    const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'consulterParisAnnexe');
+    let derniereErreur = null;
+    for (const delai of [0, 700, 1600]) {
+      if (delai) await new Promise(resolve => setTimeout(resolve, delai));
+      try {
+        const result = await fn();
+        setData(result.data);
+        setLoading(false);
+        return;
+      } catch (e) {
+        derniereErreur = e;
+      }
     }
+    console.error('Erreur chargement Paris annexes:', derniereErreur);
+    setError('Impossible de charger les paris annexes. Vérifie ta connexion et réessaie.');
+    setLoading(false);
   };
 
   useEffect(() => { charger(); }, []);
@@ -96,7 +103,7 @@ export default function ParisAnnexes({ onBack }) {
           <button className="btn btn-secondary" onClick={onBack} aria-label="Retour">‹</button>
           <div style={{ flex: 1 }}>
             <div className="page-title">Pronostics annexes</div>
-            <div className="page-sub">Saison 26/27 · {participants} / {data?.nombreJoueurs || 0} joueurs</div>
+            <div className="page-sub">Saison 26/27 · {data ? `${participants} / ${data.nombreJoueurs || 0} joueurs` : '— joueurs'}</div>
           </div>
           <div style={{ border: '1px solid var(--a-b)', color: 'var(--a)', borderRadius: 14, padding: '8px 10px', fontWeight: 900, fontSize: 12 }}>
             🏆 6€
