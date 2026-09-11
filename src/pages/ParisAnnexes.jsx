@@ -105,7 +105,7 @@ export default function ParisAnnexes({ onBack }) {
             <div className="page-sub">Saison 26/27 · {data ? `${participants} / ${data.nombreJoueurs || 0} joueurs` : '— joueurs'}</div>
           </div>
           <div style={{ border: '1px solid var(--a-b)', color: 'var(--a)', borderRadius: 14, padding: '8px 10px', fontWeight: 900, fontSize: 12 }}>
-            🏆 6€
+            Mise : 6€
           </div>
         </div>
       </div>
