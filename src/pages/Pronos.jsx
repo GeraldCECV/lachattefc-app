@@ -259,7 +259,7 @@ function PronosContent({ refreshKey = 0 }) {
         : pronos.matchesL1?.[index],
       complete:matchL1Complet(match, index),
     } : null),
-    journee.matchEuro?.dom ? { key:'euro', label:`${journee.matchEuro.dom} — ${journee.matchEuro.ext}`, value:pronos.matchEuro, complete:Boolean(pronos.matchEuro) } : null,
+    journee.matchEuro?.dom ? { key:'euro', label:`${translateTeam(journee.matchEuro.dom)} — ${translateTeam(journee.matchEuro.ext)}`, value:pronos.matchEuro, complete:Boolean(pronos.matchEuro) } : null,
   ].filter(Boolean) : []
 
   const total = completionItems.length
@@ -355,8 +355,8 @@ function PronosContent({ refreshKey = 0 }) {
 
   const matchLabel = (key) => {
     if (!journee) return key
-    if (key === 'scorer') return `⚽ ${journee.matchScorer?.dom||'?'} — ${journee.matchScorer?.ext||'?'}`
-    if (key === 'euro') return `🌍 ${journee.matchEuro?.dom||'?'} — ${journee.matchEuro?.ext||'?'}`
+    if (key === 'scorer') return `⚽ ${translateTeam(journee.matchScorer?.dom)||'?'} — ${translateTeam(journee.matchScorer?.ext)||'?'}`
+    if (key === 'euro') return `🌍 ${translateTeam(journee.matchEuro?.dom)||'?'} — ${translateTeam(journee.matchEuro?.ext)||'?'}`
     const i = parseInt(key.replace('l1_',''))
     const m = journee.matchesL1?.[i]
     return m ? `${translateTeam(m.dom)} — ${translateTeam(m.ext)}` : key
@@ -592,7 +592,7 @@ function PronosContent({ refreshKey = 0 }) {
                 <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
                   {[
                     ...(journee.matchesL1||[]).map((m,i)=>m?.dom && !(journee.scorerOnly || m.scorer) ?{key: `l1_${i}`,label:`${translateTeam(m.dom)} — ${translateTeam(m.ext)}`}:null).filter(Boolean),
-                    journee.matchEuro?.dom ? {key:'euro',label:`🌍 ${journee.matchEuro.dom} — ${journee.matchEuro.ext}`} : null,
+                    journee.matchEuro?.dom ? {key:'euro',label:`🌍 ${translateTeam(journee.matchEuro.dom)} — ${translateTeam(journee.matchEuro.ext)}`} : null,
                   ].filter(Boolean).map(m => (
                     <button key={m.key} onClick={()=>setMissileData(p=>({...p,matchKey:m.key}))} style={{
                       padding:'11px 14px',textAlign:'left',
