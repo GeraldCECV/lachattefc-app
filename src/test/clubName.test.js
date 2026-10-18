@@ -10,6 +10,8 @@ describe('mapping des clubs des Paris annexes', () => {
     ['PSG', 'Paris Saint-Germain'],
     ['Paris', 'PSG'],
     ['Arsenal FC', 'ARSENAL'],
+    ['Atleti', 'Club Atlético de Madrid'],
+    ['Atl. Madrid', 'Atletico Madrid'],
   ])('rapproche %s et %s', (a, b) => {
     expect(clubKey(a)).toBe(clubKey(b));
   });
@@ -18,5 +20,6 @@ describe('mapping des clubs des Paris annexes', () => {
     expect(clubLabel('réal madrid')).toBe('Real Madrid');
     expect(clubLabel('FC Barcelona')).toBe('FC Barcelone');
     expect(clubLabel('Bayern München')).toBe('Bayern Munich');
+    expect(clubLabel('Atleti')).toBe('Atlético Madrid');
   });
 });

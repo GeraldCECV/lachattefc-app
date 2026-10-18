@@ -21,6 +21,12 @@ const ALIASES = {
   'manchester city': { key: 'manchester city', label: 'Manchester City' },
   'man united': { key: 'manchester united', label: 'Manchester United' },
   'manchester united': { key: 'manchester united', label: 'Manchester United' },
+  atleti: { key: 'atletico madrid', label: 'Atlético Madrid' },
+  atletico: { key: 'atletico madrid', label: 'Atlético Madrid' },
+  'atletico madrid': { key: 'atletico madrid', label: 'Atlético Madrid' },
+  'atletico de madrid': { key: 'atletico madrid', label: 'Atlético Madrid' },
+  'club atletico de madrid': { key: 'atletico madrid', label: 'Atlético Madrid' },
+  'atl madrid': { key: 'atletico madrid', label: 'Atlético Madrid' },
 };
 
 export function clubKey(value) {

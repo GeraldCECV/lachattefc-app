@@ -19,7 +19,26 @@ export const PAYS_FR = {
   'USA': 'États-Unis', 'United States': 'États-Unis', 'Uzbekistan': 'Ouzbékistan',
 }
 
+const CLUBS = {
+  atleti: 'Atlético Madrid',
+  atletico: 'Atlético Madrid',
+  'atletico madrid': 'Atlético Madrid',
+  'atletico de madrid': 'Atlético Madrid',
+  'club atletico de madrid': 'Atlético Madrid',
+  'atl madrid': 'Atlético Madrid',
+}
+
+function teamKey(name) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[.’'\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+}
+
 export function translateTeam(name) {
   if (!name) return name
-  return PAYS_FR[name] || name
+  return PAYS_FR[name] || CLUBS[teamKey(name)] || name
 }

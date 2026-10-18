@@ -110,6 +110,9 @@ const LOCAL_LOGOS = {
   'fc barcelona': '/logos/barcelona.png',
   'fc barcelone': '/logos/barcelona.png',
   'atletico madrid': '/logos/atletico-madrid.png',
+  atleti: '/logos/atletico-madrid.png',
+  atletico: '/logos/atletico-madrid.png',
+  'atl madrid': '/logos/atletico-madrid.png',
   'atletico de madrid': '/logos/atletico-madrid.png',
   'club atletico de madrid': '/logos/atletico-madrid.png',
   'athletic bilbao': '/logos/athletic-bilbao.png',
@@ -247,7 +250,7 @@ const LOCAL_LOGOS = {
 };
 
 function normalize(name) {
-  return name?.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ') || '';
+  return name?.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[.]/g, '').replace(/\s+/g, ' ') || '';
 }
 
 function getLogo(name) {
