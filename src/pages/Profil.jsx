@@ -604,29 +604,34 @@ function ProfilContent({ refreshKey = 0 }) {
                     )}
                   </div>
                 ) : paMonProno ? (
-                  <div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontSize: 13,
-                        marginBottom: 2,
-                      }}
-                    >
-                      <span style={{ fontSize: 18 }}>✅</span>
-                      <span style={{ color: 'var(--g)', fontWeight: 700 }}>
-                        Pronostic enregistré
-                      </span>
+                  <div className="profile-annexe-saved">
+                    <div className="profile-annexe-saved-title">
+                      <span aria-hidden="true">✅</span>
+                      <span>Pronostic enregistré</span>
                     </div>
-                    <div
-                      style={{ fontSize: 11, color: 'var(--tx3)', marginTop: 6, lineHeight: 1.6 }}
-                    >
-                      Podium : {paMonProno.podium.join(' → ')}
-                      <br />
-                      LDC : {paMonProno.ldc} · Europa : {paMonProno.europa}
-                      <br />
-                      Buteur : {paMonProno.buteur} · Passeur : {paMonProno.passeur}
+                    <div className="profile-annexe-results">
+                      <div className="profile-annexe-result-row profile-annexe-result-row--podium">
+                        <span>Podium</span>
+                        <strong>{paMonProno.podium.join(' → ')}</strong>
+                      </div>
+                      <div className="profile-annexe-result-grid">
+                        <div className="profile-annexe-result-row">
+                          <span>LDC</span>
+                          <strong>{paMonProno.ldc}</strong>
+                        </div>
+                        <div className="profile-annexe-result-row">
+                          <span>Europa</span>
+                          <strong>{paMonProno.europa}</strong>
+                        </div>
+                        <div className="profile-annexe-result-row">
+                          <span>Buteur</span>
+                          <strong>{paMonProno.buteur}</strong>
+                        </div>
+                        <div className="profile-annexe-result-row">
+                          <span>Passeur</span>
+                          <strong>{paMonProno.passeur}</strong>
+                        </div>
+                      </div>
                     </div>
                     {paConfig.statut === 'ouvert' && (
                       <>
@@ -716,16 +721,15 @@ function ProfilContent({ refreshKey = 0 }) {
           {historique.length > 0 && (
             <>
               <div className="section-lbl">📊 Historique récent</div>
-              <div style={{ margin: '0 16px 14px' }} className="card">
+              <div className="card profile-history-card">
                 {historique.map(h => (
                   <div
                     key={h.numero}
+                    className="profile-history-row"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 10,
-                      padding: '9px 0',
-                      borderBottom: '1px solid rgba(155,226,45,.08)',
                     }}
                   >
                     <div
