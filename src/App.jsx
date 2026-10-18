@@ -44,6 +44,12 @@ export default function App() {
   const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
+    const halloweenPreview = new URLSearchParams(window.location.search).get('theme') === 'halloween';
+    document.documentElement.classList.toggle('halloween-preview', halloweenPreview);
+    return () => document.documentElement.classList.remove('halloween-preview');
+  }, []);
+
+  useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser(u);

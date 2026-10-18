@@ -173,6 +173,20 @@ export default function AppShell() {
   return (
     <>
       <div className='app-shell'>
+      <div className='halloween-decor' aria-hidden='true'>
+        <span className='hw-decor hw-pumpkin-one'>🎃</span>
+        <span className='hw-decor hw-skull-one'>💀</span>
+        <span className='hw-decor hw-web-one'>🕸️</span>
+        <span className='hw-decor hw-bat-one'>🦇</span>
+        <span className='hw-decor hw-pumpkin-two'>🎃</span>
+        <span className='hw-decor hw-skull-two'>☠️</span>
+        <span className='hw-decor hw-web-two'>🕸️</span>
+        <span className='hw-decor hw-ghost'>👻</span>
+        <span className='hw-decor hw-skull-three'>💀</span>
+        <span className='hw-decor hw-candle-one'>🕯️</span>
+        <span className='hw-decor hw-candy'>🍬</span>
+        <span className='hw-decor hw-bat-two'>🦇</span>
+      </div>
       <div className='screen-content'>
         {TABS.filter(({ id }) => ongletsVisites.has(id)).map(({ id }) => (
           <div key={id} hidden={tab !== id} aria-hidden={tab !== id} style={{ display:tab === id ? 'block' : 'none' }}>
