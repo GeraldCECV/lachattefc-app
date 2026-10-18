@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, getDocFromCache } from 'firebase/firestore';
+import { doc, getDoc, getDocFromCache, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase/config';
 import Login from './pages/Login';
 import AppShell from './components/AppShell';
@@ -13,6 +13,15 @@ export const UserContext = createContext(null);
 export const useUser = () => useContext(UserContext);
 
 const attendre = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function themeHalloweenActif(config, maintenant = new Date()) {
+  if (!config?.active || config.theme !== 'halloween') return false;
+  const debut = config.startsAt?.toDate?.() || null;
+  const fin = config.endsAt?.toDate?.() || null;
+  if (debut && maintenant < debut) return false;
+  if (fin && maintenant > fin) return false;
+  return true;
+}
 
 // Au réveil d'une PWA mobile, Firebase Auth peut restaurer la session avant
 // que le réseau soit réellement disponible. On laisse à Firestore quelques
@@ -45,9 +54,37 @@ export default function App() {
 
   useEffect(() => {
     const halloweenPreview = new URLSearchParams(window.location.search).get('theme') === 'halloween';
-    document.documentElement.classList.toggle('halloween-preview', halloweenPreview);
-    return () => document.documentElement.classList.remove('halloween-preview');
-  }, []);
+    let config = null;
+    let timer = null;
+
+    const appliquerTheme = () => {
+      const halloween = halloweenPreview || themeHalloweenActif(config);
+      document.documentElement.classList.toggle('halloween-preview', halloween);
+    };
+
+    appliquerTheme();
+    if (!user) {
+      return () => document.documentElement.classList.remove('halloween-preview');
+    }
+    const unsub = onSnapshot(
+      doc(db, 'configuration', 'theme-saisonnier'),
+      snap => {
+        config = snap.exists() ? snap.data() : null;
+        appliquerTheme();
+      },
+      error => {
+        console.warn('Configuration du thème indisponible :', error.message);
+        appliquerTheme();
+      }
+    );
+    timer = window.setInterval(appliquerTheme, 30000);
+
+    return () => {
+      unsub();
+      if (timer) window.clearInterval(timer);
+      document.documentElement.classList.remove('halloween-preview');
+    };
+  }, [user]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
