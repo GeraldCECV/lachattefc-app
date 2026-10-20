@@ -298,6 +298,14 @@ function BonusContent({ refreshKey = 0 }) {
                 border: 'var(--p-b)',
                 desc: "Joue 2 résultats sur 1 match (ex: 1/N). Si l'un des deux est bon → 1pt. Non utilisable sur le match à scorer.",
               },
+              {
+                ico: '🎃',
+                title: 'Citrouille maudite · J9',
+                color: '#FB923C',
+                dim: 'rgba(249,115,22,.10)',
+                border: 'rgba(249,115,22,.42)',
+                desc: 'Obligatoire en J9. Choisis un match classique : bonne issue = 2 pts, surprise = 3 pts, erreur = −1 pt. Ce total remplace les points habituels du match et ne se cumule pas avec le Jackpot.',
+              },
             ].map(b => (
               <div
                 key={b.title}

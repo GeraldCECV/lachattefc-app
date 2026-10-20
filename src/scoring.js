@@ -21,6 +21,9 @@ const POINTS = {
   scorerBonneIssue: 1,
   seuilSurprise: 0.25,
   scorerMax: 3,
+  citrouilleBonneIssue: 2,
+  citrouilleSurprise: 3,
+  citrouilleMauvaiseIssue: -1,
 };
 
 // Détermine l'issue 1N2 d'un score
@@ -71,6 +74,9 @@ function getDcSelections(p) {
 function isJackpotOn(p, matchKey) {
   return matchKey !== 'scorer' && getJackpotMatches(p).includes(matchKey);
 }
+function isCitrouilleMauditeOn(p, matchKey) {
+  return matchKey !== 'scorer' && p?.citrouilleMauditeMatch === matchKey;
+}
 function getDcChoicesFor(p, matchKey) {
   if (matchKey === 'scorer') return null;
   const sel = getDcSelections(p).find(d => d.matchKey === matchKey);
@@ -93,8 +99,14 @@ function joueurADevineIssue(p, key, result) {
 // Points sur un match 1N2 classique, avec bonus surprise et doublement
 // jackpot. Fonction pure : ne dépend que de ses paramètres.
 function calcPoints1N2(pronoData, prono, result, bonCount, totalJoueurs, matchKey) {
-  if (prono !== result) return 0;
   const ratio = totalJoueurs > 0 ? bonCount / totalJoueurs : 1;
+  if (isCitrouilleMauditeOn(pronoData, matchKey)) {
+    if (prono !== result) return POINTS.citrouilleMauvaiseIssue;
+    return ratio <= POINTS.seuilSurprise
+      ? POINTS.citrouilleSurprise
+      : POINTS.citrouilleBonneIssue;
+  }
+  if (prono !== result) return 0;
   let pts = ratio <= POINTS.seuilSurprise ? POINTS.bonResultSurprise : POINTS.bonResult;
   if (isJackpotOn(pronoData, matchKey)) {
     pts *= 2;
@@ -123,6 +135,7 @@ export {
   getJackpotMatches,
   getDcSelections,
   isJackpotOn,
+  isCitrouilleMauditeOn,
   getDcChoicesFor,
   joueurADevineIssue,
   calcPoints1N2,

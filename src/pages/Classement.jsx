@@ -124,11 +124,10 @@ function ClassementContent() {
             ).length;
             if (dcChoicesIci?.length === 2) {
               // Une issue couverte par la DC conserve surprise et jackpot.
-              if (dcChoicesIci.includes(issue)) {
-                pointsParJoueur[uid] = (pointsParJoueur[uid] || 0) +
-                  calcPoints1N2(p, issue, issue, bonCount, totalJoueurs, key);
-              }
-            } else if (prono === issue) {
+              const pronoEffectif = dcChoicesIci.includes(issue) ? issue : null;
+              pointsParJoueur[uid] = (pointsParJoueur[uid] || 0) +
+                calcPoints1N2(p, pronoEffectif, issue, bonCount, totalJoueurs, key);
+            } else {
               pointsParJoueur[uid] =
                 (pointsParJoueur[uid] || 0) +
                 calcPoints1N2(p, prono, issue, bonCount, totalJoueurs, key);
@@ -182,27 +181,28 @@ function ClassementContent() {
           const issueEuro = issueMatch(parseInt(resEuro.h), parseInt(resEuro.a));
           const dcEuro = getDcChoicesFor(p, 'euro');
           if (dcEuro?.length === 2) {
-            if (dcEuro.includes(issueEuro)) {
-              pointsParJoueur[uid] =
-                (pointsParJoueur[uid] || 0) + (isJackpotOn(p, 'euro') ? 2 : 1);
-            }
+            const bonCountEuro = Object.keys(pronosMap).filter((u) =>
+              joueurADevineIssue(pronosAvecMissiles[u], 'euro', issueEuro)
+            ).length;
+            const pronoEffectif = dcEuro.includes(issueEuro) ? issueEuro : null;
+            pointsParJoueur[uid] =
+              (pointsParJoueur[uid] || 0) +
+              calcPoints1N2(p, pronoEffectif, issueEuro, bonCountEuro, totalJoueurs, 'euro');
           } else {
             const pronoEuro = p?.matchEuro;
-            if (pronoEuro === issueEuro) {
-              const bonCountEuro = Object.keys(pronosMap).filter((u) =>
-                joueurADevineIssue(pronosAvecMissiles[u], 'euro', issueEuro)
-              ).length;
-              pointsParJoueur[uid] =
-                (pointsParJoueur[uid] || 0) +
-                calcPoints1N2(
-                  p,
-                  pronoEuro,
-                  issueEuro,
-                  bonCountEuro,
-                  totalJoueurs,
-                  'euro'
-                );
-            }
+            const bonCountEuro = Object.keys(pronosMap).filter((u) =>
+              joueurADevineIssue(pronosAvecMissiles[u], 'euro', issueEuro)
+            ).length;
+            pointsParJoueur[uid] =
+              (pointsParJoueur[uid] || 0) +
+              calcPoints1N2(
+                p,
+                pronoEuro,
+                issueEuro,
+                bonCountEuro,
+                totalJoueurs,
+                'euro'
+              );
           }
         }
       });

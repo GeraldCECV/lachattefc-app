@@ -75,6 +75,7 @@ function PronosContent({ refreshKey = 0 }) {
   const [activeBonus, setActiveBonus] = useState(null) // { type:'jackpot'|'dc'|'missile', matchKey: null }
   const [jackpotMatches, setJackpotMatches] = useState([]) // ['l1_0','euro',...] — plusieurs possibles
   const [dcSelections, setDcSelections] = useState([]) // [{matchKey:'l1_0', choices:['1','N']}, ...]
+  const [citrouilleMauditeMatch, setCitrouilleMauditeMatch] = useState(null)
   const [missileData, setMissileData] = useState({ cible:null, matchKey:null, prono:null })
   const [mesMissiles, setMesMissiles] = useState([]) // liste des missiles lancés par ce joueur pour cette journée
   const [showConfirm, setShowConfirm] = useState(false)
@@ -118,6 +119,7 @@ function PronosContent({ refreshKey = 0 }) {
           if (!memeJournee) {
             setJackpotMatches([])
             setDcSelections([])
+            setCitrouilleMauditeMatch(null)
             setMultiplexScores([])
             setBoxingScores([])
             if (pronoDoc.exists()) {
@@ -133,6 +135,7 @@ function PronosContent({ refreshKey = 0 }) {
               else if (data.jackpotMatch) setJackpotMatches([data.jackpotMatch])
               if (Array.isArray(data.dcSelections)) setDcSelections(data.dcSelections)
               else if (data.dcMatch) setDcSelections([{ matchKey:data.dcMatch, choices:data.dcChoices||[] }])
+              setCitrouilleMauditeMatch(data.citrouilleMauditeMatch || null)
               if (Array.isArray(data.matchesMultiplex)) {
                 setMultiplexScores(data.matchesMultiplex.map(score => {
                   const [h, a] = String(score || '0-0').split('-').map(Number)
@@ -185,6 +188,10 @@ function PronosContent({ refreshKey = 0 }) {
 
   const toggleJackpot = async (key) => {
     const dejaActif = jackpotMatches.includes(key)
+    if (!dejaActif && citrouilleMauditeMatch === key) {
+      setError('La Citrouille maudite remplace le Jackpot : choisis un autre match pour l’un des deux bonus.')
+      return
+    }
     try {
       if (dejaActif) {
         setJackpotMatches(prev => prev.filter(k => k !== key))
@@ -266,6 +273,8 @@ function PronosContent({ refreshKey = 0 }) {
   const filled = completionItems.filter(item => item.complete).length
   const missingItems = completionItems.filter(item => !item.complete)
   const pct = total > 0 ? Math.round(filled / total * 100) : 0
+  const citrouilleObligatoire = Number(journee?.numero) === 9
+  const validationComplete = filled === total && (!citrouilleObligatoire || Boolean(citrouilleMauditeMatch))
 
   const allerAuProchainManquant = () => {
     const prochain = missingItems[0]
@@ -275,6 +284,10 @@ function PronosContent({ refreshKey = 0 }) {
 
   const handleSubmit = async () => {
     if (!user || !journee) return
+    if (citrouilleObligatoire && !citrouilleMauditeMatch) {
+      setError('Choisis obligatoirement ton match Citrouille maudite pour valider la J9.')
+      return
+    }
     setSaving(true)
     try {
       const pronosFinaux = {
@@ -290,6 +303,7 @@ function PronosContent({ refreshKey = 0 }) {
         soumisLe: serverTimestamp(),
         jackpotMatches: jackpotMatches.filter(k => k !== 'scorer'),
         dcSelections: dcSelections.filter(d => d.matchKey !== 'scorer' && d.choices.length === 2),
+        citrouilleMauditeMatch: citrouilleObligatoire ? citrouilleMauditeMatch : null,
         // Champs legacy conservés null pour compat lecture ancienne (le calcul lit désormais les tableaux)
         jackpotMatch: null,
         dcMatch: null,
@@ -681,6 +695,18 @@ function PronosContent({ refreshKey = 0 }) {
         )}
       </div>
 
+      {citrouilleObligatoire && (
+        <div style={{margin:'12px 16px 0',padding:'13px 14px',borderRadius:'var(--R)',background:'linear-gradient(135deg, rgba(249,115,22,.15), rgba(126,34,206,.13))',border:'1px solid rgba(249,115,22,.55)',boxShadow:'0 0 22px rgba(249,115,22,.08)'}}>
+          <div style={{fontFamily:'var(--D)',fontSize:18,letterSpacing:'.04em',color:'#FB923C'}}>🎃 Citrouille maudite obligatoire</div>
+          <div style={{fontSize:12,color:'var(--tx2)',lineHeight:1.5,marginTop:4}}>
+            Choisis un match classique : bonne issue <strong style={{color:'#FB923C'}}>+2</strong>, surprise <strong style={{color:'#C084FC'}}>+3</strong>, erreur <strong style={{color:'var(--r)'}}>−1</strong>. Le total remplace les points habituels de ce match.
+          </div>
+          <div style={{fontSize:11,fontWeight:800,color:citrouilleMauditeMatch?'var(--g)':'#FB923C',marginTop:7}}>
+            {citrouilleMauditeMatch ? `✅ Sélectionnée : ${matchLabel(citrouilleMauditeMatch)}` : '⚠️ Sélection requise pour valider tes pronos'}
+          </div>
+        </div>
+      )}
+
       {/* Bonus strip */}
       {!journee.scorerOnly && <div style={{margin:'12px 16px 0',display:'flex',gap:8,flexWrap:'wrap'}}>
         {/* Missile — 1 seul par journée */}
@@ -795,6 +821,7 @@ function PronosContent({ refreshKey = 0 }) {
         const sel = pronos.matchesL1?.[i]
         const isJP = jackpotMatches.includes(key)
         const isDC = dcSelections.some(d => d.matchKey === key)
+        const isCitrouille = citrouilleMauditeMatch === key
         const dcChoicesIci = dcSelections.find(d => d.matchKey === key)?.choices || []
         const isSelectingBonus = activeBonus?.type === 'jackpot' || activeBonus?.type === 'dc'
         const matchComplet = matchL1Complet(m, i)
@@ -859,8 +886,8 @@ function PronosContent({ refreshKey = 0 }) {
         return (
           <div key={i} id={`prono-${key}`} style={{
             margin:'0 16px 8px',
-            background: isJP ? 'rgba(251,191,36,.04)' : isDC ? 'rgba(192,132,252,.04)' : 'var(--bg2)',
-            border:`1px solid ${isJP?'var(--a-b)':isDC?'var(--p-b)':matchComplet?'var(--g-b)':'rgba(251,146,60,.45)'}`,
+            background: isCitrouille ? 'linear-gradient(135deg, rgba(249,115,22,.14), rgba(126,34,206,.10))' : isJP ? 'rgba(251,191,36,.04)' : isDC ? 'rgba(192,132,252,.04)' : 'var(--bg2)',
+            border:`1.5px solid ${isCitrouille?'#F97316':isJP?'var(--a-b)':isDC?'var(--p-b)':matchComplet?'var(--g-b)':'rgba(251,146,60,.45)'}`,
             borderRadius:'var(--R)',padding:'13px 14px',transition:'border-color .2s',scrollMarginTop:20,
           }}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
@@ -876,6 +903,11 @@ function PronosContent({ refreshKey = 0 }) {
                 {!matchComplet && !isSelectingBonus && <span style={{fontSize:9,fontWeight:900,color:'var(--o)',textTransform:'uppercase',letterSpacing:'.05em'}}>À compléter</span>}
                 {isJP && <span className="pill pill-a" style={{cursor:'pointer'}} onClick={()=>toggleJackpot(key)}>🎰 Jackpot ✕</span>}
                 {isDC && <span className="pill pill-p" style={{cursor:'pointer'}} onClick={()=>toggleDcMatch(key)}>2️⃣ DC ✕</span>}
+                {citrouilleObligatoire && (
+                  <button type="button" disabled={isJP && !isCitrouille} onClick={()=>setCitrouilleMauditeMatch(isCitrouille ? null : key)} style={{padding:'4px 8px',borderRadius:999,border:`1px solid ${isCitrouille?'#FB923C':'rgba(249,115,22,.35)'}`,background:isCitrouille?'rgba(249,115,22,.22)':'rgba(249,115,22,.06)',color:isCitrouille?'#FDBA74':'#FB923C',fontSize:10,fontWeight:900,cursor:isJP&&!isCitrouille?'not-allowed':'pointer',opacity:isJP && !isCitrouille ? .55 : 1}}>
+                    🎃 {isCitrouille ? 'Maudite ✕' : isJP ? 'Jackpot actif' : 'Maudire'}
+                  </button>
+                )}
                 {isSelectingBonus && !(activeBonus.type==='jackpot' && isJP) && !(activeBonus.type==='dc' && isDC) && (
                   <button onClick={()=>{
                     if (activeBonus.type==='jackpot') toggleJackpot(key)
@@ -914,12 +946,13 @@ function PronosContent({ refreshKey = 0 }) {
       {journee.matchEuro?.dom && (() => {
         const isJPEuro = jackpotMatches.includes('euro')
         const isDCEuro = dcSelections.some(d => d.matchKey === 'euro')
+        const isCitrouilleEuro = citrouilleMauditeMatch === 'euro'
         const dcChoicesEuro = dcSelections.find(d => d.matchKey === 'euro')?.choices || []
         return (
         <div id="prono-euro" style={{
           margin:'0 16px 10px',
-          background: isJPEuro?'rgba(251,191,36,.04)':isDCEuro?'rgba(192,132,252,.04)':'rgba(249,115,22,.03)',
-          border:`1px solid ${isJPEuro?'var(--a-b)':isDCEuro?'var(--p-b)':pronos.matchEuro?'var(--g-b)':'var(--o-b)'}`,
+          background: isCitrouilleEuro?'linear-gradient(135deg, rgba(249,115,22,.14), rgba(126,34,206,.10))':isJPEuro?'rgba(251,191,36,.04)':isDCEuro?'rgba(192,132,252,.04)':'rgba(249,115,22,.03)',
+          border:`1.5px solid ${isCitrouilleEuro?'#F97316':isJPEuro?'var(--a-b)':isDCEuro?'var(--p-b)':pronos.matchEuro?'var(--g-b)':'var(--o-b)'}`,
           borderRadius:'var(--R)',padding:'13px 14px',scrollMarginTop:20,
         }}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
@@ -938,6 +971,11 @@ function PronosContent({ refreshKey = 0 }) {
               {!pronos.matchEuro && !isDCEuro && !activeBonus && <span style={{fontSize:9,fontWeight:900,color:'var(--o)',textTransform:'uppercase',letterSpacing:'.05em'}}>À compléter</span>}
               {isJPEuro && <span className="pill pill-a" style={{cursor:'pointer'}} onClick={()=>toggleJackpot('euro')}>🎰 Jackpot ✕</span>}
               {isDCEuro && <span className="pill pill-p" style={{cursor:'pointer'}} onClick={()=>toggleDcMatch('euro')}>2️⃣ DC ✕</span>}
+              {citrouilleObligatoire && (
+                <button type="button" disabled={isJPEuro && !isCitrouilleEuro} onClick={()=>setCitrouilleMauditeMatch(isCitrouilleEuro ? null : 'euro')} style={{padding:'4px 8px',borderRadius:999,border:`1px solid ${isCitrouilleEuro?'#FB923C':'rgba(249,115,22,.35)'}`,background:isCitrouilleEuro?'rgba(249,115,22,.22)':'rgba(249,115,22,.06)',color:isCitrouilleEuro?'#FDBA74':'#FB923C',fontSize:10,fontWeight:900,cursor:isJPEuro&&!isCitrouilleEuro?'not-allowed':'pointer',opacity:isJPEuro && !isCitrouilleEuro ? .55 : 1}}>
+                  🎃 {isCitrouilleEuro ? 'Maudite ✕' : isJPEuro ? 'Jackpot actif' : 'Maudire'}
+                </button>
+              )}
               {(activeBonus?.type==='jackpot'||activeBonus?.type==='dc') && !(activeBonus.type==='jackpot'&&isJPEuro) && !(activeBonus.type==='dc'&&isDCEuro) && (
                 <button onClick={()=>{
                   if (activeBonus.type==='jackpot') toggleJackpot('euro')
@@ -989,6 +1027,7 @@ function PronosContent({ refreshKey = 0 }) {
                 </div>
                 {jackpotMatches.map(k => <div key={k} style={{color:'var(--a)',fontWeight:700,marginTop:4}}>🎰 Jackpot → {matchLabel(k)}</div>)}
                 {dcSelections.filter(d=>d.choices.length===2).map(d => <div key={d.matchKey} style={{color:'var(--p)',fontWeight:700}}>2️⃣ DC → {matchLabel(d.matchKey)}</div>)}
+                {citrouilleMauditeMatch && <div style={{color:'#FB923C',fontWeight:900,marginTop:4}}>🎃 Citrouille maudite → {matchLabel(citrouilleMauditeMatch)}</div>}
                 {mesMissiles.length > 0 && mesMissiles.map(m => (
                   <div key={m.id} style={{color:'var(--r)',fontWeight:700}}>🚀 Missile sur {m.cibleNom || 'un joueur'}</div>
                 ))}
@@ -1003,13 +1042,14 @@ function PronosContent({ refreshKey = 0 }) {
           </div>
         )}
 
-        <button className="btn btn-primary" onClick={()=>setShowConfirm(true)} disabled={saving||filled<total}>
+        <button className="btn btn-primary" onClick={()=>setShowConfirm(true)} disabled={saving||!validationComplete}>
           {saving
             ? <><div className="spinner" style={{width:18,height:18,borderTopColor:'#000'}}></div> Envoi...</>
             : existingProno ? '🔎 Vérifier et mettre à jour' : `🔎 Vérifier mes pronos (${filled}/${total})`
           }
         </button>
         {filled < total && <div style={{textAlign:'center',fontSize:12,color:'var(--tx3)',marginTop:8}}>Renseigne les {total-filled} matchs restants</div>}
+        {filled === total && citrouilleObligatoire && !citrouilleMauditeMatch && <div style={{textAlign:'center',fontSize:12,color:'#FB923C',fontWeight:800,marginTop:8}}>🎃 Choisis ton match maudit pour pouvoir valider</div>}
       </div>
 
       {showConfetti && <Confetti />}

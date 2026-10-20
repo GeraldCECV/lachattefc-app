@@ -3,7 +3,9 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { collection, getDocs, getDoc, getDocFromServer, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
-import { issueMatch, calcPoints1N2, calcPointsScorer, isJackpotOn, getDcChoicesFor, joueurADevineIssue as joueurADevineIssuePure, colonneAffichagePoints } from '../scoring'
+import { issueMatch, calcPoints1N2, calcPointsScorer, isJackpotOn, isCitrouilleMauditeOn, getDcChoicesFor, joueurADevineIssue as joueurADevineIssuePure, colonneAffichagePoints } from '../scoring'
+
+const formatPoints = points => points > 0 ? `+${points}` : points < 0 ? `−${Math.abs(points)}` : '+0'
 import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
 import JerseyAvatar from '../components/JerseyAvatar'
@@ -349,10 +351,9 @@ function PronosChatteuxContent({ active = true }) {
     const dcChoicesIci = missileIci ? null : getDcChoicesFor(p, key)
     const bonCount = Object.keys(pronos).filter(u => joueurADevineIssue(u, key, issue)).length
     if (dcChoicesIci?.length > 0) {
-      if (!dcChoicesIci.includes(issue)) return 0
-      return calcPoints1N2(p, issue, issue, bonCount, allTotal, key)
+      const pronoEffectif = dcChoicesIci.includes(issue) ? issue : null
+      return calcPoints1N2(p, pronoEffectif, issue, bonCount, allTotal, key)
     }
-    if (prono.val !== issue) return 0
     return calcPoints1N2(p, prono.val, issue, bonCount, allTotal, key)
   }
 
@@ -400,6 +401,7 @@ function PronosChatteuxContent({ active = true }) {
     const prono = getProno(uid, key)
     const estScorer = isScorer || journee.scorerOnly || matchBlocks.find(b => b.key === key)?.isMatchScorer
     const jackpot = !estScorer && isJackpotOn(p, key)
+    const citrouille = !estScorer && isCitrouilleMauditeOn(p, key)
     const dcChoices = !estScorer ? getDcChoicesFor(p, key) : null
     const missile = missiles.find(m => m.cible === uid && m.matchKey === key && m.applique)
 
@@ -412,7 +414,10 @@ function PronosChatteuxContent({ active = true }) {
       raison = surprise ? 'Bonne issue surprise' : dcChoices?.length ? 'Bonne issue avec Double Chance' : 'Bonne issue'
     }
 
-    if (jackpot && pts > 0) raison += ' · Jackpot ×2'
+    if (citrouille) raison = pts > 0
+      ? (surprise ? '🎃 Citrouille maudite · Bonne surprise' : '🎃 Citrouille maudite · Bonne issue')
+      : '🎃 Citrouille maudite · Mauvaise issue'
+    else if (jackpot && pts > 0) raison += ' · Jackpot ×2'
     if (missile) raison += ` · Prono imposé par missile (${missile.lanceurNom || joueurs.find(j => j.id === missile.lanceur)?.nom?.split(' ')[0] || '?'})`
 
     let repartition = null
@@ -467,6 +472,7 @@ function PronosChatteuxContent({ active = true }) {
     const labels = []
     if (isJackpotOn(p, key)) labels.push({ icon: '🎰', label: 'Jackpot' })
     if (getDcChoicesFor(p, key)?.length > 0) labels.push({ icon: 'DC', label: '' })
+    if (isCitrouilleMauditeOn(p, key)) labels.push({ icon: '🎃', label: 'Citrouille maudite' })
     return labels
   }
 
@@ -611,9 +617,9 @@ function PronosChatteuxContent({ active = true }) {
                             onClick={() => explication && setDetailPoints(explication)}
                             disabled={!explication}
                             aria-label={`Voir le détail des ${points} points de ${joueur.nom?.split(' ')[0] || 'ce joueur'}`}
-                            style={{ margin:'1px auto 0', padding:'2px 4px', border:0, background:'none', color:points > 0 ? 'var(--g)' : 'var(--tx3)', fontSize:9, fontWeight:900, cursor:explication ? 'pointer' : 'default', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}
+                            style={{ margin:'1px auto 0', padding:'2px 4px', border:0, background:'none', color:points > 0 ? 'var(--g)' : points < 0 ? 'var(--r)' : 'var(--tx3)', fontSize:9, fontWeight:900, cursor:explication ? 'pointer' : 'default', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:2 }}
                           >
-                            +{points} pt{points > 1 ? 's' : ''}
+                            {formatPoints(points)} pt{Math.abs(points) > 1 ? 's' : ''}
                           </button>
                         )}
                       </div>
@@ -706,8 +712,8 @@ function PronosChatteuxContent({ active = true }) {
         <div onClick={() => setDetailPoints(null)} style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(0,0,0,.72)', display:'flex', alignItems:'flex-end', justifyContent:'center', overflowY:'auto', padding:'16px 16px max(16px, env(safe-area-inset-bottom))' }}>
           <div role="dialog" aria-modal="true" aria-label="Détail des points" onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:420, maxHeight:'calc(100dvh - 32px - env(safe-area-inset-bottom))', overflowY:'auto', padding:'20px 18px', borderRadius:'18px 18px 12px 12px', background:'var(--bg2)', border:'1px solid var(--bd2)', boxShadow:'0 -10px 40px rgba(0,0,0,.45)', textAlign:'center' }}>
             {(detailPoints.points !== null && detailPoints.points !== undefined) && (
-              <div style={{ fontFamily:'var(--D)', fontSize:30, fontWeight:900, color:detailPoints.points >= 3 ? '#FFD700' : detailPoints.points > 0 ? 'var(--g)' : 'var(--tx3)' }}>
-                +{detailPoints.points} pt{detailPoints.points > 1 ? 's' : ''}
+              <div style={{ fontFamily:'var(--D)', fontSize:30, fontWeight:900, color:detailPoints.points >= 3 ? '#FFD700' : detailPoints.points > 0 ? 'var(--g)' : detailPoints.points < 0 ? 'var(--r)' : 'var(--tx3)' }}>
+                {formatPoints(detailPoints.points)} pt{Math.abs(detailPoints.points) > 1 ? 's' : ''}
               </div>
             )}
             <div style={{ marginTop:6, fontSize:15, fontWeight:900, color:'var(--tx)' }}>{detailPoints.raison}</div>
@@ -1253,10 +1259,10 @@ function PronosChatteuxContent({ active = true }) {
                             {pts !== null && (
                               <button type="button" onClick={() => setDetailPoints(explicationPoints)} aria-label={`Voir le détail des ${pts} points`} style={{
                                 fontSize:15, fontWeight:900, lineHeight:1,
-                                color: pts === 0 ? 'var(--tx3)' : pts >= 3 ? '#FFD700' : 'var(--g)',
+                                color: pts < 0 ? 'var(--r)' : pts === 0 ? 'var(--tx3)' : pts >= 3 ? '#FFD700' : 'var(--g)',
                                 background:'none', border:0, padding:'3px 5px', margin:0, cursor:'pointer', textDecoration:'underline', textDecorationStyle:'dotted', textUnderlineOffset:3,
                               }}>
-                                +{pts} pt{pts > 1 ? 's' : ''}
+                                {formatPoints(pts)} pt{Math.abs(pts) > 1 ? 's' : ''}
                               </button>
                             )}
                           </div>

@@ -176,6 +176,15 @@ describe('Double Chance', () => {
   })
 })
 
+describe('Citrouille maudite', () => {
+  it('remplace les points du match sans cumul avec le Jackpot', () => {
+    const p = { citrouilleMauditeMatch:'l1_0', jackpotMatches:['l1_0'] }
+    expect(calcPoints1N2(p, '1', '1', 8, 16, 'l1_0')).toBe(2)
+    expect(calcPoints1N2(p, 'N', 'N', 3, 16, 'l1_0')).toBe(3)
+    expect(calcPoints1N2(p, '1', '2', 3, 16, 'l1_0')).toBe(-1)
+  })
+})
+
 describe('joueurADevineIssue — comptage du ratio surprise', () => {
   it('joueur normal : prono égal au résultat', () => {
     expect(joueurADevineIssue({ matchesL1: ['1', 'N'] }, 'l1_0', '1')).toBe(true)
