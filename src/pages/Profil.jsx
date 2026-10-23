@@ -5,6 +5,7 @@ import { httpsCallable, getFunctions } from 'firebase/functions';
 import { db, auth } from '../firebase/config';
 import { CLUBS_L1_2627 } from '../firebase/constants';
 import JerseyAvatar from '../components/JerseyAvatar';
+import SeasonStory from '../components/SeasonStory';
 import { useUser } from '../App';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Sentry from '../sentry';
@@ -14,6 +15,8 @@ function ProfilContent({ refreshKey = 0 }) {
   const [tab, setTab] = useState('infos'); // NEW: tab switch
   const [stats, setStats] = useState(null);
   const [historique, setHistorique] = useState([]);
+  const [seasonStory, setSeasonStory] = useState([]);
+  const [showSeasonStory, setShowSeasonStory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [changingPwd, setChangingPwd] = useState(false);
   const [newPwd, setNewPwd] = useState('');
@@ -204,12 +207,14 @@ function ProfilContent({ refreshKey = 0 }) {
     const load = async () => {
       if (!user) return;
       const snap = await getDoc(doc(db, 'joueurs', user.uid));
+      let joueursData = [];
       if (snap.exists()) {
         const mesStats = snap.data();
         let ranking = null;
         let rankingTotal = null;
         try {
           const joueursSnap = await getDocs(collection(db, 'joueurs'));
+          joueursData = joueursSnap.docs.map(d => ({ id: d.id, ...d.data() }));
           const classement = joueursSnap.docs
             .map(d => {
               const joueur = d.data();
@@ -242,6 +247,37 @@ function ProfilContent({ refreshKey = 0 }) {
         }
       }
       setHistorique(hist);
+
+      // Film de saison : on reconstruit l'évolution à partir des résultats
+      // officiels déjà enregistrés dans chaque journée Firebase. Le rang suit
+      // le classement général (gains cumulés ; la mise de 5 € est identique
+      // pour tous à chaque journée finalisée et ne change donc pas l'ordre).
+      const cumulGains = Object.fromEntries(joueursData.map(joueur => [joueur.id, 0]));
+      const cumulPoints = Object.fromEntries(joueursData.map(joueur => [joueur.id, 0]));
+      const story = jSnap.docs
+        .map(jDoc => ({ id: jDoc.id, ...jDoc.data() }))
+        .filter(j => j.statut === 'resultats' && j.pointsJoueurs?.[user.uid] !== undefined)
+        .sort((a, b) => Number(a.numero) - Number(b.numero))
+        .map(j => {
+          joueursData.forEach(joueur => {
+            cumulGains[joueur.id] += Number(j.gainsJoueurs?.[joueur.id] || 0);
+            cumulPoints[joueur.id] += Number(j.pointsJoueurs?.[joueur.id] || 0);
+          });
+          const ordre = joueursData
+            .map(joueur => ({ id: joueur.id, gain: cumulGains[joueur.id], points: cumulPoints[joueur.id] }))
+            .sort((a, b) => b.gain - a.gain || b.points - a.points || a.id.localeCompare(b.id));
+          const moi = ordre.find(item => item.id === user.uid);
+          const rang = moi ? ordre.findIndex(item => item.gain === moi.gain) + 1 : null;
+          return {
+            numero: Number(j.numero),
+            rang,
+            points: cumulPoints[user.uid],
+            gain: cumulGains[user.uid],
+            pointsJournee: Number(j.pointsJoueurs?.[user.uid] || 0),
+            gainJournee: Number(j.gainsJoueurs?.[user.uid] || 0),
+          };
+        });
+      setSeasonStory(story);
 
       // Paris Annexe — isolé dans son propre try/catch : avant ce fix, une
       // erreur ici (réseau, cache Firestore froid, etc.) faisait planter
@@ -944,6 +980,34 @@ function ProfilContent({ refreshKey = 0 }) {
           {/* STATS TAB - NEW */}
           {tab === 'stats' && (
             <div style={{ padding: '0 16px 40px' }}>
+              {seasonStory.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowSeasonStory(true)}
+                  className="btn"
+                  style={{
+                    width: '100%',
+                    marginTop: 14,
+                    minHeight: 58,
+                    border: '1px solid rgba(215,189,118,.38)',
+                    background: 'linear-gradient(135deg,rgba(215,189,118,.18),rgba(20,43,29,.9))',
+                    color: '#f3df9f',
+                    fontWeight: 900,
+                    letterSpacing: '.02em',
+                    boxShadow: '0 14px 34px rgba(0,0,0,.2)',
+                  }}
+                >
+                  🎬 Voir le film de ma saison
+                </button>
+              )}
+              {showSeasonStory && (
+                <SeasonStory
+                  data={seasonStory}
+                  player={profil}
+                  club={clubCoeur}
+                  onClose={() => setShowSeasonStory(false)}
+                />
+              )}
               {(() => {
                 try {
                   const total = stats?.gainsTotal || 0;
