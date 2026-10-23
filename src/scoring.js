@@ -79,6 +79,10 @@ function isCitrouilleMauditeOn(p, matchKey) {
 }
 function getDcChoicesFor(p, matchKey) {
   if (matchKey === 'scorer') return null;
+  // La Citrouille maudite est un bonus exclusif : même si une ancienne
+  // sauvegarde contient aussi une DC sur ce match, la DC ne doit produire
+  // aucun effet dans le calcul.
+  if (isCitrouilleMauditeOn(p, matchKey)) return null;
   const sel = getDcSelections(p).find(d => d.matchKey === matchKey);
   return sel?.choices?.length === 2 ? sel.choices : null;
 }

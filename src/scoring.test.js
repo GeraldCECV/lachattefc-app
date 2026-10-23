@@ -183,6 +183,17 @@ describe('Citrouille maudite', () => {
     expect(calcPoints1N2(p, 'N', 'N', 3, 16, 'l1_0')).toBe(3)
     expect(calcPoints1N2(p, '1', '2', 3, 16, 'l1_0')).toBe(-1)
   })
+
+  it('est exclusive et neutralise aussi la Double Chance', () => {
+    const p = {
+      citrouilleMauditeMatch:'l1_0',
+      matchesL1:['1'],
+      dcSelections:[{ matchKey:'l1_0', choices:['1','N'] }],
+    }
+    expect(getDcChoicesFor(p, 'l1_0')).toBe(null)
+    expect(joueurADevineIssue(p, 'l1_0', 'N')).toBe(false)
+    expect(calcPoints1N2(p, '1', 'N', 3, 16, 'l1_0')).toBe(-1)
+  })
 })
 
 describe('joueurADevineIssue — comptage du ratio surprise', () => {

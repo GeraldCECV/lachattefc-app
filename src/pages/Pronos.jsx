@@ -216,6 +216,10 @@ function PronosContent({ refreshKey = 0 }) {
 
   const toggleDcMatch = async (key) => {
     const dejaActif = dcSelections.some(d => d.matchKey === key)
+    if (!dejaActif && citrouilleMauditeMatch === key) {
+      setError('La Citrouille maudite ne se cumule pas avec la Double Chance : choisis un autre match.')
+      return
+    }
     try {
       if (dejaActif) {
         setDcSelections(prev => prev.filter(d => d.matchKey !== key))
@@ -286,6 +290,13 @@ function PronosContent({ refreshKey = 0 }) {
     if (!user || !journee) return
     if (citrouilleObligatoire && !citrouilleMauditeMatch) {
       setError('Choisis obligatoirement ton match Citrouille maudite pour valider la J9.')
+      return
+    }
+    if (citrouilleMauditeMatch && (
+      jackpotMatches.includes(citrouilleMauditeMatch)
+      || dcSelections.some(d => d.matchKey === citrouilleMauditeMatch)
+    )) {
+      setError('La Citrouille maudite doit être seule sur son match : retire le Jackpot ou la Double Chance pour valider.')
       return
     }
     setSaving(true)
@@ -904,8 +915,8 @@ function PronosContent({ refreshKey = 0 }) {
                 {isJP && <span className="pill pill-a" style={{cursor:'pointer'}} onClick={()=>toggleJackpot(key)}>🎰 Jackpot ✕</span>}
                 {isDC && <span className="pill pill-p" style={{cursor:'pointer'}} onClick={()=>toggleDcMatch(key)}>2️⃣ DC ✕</span>}
                 {citrouilleObligatoire && (
-                  <button type="button" disabled={isJP && !isCitrouille} onClick={()=>setCitrouilleMauditeMatch(isCitrouille ? null : key)} style={{padding:'4px 8px',borderRadius:999,border:`1px solid ${isCitrouille?'#FB923C':'rgba(249,115,22,.35)'}`,background:isCitrouille?'rgba(249,115,22,.22)':'rgba(249,115,22,.06)',color:isCitrouille?'#FDBA74':'#FB923C',fontSize:10,fontWeight:900,cursor:isJP&&!isCitrouille?'not-allowed':'pointer',opacity:isJP && !isCitrouille ? .55 : 1}}>
-                    🎃 {isCitrouille ? 'Maudite ✕' : isJP ? 'Jackpot actif' : 'Maudire'}
+                  <button type="button" disabled={(isJP || isDC) && !isCitrouille} onClick={()=>setCitrouilleMauditeMatch(isCitrouille ? null : key)} style={{padding:'4px 8px',borderRadius:999,border:`1px solid ${isCitrouille?'#FB923C':'rgba(249,115,22,.35)'}`,background:isCitrouille?'rgba(249,115,22,.22)':'rgba(249,115,22,.06)',color:isCitrouille?'#FDBA74':'#FB923C',fontSize:10,fontWeight:900,cursor:(isJP||isDC)&&!isCitrouille?'not-allowed':'pointer',opacity:(isJP || isDC) && !isCitrouille ? .55 : 1}}>
+                    🎃 {isCitrouille ? 'Maudite ✕' : isJP ? 'Jackpot actif' : isDC ? 'DC active' : 'Maudire'}
                   </button>
                 )}
                 {isSelectingBonus && !(activeBonus.type==='jackpot' && isJP) && !(activeBonus.type==='dc' && isDC) && (
@@ -972,8 +983,8 @@ function PronosContent({ refreshKey = 0 }) {
               {isJPEuro && <span className="pill pill-a" style={{cursor:'pointer'}} onClick={()=>toggleJackpot('euro')}>🎰 Jackpot ✕</span>}
               {isDCEuro && <span className="pill pill-p" style={{cursor:'pointer'}} onClick={()=>toggleDcMatch('euro')}>2️⃣ DC ✕</span>}
               {citrouilleObligatoire && (
-                <button type="button" disabled={isJPEuro && !isCitrouilleEuro} onClick={()=>setCitrouilleMauditeMatch(isCitrouilleEuro ? null : 'euro')} style={{padding:'4px 8px',borderRadius:999,border:`1px solid ${isCitrouilleEuro?'#FB923C':'rgba(249,115,22,.35)'}`,background:isCitrouilleEuro?'rgba(249,115,22,.22)':'rgba(249,115,22,.06)',color:isCitrouilleEuro?'#FDBA74':'#FB923C',fontSize:10,fontWeight:900,cursor:isJPEuro&&!isCitrouilleEuro?'not-allowed':'pointer',opacity:isJPEuro && !isCitrouilleEuro ? .55 : 1}}>
-                  🎃 {isCitrouilleEuro ? 'Maudite ✕' : isJPEuro ? 'Jackpot actif' : 'Maudire'}
+                <button type="button" disabled={(isJPEuro || isDCEuro) && !isCitrouilleEuro} onClick={()=>setCitrouilleMauditeMatch(isCitrouilleEuro ? null : 'euro')} style={{padding:'4px 8px',borderRadius:999,border:`1px solid ${isCitrouilleEuro?'#FB923C':'rgba(249,115,22,.35)'}`,background:isCitrouilleEuro?'rgba(249,115,22,.22)':'rgba(249,115,22,.06)',color:isCitrouilleEuro?'#FDBA74':'#FB923C',fontSize:10,fontWeight:900,cursor:(isJPEuro||isDCEuro)&&!isCitrouilleEuro?'not-allowed':'pointer',opacity:(isJPEuro || isDCEuro) && !isCitrouilleEuro ? .55 : 1}}>
+                  🎃 {isCitrouilleEuro ? 'Maudite ✕' : isJPEuro ? 'Jackpot actif' : isDCEuro ? 'DC active' : 'Maudire'}
                 </button>
               )}
               {(activeBonus?.type==='jackpot'||activeBonus?.type==='dc') && !(activeBonus.type==='jackpot'&&isJPEuro) && !(activeBonus.type==='dc'&&isDCEuro) && (
