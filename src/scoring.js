@@ -22,7 +22,7 @@ const POINTS = {
   seuilSurprise: 0.25,
   scorerMax: 3,
   citrouilleBonneIssue: 2,
-  citrouilleSurprise: 3,
+  citrouilleSurprise: 4,
   citrouilleMauvaiseIssue: -1,
 };
 

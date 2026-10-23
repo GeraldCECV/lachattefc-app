@@ -304,7 +304,7 @@ function BonusContent({ refreshKey = 0 }) {
                 color: '#FB923C',
                 dim: 'rgba(249,115,22,.10)',
                 border: 'rgba(249,115,22,.42)',
-                desc: 'Obligatoire en J9. Choisis un match classique : bonne issue = 2 pts, surprise = 3 pts, erreur = −1 pt. Ce total remplace les points habituels du match et ne se cumule pas avec le Jackpot.',
+                desc: 'Obligatoire en J9. Choisis un match classique : bonne issue = 2 pts, bonne issue surprise = 4 pts, erreur = −1 pt. Ce total remplace les points habituels du match et ne se cumule ni avec le Jackpot ni avec la Double Chance.',
               },
             ].map(b => (
               <div
