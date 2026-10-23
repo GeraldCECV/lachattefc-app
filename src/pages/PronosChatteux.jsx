@@ -485,8 +485,10 @@ function PronosChatteuxContent({ active = true }) {
     const isLive = res?.status === 'IN_PLAY'
     const isPaused = res?.status === 'PAUSED'
     const isFinished = res?.status === 'FINISHED'
-    const statut = isLive ? '🔴 EN LIVE' : isPaused ? '🟠 MI-TEMPS' : isFinished ? '🟢 TERMINÉ' : '🔵 À VENIR'
-    const couleurStatut = isLive ? '#FF4444' : isPaused ? 'var(--a)' : isFinished ? 'var(--g)' : 'var(--b)'
+    const isPostponed = res?.status === 'POSTPONED'
+    const estNeutralise = res?.neutralise === true
+    const statut = isLive ? '🔴 EN LIVE' : isPaused ? '🟠 MI-TEMPS' : isFinished ? '🟢 TERMINÉ' : isPostponed ? '⚠️ REPORTÉ' : '🔵 À VENIR'
+    const couleurStatut = isLive ? '#FF4444' : isPaused ? 'var(--a)' : isFinished ? 'var(--g)' : isPostponed ? 'var(--r)' : 'var(--b)'
     const palettes = {
       '1': { couleur:'var(--b)', fond:'rgba(96,165,250,.10)', actif:'rgba(96,165,250,.24)' },
       'N': { couleur:'var(--a)', fond:'rgba(251,191,36,.09)', actif:'rgba(251,191,36,.22)' },
@@ -564,6 +566,12 @@ function PronosChatteuxContent({ active = true }) {
             <strong style={{ maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', fontSize:11, textTransform:'uppercase' }}>{translateTeam(match.ext)}</strong>
           </div>
         </div>
+
+        {estNeutralise && (
+          <div style={{ padding:'8px 10px', textAlign:'center', borderBottom:'1px solid rgba(248,68,68,.26)', background:'rgba(248,68,68,.08)', color:'var(--r)', fontSize:10, fontWeight:900 }}>
+            Match neutralisé · 0 point pour tous
+          </div>
+        )}
 
         {evenements.length > 0 && (
           <div style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) 1px minmax(0,1fr)', gap:7, padding:'8px 9px', borderBottom:'1px solid var(--bd)', background:'rgba(0,0,0,.13)' }}>
@@ -867,6 +875,7 @@ function PronosChatteuxContent({ active = true }) {
           const isPaused = res?.status === 'PAUSED'
           const isFinished = res?.status === 'FINISHED'
           const isPostponed = res?.status === 'POSTPONED'
+          const estNeutralise = res?.neutralise === true
           const estMatchScorer = match.isScorer || match.isMatchScorer || journee.scorerOnly
           const monProno = profil?.id ? getProno(profil.id, match.key) : null
           const paletteMonProno = monProno
@@ -991,7 +1000,7 @@ function PronosChatteuxContent({ active = true }) {
                   border:`1px solid ${isLive ? 'rgba(248,68,68,.4)' : isPaused ? 'var(--a-b)' : isFinished ? 'var(--g-b)' : isPostponed ? 'rgba(248,68,68,.4)' : 'rgba(96,165,250,.35)'}`,
                   color:isLive || isPostponed ? '#FF4444' : isPaused ? 'var(--a)' : isFinished ? 'var(--g)' : 'var(--b)',
                 }}>
-                  {isLive ? 'LIVE' : isPaused ? '⏸ MI-TEMPS' : isFinished ? '✓ TERMINÉ' : isPostponed ? '⚠️ REPORTÉ' : '🕐 À VENIR'}
+                  {isLive ? 'LIVE' : isPaused ? '⏸ MI-TEMPS' : isFinished ? '✓ TERMINÉ' : estNeutralise ? '⚠️ REPORTÉ · 0 PT POUR TOUS' : isPostponed ? '⚠️ REPORTÉ' : '🕐 À VENIR'}
                 </div>
 
                 {/* Score et points personnels visibles sans déplier la carte */}
