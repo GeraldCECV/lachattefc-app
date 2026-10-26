@@ -710,7 +710,7 @@ function PronosContent({ refreshKey = 0 }) {
         <div style={{margin:'12px 16px 0',padding:'13px 14px',borderRadius:'var(--R)',background:'linear-gradient(135deg, rgba(249,115,22,.15), rgba(126,34,206,.13))',border:'1px solid rgba(249,115,22,.55)',boxShadow:'0 0 22px rgba(249,115,22,.08)'}}>
           <div style={{fontFamily:'var(--D)',fontSize:18,letterSpacing:'.04em',color:'#FB923C'}}>🎃 Citrouille maudite obligatoire</div>
           <div style={{fontSize:12,color:'var(--tx2)',lineHeight:1.5,marginTop:4}}>
-            Choisis un match classique : bonne issue <strong style={{color:'#FB923C'}}>+2</strong>, surprise <strong style={{color:'#C084FC'}}>+3</strong>, erreur <strong style={{color:'var(--r)'}}>−1</strong>. Le total remplace les points habituels de ce match.
+            Choisis un match classique : bonne issue <strong style={{color:'#FB923C'}}>+2</strong>, surprise <strong style={{color:'#C084FC'}}>+4</strong>, erreur <strong style={{color:'var(--r)'}}>−1</strong>. Le total remplace les points habituels de ce match.
           </div>
           <div style={{fontSize:11,fontWeight:800,color:citrouilleMauditeMatch?'var(--g)':'#FB923C',marginTop:7}}>
             {citrouilleMauditeMatch ? `✅ Sélectionnée : ${matchLabel(citrouilleMauditeMatch)}` : '⚠️ Sélection requise pour valider tes pronos'}
