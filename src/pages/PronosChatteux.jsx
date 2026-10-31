@@ -1289,6 +1289,17 @@ function PronosChatteuxContent({ active = true }) {
           )
         })}
       </div>}
+      <div style={{ textAlign:'center', padding:'18px 12px 8px', fontSize:10, color:'var(--tx3)', opacity:.72 }}>
+        Données Live :{' '}
+        <a
+          href="https://sportscore.com/"
+          target="_blank"
+          rel="dofollow noreferrer"
+          style={{ color:'inherit', fontWeight:800, textDecoration:'none' }}
+        >
+          SportScore
+        </a>
+      </div>
     </div>
   )
 }
