@@ -306,7 +306,11 @@ function PronosChatteuxContent({ active = true }) {
   const getCorrect = (uid, key, isScorer) => {
     const prono = getProno(uid, key)
     const res = journee.resultats?.[key]
-    if (!prono || !res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY' && res.status !== 'PAUSED')) return null
+    if (!prono || !res) return null
+    if (res.neutralise === true) {
+      return res.malusCitrouille === true && pronos[uid]?.citrouilleMauditeMatch === key ? -1 : 0
+    }
+    if (res.status !== 'FINISHED' && res.status !== 'IN_PLAY' && res.status !== 'PAUSED') return null
     const rh = parseInt(res.h), ra = parseInt(res.a)
     if (isScorer || journee.scorerOnly || matchBlocks.find(b => b.key === key)?.isMatchScorer) {
       const [ph, pa] = (prono.val || '').split('-').map(Number)
@@ -569,7 +573,7 @@ function PronosChatteuxContent({ active = true }) {
 
         {estNeutralise && (
           <div style={{ padding:'8px 10px', textAlign:'center', borderBottom:'1px solid rgba(248,68,68,.26)', background:'rgba(248,68,68,.08)', color:'var(--r)', fontSize:10, fontWeight:900 }}>
-            Match neutralisé · 0 point pour tous
+            {res?.malusCitrouille ? 'Match neutralisé · 0 point · Citrouille maudite : −1' : 'Match neutralisé · 0 point pour tous'}
           </div>
         )}
 
@@ -1000,7 +1004,7 @@ function PronosChatteuxContent({ active = true }) {
                   border:`1px solid ${isLive ? 'rgba(248,68,68,.4)' : isPaused ? 'var(--a-b)' : isFinished ? 'var(--g-b)' : isPostponed ? 'rgba(248,68,68,.4)' : 'rgba(96,165,250,.35)'}`,
                   color:isLive || isPostponed ? '#FF4444' : isPaused ? 'var(--a)' : isFinished ? 'var(--g)' : 'var(--b)',
                 }}>
-                  {isLive ? 'LIVE' : isPaused ? '⏸ MI-TEMPS' : isFinished ? '✓ TERMINÉ' : estNeutralise ? '⚠️ REPORTÉ · 0 PT POUR TOUS' : isPostponed ? '⚠️ REPORTÉ' : '🕐 À VENIR'}
+                  {isLive ? 'LIVE' : isPaused ? '⏸ MI-TEMPS' : isFinished ? '✓ TERMINÉ' : estNeutralise ? (res?.malusCitrouille ? '⚠️ REPORTÉ · 0 PT · 🎃 −1' : '⚠️ REPORTÉ · 0 PT POUR TOUS') : isPostponed ? '⚠️ REPORTÉ' : '🕐 À VENIR'}
                 </div>
 
                 {/* Score et points personnels visibles sans déplier la carte */}
