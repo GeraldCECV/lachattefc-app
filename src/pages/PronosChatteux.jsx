@@ -332,7 +332,11 @@ function PronosChatteuxContent({ active = true }) {
     if (journee.statut !== 'resultats' && journee.statut !== 'fermee' && !deadlinePassed) return null
     const prono = getProno(uid, key)
     const res = journee.resultats?.[key]
-    if (!prono || !res || (res.status !== 'FINISHED' && res.status !== 'IN_PLAY' && res.status !== 'PAUSED')) return null
+    if (!prono || !res) return null
+    if (res.neutralise === true) {
+      return res.malusCitrouille === true && pronos[uid]?.citrouilleMauditeMatch === key ? -1 : 0
+    }
+    if (res.status !== 'FINISHED' && res.status !== 'IN_PLAY' && res.status !== 'PAUSED') return null
     const rh = parseInt(res.h), ra = parseInt(res.a)
     const p = pronos[uid]
     const allTotal = Object.keys(pronos).length
@@ -367,6 +371,7 @@ function PronosChatteuxContent({ active = true }) {
   const isSurprise = (uid, key, isScorer) => {
     const prono = getProno(uid, key)
     if (!prono?.val || prono.isMissile) return false
+    if (journee.resultats?.[key]?.neutralise === true) return false
 
     const total = Object.keys(pronos).length
     if (total === 0) return false
@@ -403,6 +408,17 @@ function PronosChatteuxContent({ active = true }) {
     if (pts === null) return null
     const p = pronos[uid]
     const prono = getProno(uid, key)
+    const resultat = journee.resultats?.[key]
+    if (resultat?.neutralise === true) {
+      const citrouilleMalus = resultat.malusCitrouille === true && p?.citrouilleMauditeMatch === key
+      return {
+        points: pts,
+        raison: citrouilleMalus
+          ? 'Match reporté : Citrouille maudite −1 point'
+          : 'Match reporté : 0 point',
+        repartition: null,
+      }
+    }
     const estScorer = isScorer || journee.scorerOnly || matchBlocks.find(b => b.key === key)?.isMatchScorer
     const jackpot = !estScorer && isJackpotOn(p, key)
     const citrouille = !estScorer && isCitrouilleMauditeOn(p, key)
