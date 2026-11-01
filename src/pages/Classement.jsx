@@ -95,6 +95,12 @@ function ClassementContent() {
         matches.forEach((m, i) => {
           const key = `l1_${i}`;
           const res = resultats[key];
+          if (res?.neutralise === true) {
+            if (res.malusCitrouille === true && p?.citrouilleMauditeMatch === key) {
+              pointsParJoueur[uid] = (pointsParJoueur[uid] || 0) - 1;
+            }
+            return;
+          }
           if (
             !res ||
             (res.status !== 'FINISHED' && res.status !== 'IN_PLAY' && res.status !== 'PAUSED') ||
