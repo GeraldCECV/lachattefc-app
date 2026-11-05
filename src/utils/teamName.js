@@ -20,6 +20,14 @@ export const PAYS_FR = {
 }
 
 const CLUBS = {
+  barca: 'FC Barcelone',
+  fcb: 'FC Barcelone',
+  barcelona: 'FC Barcelone',
+  barcelone: 'FC Barcelone',
+  'fc barca': 'FC Barcelone',
+  'fc barcelona': 'FC Barcelone',
+  'fc barcelone': 'FC Barcelone',
+  'barcelona fc': 'FC Barcelone',
   atleti: 'Atlético Madrid',
   atletico: 'Atlético Madrid',
   'atletico madrid': 'Atlético Madrid',

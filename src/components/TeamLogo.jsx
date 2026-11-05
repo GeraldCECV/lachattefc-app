@@ -107,8 +107,12 @@ const LOCAL_LOGOS = {
   // La Liga — fichiers locaux (10 premiers intégrés)
   barcelona: '/logos/barcelona.png',
   barcelone: '/logos/barcelona.png',
+  barca: '/logos/barcelona.png',
+  fcb: '/logos/barcelona.png',
   'fc barcelona': '/logos/barcelona.png',
   'fc barcelone': '/logos/barcelona.png',
+  'fc barca': '/logos/barcelona.png',
+  'barcelona fc': '/logos/barcelona.png',
   'atletico madrid': '/logos/atletico-madrid.png',
   atleti: '/logos/atletico-madrid.png',
   atletico: '/logos/atletico-madrid.png',
