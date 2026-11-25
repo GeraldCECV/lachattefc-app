@@ -94,8 +94,10 @@ const TABS = [
 ];
 
 export default function AppShell() {
-  const [tab, setTab] = useState('classement');
-  const [ongletsVisites, setOngletsVisites] = useState(() => new Set(['classement']));
+  const demoNoel = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    && new URLSearchParams(window.location.search).get('demo') === 'noel';
+  const [tab, setTab] = useState(demoNoel ? 'bonus' : 'classement');
+  const [ongletsVisites, setOngletsVisites] = useState(() => new Set([demoNoel ? 'bonus' : 'classement']));
   const [actualisations, setActualisations] = useState({});
   const changerOnglet = (id) => {
     setOngletsVisites((precedents) => {
@@ -186,6 +188,17 @@ export default function AppShell() {
         <span className='hw-decor hw-candle-one'>🕯️</span>
         <span className='hw-decor hw-candy'>🍬</span>
         <span className='hw-decor hw-bat-two'>🦇</span>
+      </div>
+      <div className='noel-decor' aria-hidden='true'>
+        <img className='noel-art-frame' src='/christmas/christmas-frame-v1.png' alt='' />
+        <div className='noel-garland'>{Array.from({ length: 18 }, (_, i) => <i key={i} />)}</div>
+        <img className='noel-sleigh' src='/christmas/santa-sleigh-v1.png' alt='' />
+        <span className='noel-star'>⭐</span>
+        <div className='noel-snowfall'>
+          {Array.from({ length: 42 }, (_, i) => (
+            <i key={i} style={{ '--snow-x': `${(i * 37) % 100}%`, '--snow-delay': `${-(i % 12) * .58}s`, '--snow-speed': `${6 + (i % 7)}s`, '--snow-size': `${2 + (i % 5)}px` }} />
+          ))}
+        </div>
       </div>
       <div className='screen-content'>
         {TABS.filter(({ id }) => ongletsVisites.has(id)).map(({ id }) => (
