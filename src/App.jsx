@@ -14,8 +14,8 @@ export const useUser = () => useContext(UserContext);
 
 const attendre = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function themeHalloweenActif(config, maintenant = new Date()) {
-  if (!config?.active || config.theme !== 'halloween') return false;
+function themeSaisonnierActif(config, theme, maintenant = new Date()) {
+  if (!config?.active || config.theme !== theme) return false;
   const debut = config.startsAt?.toDate?.() || null;
   const fin = config.endsAt?.toDate?.() || null;
   if (debut && maintenant < debut) return false;
@@ -53,18 +53,25 @@ export default function App() {
   const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
-    const halloweenPreview = new URLSearchParams(window.location.search).get('theme') === 'halloween';
+    const themePreview = new URLSearchParams(window.location.search).get('theme');
+    const halloweenPreview = themePreview === 'halloween';
+    const noelPreview = themePreview === 'noel';
     let config = null;
     let timer = null;
 
     const appliquerTheme = () => {
-      const halloween = halloweenPreview || themeHalloweenActif(config);
+      const noel = noelPreview || (!halloweenPreview && themeSaisonnierActif(config, 'noel'));
+      const halloween = !noel && (halloweenPreview || themeSaisonnierActif(config, 'halloween'));
       document.documentElement.classList.toggle('halloween-preview', halloween);
+      document.documentElement.classList.toggle('noel-preview', noel);
     };
 
     appliquerTheme();
     if (!user) {
-      return () => document.documentElement.classList.remove('halloween-preview');
+      return () => {
+        document.documentElement.classList.remove('halloween-preview');
+        document.documentElement.classList.remove('noel-preview');
+      };
     }
     const unsub = onSnapshot(
       doc(db, 'configuration', 'theme-saisonnier'),
@@ -83,6 +90,7 @@ export default function App() {
       unsub();
       if (timer) window.clearInterval(timer);
       document.documentElement.classList.remove('halloween-preview');
+      document.documentElement.classList.remove('noel-preview');
     };
   }, [user]);
 
