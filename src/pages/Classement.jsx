@@ -31,12 +31,17 @@ const getC = (i) => COLORS[i % COLORS.length];
 
 function ClassementContent() {
   const { profil } = useUser();
-  const [tab, setTab] = useState('journee');
+  const [ongletChoisi, setTab] = useState(null);
   const [historiqueList, setHistoriqueList] = useState([]);
   const [loadingHistorique, setLoadingHistorique] = useState(false);
   const [selectedHistJ, setSelectedHistJ] = useState(null);
   const [joueursMap, setJoueursMap] = useState({});
   const [journee, setJournee] = useState(null);
+  const journeeCommencee = journee?.statut === 'resultats' ||
+    Object.values(journee?.resultats || {}).some(resultat =>
+      ['IN_PLAY', 'PAUSED', 'FINISHED'].includes(resultat?.status)
+    );
+  const tab = ongletChoisi ?? (journeeCommencee ? 'journee' : 'general');
   const [classJ, setClassJ] = useState([]);
   const [classG, setClassG] = useState([]);
   const [loading, setLoading] = useState(true);
