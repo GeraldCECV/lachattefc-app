@@ -13,7 +13,7 @@ import {
   joueurADevineIssue,
 } from '../scoring';
 
-const BAREME = [24, 16, 12, 9, 7, 5, 4, 3];
+import { GAINS_BOXING_DAY, GAINS_JOURNEE } from '../firebase/constants';
 
 const COLORS = [
   ['rgba(255,215,0,.14)', '#FFD700'],
@@ -56,7 +56,9 @@ function ClassementContent() {
     const recalc = () => {
       if (!journeeData) return;
       const data = journeeData;
-      const matches = data.matchesL1 || [];
+      const boxing = data.type === 'boxing-day';
+      const matches = (boxing ? data.matchesBoxing : data.matchesL1) || [];
+      const champPronos = boxing ? 'matchesBoxing' : 'matchesL1';
       const resultats = data.resultats || {};
       const penalites = data.penalites || {};
       const pointsParJoueur = {};
@@ -93,7 +95,7 @@ function ClassementContent() {
       Object.keys(pronosMap).forEach((uid) => {
         const p = pronosAvecMissiles[uid];
         matches.forEach((m, i) => {
-          const key = `l1_${i}`;
+          const key = `${boxing ? 'boxing' : 'l1'}_${i}`;
           const res = resultats[key];
           if (res?.neutralise === true) {
             if (res.malusCitrouille === true && p?.citrouilleMauditeMatch === key) {
@@ -109,12 +111,12 @@ function ClassementContent() {
             return;
           const rh = parseInt(res.h),
             ra = parseInt(res.a);
-          const prono = p?.matchesL1?.[i];
+          const prono = p?.[champPronos]?.[i];
           if (!prono) return;
-          const isScorer = data.scorerOnly || m.scorer;
+          const isScorer = boxing || data.scorerOnly || m.scorer;
           if (isScorer) {
             const bonCountScorer = Object.values(pronosAvecMissiles).filter((pp) => {
-              const pr = pp?.matchesL1?.[i];
+              const pr = pp?.[champPronos]?.[i];
               if (!pr || !/^\d+-\d+$/.test(pr)) return false;
               const [ph, pa] = pr.split('-').map(Number);
               return issueMatch(ph, pa) === issueMatch(rh, ra);
@@ -225,7 +227,8 @@ function ClassementContent() {
           let j = i;
           while (j < classement.length && classement[j][1] === pts) j++;
           let gainPartage = 0;
-          for (let r = i + 1; r <= j; r++) gainPartage += BAREME[r - 1] || 0;
+          const bareme = data.type === 'boxing-day' ? GAINS_BOXING_DAY : GAINS_JOURNEE;
+          for (let r = i + 1; r <= j; r++) gainPartage += bareme[r] || 0;
           const gainParJoueur = Math.round((gainPartage / (j - i)) * 100) / 100;
           for (let k = i; k < j; k++) gains[classement[k][0]] = gainParJoueur;
           i = j;
