@@ -29,6 +29,8 @@ export const BONUS_DEPART = {
 };
 
 // Barème des gains par journée (règlement Article 8) — 16 joueurs, pot 80€
+export const GAINS_BOXING_DAY = { 1: 26, 2: 20, 3: 15, 4: 11, 5: 8 };
+
 export const GAINS_JOURNEE = {
   1: 24,
   2: 16,
