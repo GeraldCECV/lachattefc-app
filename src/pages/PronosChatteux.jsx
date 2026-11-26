@@ -10,7 +10,7 @@ import { useUser } from '../App'
 import TeamLogo from '../components/TeamLogo'
 import JerseyAvatar from '../components/JerseyAvatar'
 import ErrorBoundary from '../components/ErrorBoundary'
-import { GAINS_JOURNEE } from '../firebase/constants'
+import { GAINS_BOXING_DAY, GAINS_JOURNEE } from '../firebase/constants'
 import { LIVE_ORDER, trierMatchsLive } from '../utils/liveMatchOrder'
 import { coteEvenement, libelleMinuteEvenement } from '../utils/matchEvents'
 
@@ -283,12 +283,17 @@ function PronosChatteuxContent({ active = true }) {
   const matchBlocks = trierMatchsLive([
     scorer?.dom ? { key:'scorer', dom: scorer.dom, ext: scorer.ext, jour: scorer.jour, heure: scorer.heure, utcDate: scorer.utcDate, isScorer: true, label: '⚽ Match Scorer', ordreInitial: -1 } : null,
     ...matchesMain.map((m, i) => ({ key: `l1_${i}`, dom: m.dom, ext: m.ext, jour: m.jour, heure: m.heure, utcDate: m.utcDate, label: `Match ${i+1}`, isMatchScorer: m.scorer === true, ordreInitial: i })),
+    ...(journee.matchesBoxing || []).map((m, i) => ({ ...m, key: `boxing_${i}`, label: `Match ${i + 1}`, isScorer: true, ordreInitial: i })),
     euro ? { key:'euro', dom: euro.dom, ext: euro.ext, jour: euro.jour, heure: euro.heure, utcDate: euro.utcDate, isEuro: true, label: '🌍 Affiche Européenne', ordreInitial: matchesMain.length + 1 } : null,
   ].filter(Boolean), journee.resultats, ordreMatchs)
 
   const getProno = (uid, key) => {
     const p = pronos[uid]
     if (!p) return null
+    if (key.startsWith('boxing_')) {
+      const val = p.matchesBoxing?.[Number(key.slice(7))]
+      return val ? { val } : null
+    }
     const missile = missiles.find(m => m.cible === uid && m.matchKey === key && m.applique)
     if (missile) return { val: missile.pronoImpose, isMissile: true }
     // DC active sur ce match : toujours afficher les 2 choix, même si un prono
@@ -346,8 +351,7 @@ function PronosChatteuxContent({ active = true }) {
       // si ≤25% des joueurs ont trouvé — l'ancienne version locale ne le
       // faisait pas et sous-affichait certains points en live.
       const bonCountScorer = Object.keys(pronos).filter(u => {
-        const pu = pronos[u]
-        const pr = key === 'scorer' ? pu?.matchScorer : pu?.matchesL1?.[parseInt(key.replace('l1_', ''))]
+        const pr = getProno(u, key)?.val
         if (!pr || !/^\d+-\d+$/.test(pr)) return false
         const [ph, pa] = pr.split('-').map(Number)
         return issueMatch(ph, pa) === issueMatch(rh, ra)
@@ -694,13 +698,14 @@ function PronosChatteuxContent({ active = true }) {
   })).sort((a, b) => b.pointsProvisoires - a.pointsProvisoires || (a.nom || '').localeCompare(b.nom || ''))
 
   const gainsProvisoires = {}
+  const baremeGains = journee.type === 'boxing-day' ? GAINS_BOXING_DAY : GAINS_JOURNEE
   if (calculProvisoireActif) {
     let index = 0
     while (index < pointsProvisoires.length) {
       let finEgalite = index + 1
       while (finEgalite < pointsProvisoires.length && pointsProvisoires[finEgalite].pointsProvisoires === pointsProvisoires[index].pointsProvisoires) finEgalite++
       let enveloppe = 0
-      for (let place = index + 1; place <= finEgalite; place++) enveloppe += GAINS_JOURNEE[place] || 0
+      for (let place = index + 1; place <= finEgalite; place++) enveloppe += baremeGains[place] || 0
       const gain = Math.round((enveloppe / (finEgalite - index)) * 100) / 100
       for (let position = index; position < finEgalite; position++) gainsProvisoires[pointsProvisoires[position].id] = gain
       index = finEgalite
